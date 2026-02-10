@@ -1,22 +1,33 @@
-import { useEffect, useState } from "react";
-import { api } from "./api";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-export default function App() {
-  const [msg, setMsg] = useState("Loading...");
+// importing pages
+import Home from "./pages/Home"; // home page
+import SignUp from "./pages/SignUp"; // sign up page
+import Login from "./pages/Login"; // login page
 
-  useEffect(() => {
-    api.get("/health/")
-      .then((res) => setMsg(res.data.message))
-      .catch((err) => {
-        console.error(err);
-        setMsg("API not reachable");
-      });
-  }, []);
 
+// import components
+import Header from "./components/Header.tsx"; // header component for landing page navbar
+import Footer from "./components/Footer.tsx"; // footer component for footer content
+
+// placeholder for future routes
+const Dashboard = () => <div>Student Dashboard Page</div>;
+
+function App() {
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Library Central</h1>
-      <p>{msg}</p>
-    </div>
+    <Router>
+      <Header />
+      <main className="flex-grow-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/dashboard" element={<Dashboard />} /> {/* Placeholder route for student dashboard */}
+        </Routes>
+      </main>
+      <Footer />
+    </Router>
   );
 }
+
+export default App;
