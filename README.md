@@ -62,9 +62,17 @@ In new terminal with Backend still running...
     # Install dependencies
     npm install
 
-    # Set up environment variables
-    # Create a .env file and add: 
-    # VITE_API_BASE_URL=http://127.0.0.1:8000/api/
+    # Install packages: react-bootstrap (components) + bootstrap (CSS styles)
+    npm install react-bootstrap bootstrap
+    # documentation found at : https://react-bootstrap.netlify.app/
+
+    # Install react router: This is standard library React uses to handle navigation
+    npm install react-router-dom
+
+    # Note: CSS is imported to our apps entry point (main.tsx)
+    # via this line at the top, above our other CSS imports
+    # import 'bootstrap/dist/css/bootstrap.min.css';
+
 
     # Start development server
     npm run dev
@@ -80,6 +88,19 @@ Frontend UI runs at: http://localhost:5173
     library/
     |-- backend/    # Django REST API (Data & Logic)
     |-- frontend/   # React App (User Interface)
+    |----|--src/
+    |-------|--components/
+    |----------|--Header.tsx
+    |----------|--Header.css
+    |----------|--Footer.tsx
+    |----------|--Footer.css
+    |-------|--pages/
+    |----------|--Home.tsx
+    |----------|--Home.css
+    |----------|--SignUp.tsx
+    |----------|--SignUp.css
+    |----------|--Login.tsx
+    |----------|--Login.css
     |__ README.md
 
 
