@@ -1,0 +1,14 @@
+.footer-custom {
+  background-color: #3f4346; /* dark  background */
+  color: white;
+  border-top: 3px solid #f05023; /* brand orange as an accent line */
+}
+
+.footer-custom a {
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.footer-custom a:hover {
+  color: #ffffff !important; /* white on hover */
+}

@@ -1,0 +1,31 @@
+/* custom navbar color */
+.custom-navbar {
+  background-color: #cc4514 !important;
+  padding: 0.8rem 1rem;
+}
+
+/* styling the links (Home, Login, etc.) *normal mode* */
+.custom-navbar .nav-link {
+  color: rgba(173, 170, 170, 0.9) !important;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  margin-left: 15px;
+}
+
+/* change color when the user hovers over a link */
+.custom-navbar .nav-link:hover {
+  color: #ffffff !important; /*  white on hover */
+  text-decoration: underline;
+}
+
+/* styling for the 'Active' link (the page the user is currently on) */
+.custom-navbar .nav-link.active {
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+/* adjust the brand/logo color 'LibraryCentral' */
+.custom-navbar .navbar-brand {
+  color: #ffffff !important;
+  font-size: 1.4rem;
+}
