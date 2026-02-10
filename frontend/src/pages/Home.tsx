@@ -1,0 +1,35 @@
+import { Container, Row, Col, Button } from 'react-bootstrap';
+//import { Link } from 'react-router-dom';
+import './Home.css'; // <--- Import your new styles!
+
+const Home = () => {
+  return (
+    <div className="home-page">
+      {/* we apply the .hero-section class here this class is the backgorund library image */}
+      <section className="hero-section text-center">
+        <Container>
+          <Row className="justify-content-center">
+            <Col md={10} lg={8}>
+              <h1 className="display-3 fw-bold mb-3">Library Central</h1>
+              <p className="lead mb-5 px-md-5">
+                The unified hub for your campus life. Manage study room reservations, 
+                track equipment checkouts, and view your student dashboard.
+              </p>
+              <div className="d-flex gap-3 justify-content-center">
+                <Button onClick={() => window.location.href = '/signup'} variant="primary" size="lg" 
+                        style={{backgroundColor: '#f05023', borderColor: '#f05023'}}>
+                  Sign Up
+                </Button>
+                <Button onClick={() => window.location.href = '/login'} variant="outline-light" size="lg">
+                  Log In
+                </Button>
+              </div>
+            </Col>
+          </Row>
+        </Container>
+      </section>
+    </div>
+  );
+};
+
+export default Home;

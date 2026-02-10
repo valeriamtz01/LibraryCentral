@@ -1,0 +1,19 @@
+.hero-section {
+  /* point to library background image */
+  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+                    url('../assets/library-bg.jpg');
+  
+  /* adds as page background */
+  background-size: cover;      /* scales the image to fill the whole area */
+  background-position: center; /* centers the image */
+  background-repeat: no-repeat;
+  
+  /* sets height */
+  min-height: calc(100vh - 56px);  /* set to take up 100% of the screen height minus navbar height so its not covered by navbar*/
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;  /* so text stands out against the image */
+  margin: 0;
+}
