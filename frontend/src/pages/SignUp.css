@@ -17,3 +17,44 @@
   color: white;                /* ensures text stands out against the image */
   margin: 0;
 }
+
+.signup-card {
+  background: rgba(255, 255, 255, 0.95);
+  color: #111;
+  padding: 0px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+
+  margin-left: 70px;
+  margin-top: 75px;
+  margin-bottom: 110px;
+}
+
+/* h3 */
+.signup-card h3 {
+  margin-bottom: 16px;
+  margin-top: 0px;
+  padding-top: 0px;
+}
+
+/* forms */
+.login-form .form-group,
+.signup-card .form-group {
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+/* labels */
+.signup-card .form-control {
+  height: 42px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.signup-card label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
