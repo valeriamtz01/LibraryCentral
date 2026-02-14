@@ -1,8 +1,7 @@
 import { Container, Row, Col, Button, Card, Form } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import './SignUp.css'; // importing customized css styles --> we have hero-section for background image here and can add more styles as needed
-
-
+import Footer from "../components/Footer";
 
 const SignUp = () => {
   return (
@@ -80,6 +79,7 @@ const SignUp = () => {
           </Row>  
         </Container>
       </section>
+      <Footer disFixed /> {/* footer only for signup page to ensure footer is static*/}
     </div>
   );
 };

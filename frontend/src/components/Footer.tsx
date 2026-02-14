@@ -1,9 +1,15 @@
 import { Container, Row, Col } from 'react-bootstrap';
 import './Footer.css'; // importing footer custom styles 
 
-const Footer = () => {
+
+//properties for footer
+interface FooterProps {
+  disFixed?: boolean; // for the signup page, if true=static
+}
+
+const Footer = ({ disFixed }: FooterProps) => {
   return (
-    <footer className="footer-custom fixed-bottom py-3">
+    <footer className={`footer-custom py-3 ${disFixed ? 'footer-not-fixed' : 'footer-fixed'}`}>
       <Container>
         <Row className="align-items-center">
           <Col md={6} className="text-center text-md-start">

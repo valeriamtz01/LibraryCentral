@@ -13,9 +13,14 @@
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* starting at top */
   color: white;                /* ensures text stands out against the image */
   margin: 0;
+
+  padding-top: 100px;
+  flex-direction: column;
+  padding-left: 45px;
+  padding-bottom: 30px;
 }
 
 .signup-card {
@@ -24,37 +29,68 @@
   padding: 0px;
   border-radius: 8px;
   width: 100%;
-  max-width: 420px;
+  max-width: 450px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.35);
 
-  margin-left: 70px;
-  margin-top: 75px;
-  margin-bottom: 110px;
+  margin: 0 auto;
+  padding-left: 0px;
+  padding-right:0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
 }
+
+
+.signup-card .text-center.mb-4 {
+  margin-bottom: 8px;
+  margin-top: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
 
 /* h3 */
 .signup-card h3 {
-  margin-bottom: 16px;
+  margin-bottom: 0px;
   margin-top: 0px;
+  padding-top: 0px;
+  font-size: 2.0 rem;
+  padding-bottom: 0px;
+}
+
+.signup-card p.text-muted {
+  margin-top: 0;
+  margin-bottom: 0px;
+  font-size: 0.76rem;
+  padding-bottom: 0px;
+}
+
+.signup-card .form-group {
+  margin-bottom: 6px;
+  padding-bottom: 0px;
   padding-top: 0px;
 }
 
-/* forms */
-.login-form .form-group,
-.signup-card .form-group {
-  text-align: left;
-  margin-bottom: 12px;
-}
 
-/* labels */
+/* labels inside the white box */
 .signup-card .form-control {
-  height: 42px;
+  height: 33px;
   border-radius: 4px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  padding-bottom: 0px;
+  padding-top: 0px;
 }
 
 .signup-card label {
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: 500;
+  font-size: 0.85rem;
+  margin-bottom: 0px;
+}
+
+.signup-card .d-grid {
+  margin-top: 6px;
+}
+
+.signup-card .text-center.mt-3 {
+  margin-top: 6px;
 }
 

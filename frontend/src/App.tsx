@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation} from "react-router-dom";
 
 // importing pages
 import Home from "./pages/Home"; // home page
@@ -13,9 +13,13 @@ import Footer from "./components/Footer.tsx"; // footer component for footer con
 // placeholder for future routes
 const Dashboard = () => <div>Student Dashboard Page</div>;
 
-function App() {
+// created a wrapper component to access useLocation (this can't be usde inside App)
+function AppWrapper() {
+  const location = useLocation();
+  const hideFooter = location.pathname === '/signup'; // hiding footer for signup because (since renders inside signup.tsx)
+
   return (
-    <Router>
+    <>
       <Header />
       <main className="flex-grow-1">
         <Routes>
@@ -25,9 +29,16 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} /> {/* Placeholder route for student dashboard */}
         </Routes>
       </main>
-      <Footer />
-    </Router>
+      {!hideFooter && <Footer />}
+    </>
   );
 }
 
+function App() {
+  return (
+    <Router>
+      <AppWrapper />
+    </Router>
+  )
+}
 export default App;
