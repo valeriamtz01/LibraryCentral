@@ -12,3 +12,17 @@
 .footer-custom a:hover {
   color: #ffffff !important; /* white on hover */
 }
+
+/* this is the fixed footer for all pages */
+.footer-fixed {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  left: 0;
+}
+
+/* static footer only for signup */
+.footer-not-fixed {
+  position: static;
+  width: 100%;
+}

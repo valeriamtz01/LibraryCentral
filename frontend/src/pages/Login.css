@@ -17,3 +17,36 @@
   color: white;                /* ensures text stands out against the image */
   margin: 0;
 }
+/*main login card container*/
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  color: #111;
+  padding: 28px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+/*login card style*/
+.login-card h2 {
+  margin-bottom: 16px;
+}
+/*labels and input fields*/
+.login-form .form-group {
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.login-form label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.login-form .form-control {
+  height: 42px;
+}
+/*error message styling*/
+.alert-danger {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
