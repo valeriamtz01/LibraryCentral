@@ -14,12 +14,13 @@ class RoomSerializer(serializers.ModelSerializer):
     # read-only "extra" field pulled from the related campus object
     campus_code = serializers.CharField(source="campus.code", read_only=True)
 
-   class Meta:
+    class Meta:
         model = Room
         fields = [
             "id", "campus", "campus_code", "name", "capacity", "location_text",
             "accessible", "has_whiteboard", "has_monitor", "has_power", "is_active"
         ]
+
 class ReservationSerializer(serializers.ModelSerializer):
     #Automatically attaches the logged-in user (request.user), validates time ranges, prevents overlapping reservations
     #CurrentUserDefault() fills it from request user auto
@@ -70,7 +71,7 @@ class EquipmentItemSerializer(serializers.ModelSerializer):
 
 class CheckoutSerializer(serializers.ModelSerializer):
     #Automatically attaches the logged-in users, provides is_returned flag, prevents double checkout 
-     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     # ReadOnlyField: included in responses, ignored in requests
     is_returned = serializers.ReadOnlyField()

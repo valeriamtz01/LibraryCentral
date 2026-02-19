@@ -126,7 +126,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # - Require users to be logged in for all endpoints unless a view overrides with AllowAny
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "api.authentication.MicrosoftAuthentication",
+       "api.authentication.MicrosoftAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
