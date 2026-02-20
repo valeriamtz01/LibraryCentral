@@ -74,7 +74,7 @@ const SignUp = () => {
       <Header />
       <main className="flex-grow-1 sign-up-page">
         <section className="hero-section">
-          <Container className = 'px-0 d-flex justify-content-center'>
+          <Container className = 'px-0 pt-5 d-flex justify-content-center'>
             <Row className="justify-content-center w-100"> {/* this centers the form horizontally */}
               <Col sm={10} md={8} lg={5} > {/* this sets the width of the form on medium and large screens */}
               
