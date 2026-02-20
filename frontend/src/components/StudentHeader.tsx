@@ -6,7 +6,7 @@ const StudentHeader = () => {
   const location = useLocation();
 
   return (
-    <Navbar expand="lg" className="student-navbar shadow-sm">
+    <Navbar fixed="top" expand="lg" className="student-navbar shadow-sm">
       <Container>
         <Navbar.Brand as={Link} to="/dashboard" className="fw-bold">
           LC <span style={{ opacity: 0.8 }}>Portal</span>
@@ -19,8 +19,8 @@ const StudentHeader = () => {
             <Nav.Link as={Link} to="/dashboard" active={location.pathname === '/dashboard'}>
               Dashboard
             </Nav.Link>
-            <Nav.Link as={Link} to="/rooms" active={location.pathname === '/rooms'}>
-              Study Rooms
+            <Nav.Link as={Link} to="/study-spaces" active={location.pathname === '/study-spaces'}>
+              Study Spaces
             </Nav.Link>
             <Nav.Link as={Link} to="/equipment" active={location.pathname === '/equipment'}>
               Equipment
