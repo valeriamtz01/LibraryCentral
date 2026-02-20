@@ -1,10 +1,13 @@
 // this is the main dashboard page for students, it will show a summary of their activity (i.e. active reservations, equipment loans, etc.) and provide links to the different sections of the dashboard (i.e. room reservations, equipment loans, etc.)
 import { useState } from 'react';
 import { Container, Row, Col, Card, Button, ListGroup, Badge } from 'react-bootstrap'; // list group will be used to show a list of upcoming reservations and loans, badge will be used to show the number of active reservations and loans
+import { useNavigate } from 'react-router-dom'; // we will use navigate to redirect users to the room reservation and equipment inventory pages when they click the buttons on the dashboard summary cards, this is a better user experience than just showing them a summary without a clear cta
 import StudentHeader from '../components/StudentHeader'; // importing the student header which has the navbar for the dashboard and related pages --> finishing this later, 
 import Footer from '../components/Footer';
 
 const Dashboard = () => {
+  const navigate = useNavigate(); // react-router-dom hook for navigation to other pages using buttons from the dashboard
+  
   // initializing state with 0 to reflect that a new user starts with no activity.
   // we explicitly show "0" rather than hiding the section to provide clear feedback to the user about their current status and encourage them to engage with the library's resources
   const [activeReservations, setActiveReservations] = useState(0); // this will eventually be populated with data from the backend API to show the user's current active room reservations. starting with 0 for new users.
@@ -41,7 +44,7 @@ const Dashboard = () => {
                     ) : (
                       <p>You have scheduled sessions.</p>
                     )}
-                    <Button variant="outline-primary" size="sm">Book a Room</Button>
+                    <Button variant="outline-primary" size="sm" onClick={() => navigate('/rooms')}>Book a Room</Button>
                   </div>
                 </Card.Body>
               </Card>
@@ -67,7 +70,7 @@ const Dashboard = () => {
                     ) : (
                       <p>Check your return dates.</p>
                     )}
-                    <Button variant="outline-success" size="sm">View Inventory</Button>
+                    <Button variant="outline-success" size="sm" onClick={() => navigate('/equipment')}>View Inventory</Button>
                   </div>
                 </Card.Body>
               </Card>
