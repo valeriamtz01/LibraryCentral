@@ -10,11 +10,12 @@ const Dashboard = () => {
   
   // initializing state with 0 to reflect that a new user starts with no activity.
   // we explicitly show "0" rather than hiding the section to provide clear feedback to the user about their current status and encourage them to engage with the library's resources
-  const [activeReservations, setActiveReservations] = useState(0); // this will eventually be populated with data from the backend API to show the user's current active room reservations. starting with 0 for new users.
+  const [activeRooms, setActiveRooms] = useState(0); // this will eventually be populated with data from the backend API to show the user's current active room reservations. starting with 0 for new users
+  const [activeComputers, setActiveComputers] = useState(0); // this will eventually be populated with data from the backend API to show the user's current active computer reservations. starting with 0 for new users
   const [equipmentLoans, setEquipmentLoans] = useState(0); // likewise, this will be populated with data from the backend API to show the user's current active equipment loans. starting with 0 for new users.
 
   return (
-    <div className="d-flex flex-column min-vh-100">
+    <div className="d-flex flex-column min-vh-100" style= {{ paddingTop: '56px' }}> {/* paddingTop added to prevent content from being hidden behind the fixed navbar */}
       <StudentHeader />
       <main className="flex-grow-1 dashboard-page">
         <Container className="py-5">
@@ -22,29 +23,38 @@ const Dashboard = () => {
             <h1 className="fw-bold">Student Dashboard</h1>
             <p className="text-muted">Welcome back! Here is your library activity at a glance.</p>
           </header>
-
+{/* 
+****room reservations card no longer needed as we updated to 'Study Spaces' to encompass rooms and computers as planned in key features***
+plan is to have a single 'Study Spaces' card that shows active room and computer reservations with separate badges for each, this simplifies the dashboard and provides a clearer overview of the user's study space activity
+it will contain info about upcoming reservations and a cta button to book a new space, this encourages user engagement and makes it easy for them to manage their study space reservations directly from the dashboard
+later on once reservations are implemented, we can add a list group below the summary info to show details of upcoming reservations (e.g. date, time, location) for both rooms and computers, this provides users with 
+quick access to their reservation details without having to navigate to a separate page
+*/}
           <Row className="g-4">
-            {/* room reservations summary card */}
+            {/* study spaces summary card */}
             <Col lg={6}>
-              <Card className="h-100 shadow-sm border-0">
+              <Card className="h-100 shadow-lg border-0 study-spaces-card">
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-start">
                     <div>
-                      <h3 className="h5 fw-bold">Room Reservations</h3>
+                      <h3 className="h5 fw-bold">Study Spaces</h3>
                       <p className="text-muted small">Your upcoming study sessions.</p>
                     </div>
-                    <Badge bg={activeReservations > 0 ? "primary" : "secondary"} pill>
-                      {activeReservations} Active
+                    <Badge bg={activeRooms > 0 ? "primary" : "secondary"} pill>
+                      {activeRooms} Rooms Active
+                    </Badge>
+                    <Badge bg={activeComputers > 0 ? "primary" : "secondary"} pill>
+                      {activeComputers} Computers Active
                     </Badge>
                   </div>
                   
                   <div className="py-4 text-center">
-                    {activeReservations === 0 ? (
+                    {activeRooms === 0 && activeComputers === 0 ? (
                       <p className="text-muted italic">You currently have 0 active reservations.</p>
                     ) : (
                       <p>You have scheduled sessions.</p>
                     )}
-                    <Button variant="outline-primary" size="sm" onClick={() => navigate('/rooms')}>Book a Room</Button>
+                    <Button variant="outline-primary" size="sm" onClick={() => navigate('/study-spaces')}>Book a Space</Button>
                   </div>
                 </Card.Body>
               </Card>
@@ -52,7 +62,7 @@ const Dashboard = () => {
 
             {/* equipment loans summary cardd*/}
             <Col lg={6}>
-              <Card className="h-100 shadow-sm border-0">
+              <Card className="h-100 shadow-lg border-0 equipment-card">
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-start">
                     <div>
