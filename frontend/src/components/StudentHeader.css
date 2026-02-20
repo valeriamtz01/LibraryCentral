@@ -1,0 +1,41 @@
+/* matching custom-navbar */
+.student-navbar {
+  background-color: #cc4514 !important; 
+  padding: 0.8rem 1rem;
+}
+
+/* 'LCPortal' */
+.student-navbar .navbar-brand {
+  color: #ffffff !important;
+  font-size: 1.4rem;
+}
+
+/* nav-link rules */
+.student-navbar .nav-link {
+  color: rgba(173, 170, 170, 0.9) !important;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  margin-left: 15px;
+}
+
+/* hover mode */
+.student-navbar .nav-link:hover {
+  color: #ffffff !important;
+  text-decoration: underline;
+}
+
+/* active link mode */
+.student-navbar .nav-link.active {
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+/* 'My Account' dropdown active links */
+.student-navbar .nav-item.dropdown .nav-link {
+  color: #ffffff !important;
+}
+
+/* menu toggler (hamburger) is white on mobile */
+.student-navbar .navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.5);
+}

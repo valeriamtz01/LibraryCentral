@@ -2,6 +2,7 @@
   background-color: #3f4346; /* dark  background */
   color: white;
   border-top: 3px solid #f05023; /* brand orange as an accent line */
+  width: 100%;
 }
 
 .footer-custom a {
@@ -13,16 +14,3 @@
   color: #ffffff !important; /* white on hover */
 }
 
-/* this is the fixed footer for all pages */
-.footer-fixed {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  left: 0;
-}
-
-/* static footer only for signup */
-.footer-not-fixed {
-  position: static;
-  width: 100%;
-}
