@@ -7,6 +7,7 @@ import Login from "./pages/Login"; // login page
 import Dashboard from "./pages/Dashboard"; // dashboard page for students to view their reservations and loans at a glance
 import StudySpaces from "./pages/StudySpaces"; // study spaces page for students to view and book study rooms and computer stations
 import Equipment from "./pages/Equipment"; // equipment page for students to view inventory and checkout equipment
+import EquipmentDetail from "./pages/EquipmentDetail"; // equipment detail page for viewing specific equipment information
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/study-spaces" element={<StudySpaces />} />
           <Route path="/equipment" element={<Equipment />} />
+          <Route path="/equipment/:id" element={<EquipmentDetail />} />
         </Routes>
       </main>
       </Router>
