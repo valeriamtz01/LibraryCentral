@@ -1,0 +1,203 @@
+.equipment-list-container {
+  max-height: 700px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Scrollbar styling */
+.equipment-list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.equipment-list-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.equipment-list-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.equipment-list-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.equipment-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.equipment-card {
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef !important;
+}
+
+.equipment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+.equipment-info {
+  flex: 1;
+}
+
+.equipment-info h5 {
+  color: #2c3e50;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.equipment-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.equipment-meta .badge {
+  font-weight: 500;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-buttons .btn {
+  white-space: nowrap;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-options .form-check {
+  padding-left: 1.5rem;
+}
+
+.filter-options .form-check-input {
+  width: 1.1em;
+  height: 1.1em;
+  cursor: pointer;
+}
+
+.filter-options .form-check-label {
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .equipment-list-container {
+    max-height: 600px;
+    padding-right: 4px;
+  }
+
+  .equipment-card {
+    margin-bottom: 1rem;
+  }
+
+  .equipment-card .card-body {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .equipment-card .btn {
+    margin-left: 0 !important;
+    margin-top: 1rem;
+    width: 100%;
+  }
+
+  .equipment-info {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .filter-buttons {
+    flex-wrap: wrap;
+  }
+
+  .filter-buttons .btn {
+    font-size: 0.85rem;
+  }
+}
+
+/* Hover effect for cards */
+.hover-lift {
+  cursor: pointer;
+}
+
+.hover-lift:active {
+  transform: translateY(0);
+}
+
+/* Empty state styling */
+.card.text-center {
+  border-top: 3px solid #e9ecef;
+}
+
+/* Equipment Stats */
+.equipment-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-box {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #0d6efd;
+  text-align: center;
+}
+
+.stat-box p {
+  font-size: 0.85rem;
+}
+
+.stat-box h6 {
+  font-size: 1.5rem;
+  margin: 0;
+  color: #2c3e50;
+}
+
+/* Checkout History */
+.checkout-history {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.history-item {
+  border-left: 3px solid #0d6efd;
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  background-color: #e7f1ff !important;
+}
+
+.history-item .small {
+  display: block;
+  line-height: 1.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .equipment-stats {
+    grid-template-columns: 1fr;
+  }
+}
