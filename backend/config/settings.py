@@ -125,9 +125,9 @@ CORS_ALLOW_ALL_ORIGINS = True
 # - Authenticate every API request using Microsoft Bearer tokens (sets request.user)
 # - Require users to be logged in for all endpoints unless a view overrides with AllowAny
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-       "api.authentication.MicrosoftAuthentication",
-    ],
+    # "DEFAULT_AUTHENTICATION_CLASSES": [
+    #    "api.authentication.MicrosoftAuthentication",
+    # ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
