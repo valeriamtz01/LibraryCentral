@@ -1,6 +1,8 @@
 from django.urls import path, include
 from .views import (
     health, 
+    register,
+    login,
     ReservationViewSet,
     CheckoutViewSet,
     RoomViewSet,
@@ -17,5 +19,7 @@ router.register(r"equipment", EquipmentItemViewSet) #creates /equipment/
 
 urlpatterns = [
     path("health/", health),
+    path("auth/register/", register),
+    path("auth/login/", login),
     path("", include(router.urls)), #include all router-generated urls
 ]
