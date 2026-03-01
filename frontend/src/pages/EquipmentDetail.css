@@ -1,0 +1,102 @@
+.equipment-detail-image {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.equipment-details {
+  padding: 1rem 0;
+}
+
+.equipment-details h1 {
+  font-size: 2rem;
+  color: #2c3e50;
+}
+
+.availability-box {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #0d6efd;
+}
+
+.availability-box .text-success {
+  color: #198754 !important;
+  font-size: 1.1rem;
+}
+
+.availability-box .text-danger {
+  color: #dc3545 !important;
+  font-size: 1.1rem;
+}
+
+.info-section {
+  margin-top: 2rem;
+}
+
+.info-item {
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 1rem;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.info-item h6 {
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+}
+
+.info-item p {
+  color: #2c3e50;
+  line-height: 1.6;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .equipment-details {
+    padding-top: 2rem;
+  }
+
+  .equipment-details h1 {
+    font-size: 1.75rem;
+  }
+
+  .availability-box {
+    flex-direction: column;
+  }
+
+  .equipment-detail-image {
+    height: 300px;
+  }
+
+  .info-section {
+    margin-top: 1.5rem;
+  }
+
+  .info-item {
+    padding-bottom: 0.75rem;
+  }
+}
+
+/* Back Button */
+.btn-link {
+  color: #0d6efd;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.btn-link:hover {
+  color: #0b5ed7;
+  text-decoration: underline;
+}
+
+.btn-link i {
+  margin-right: 0.25rem;
+}
