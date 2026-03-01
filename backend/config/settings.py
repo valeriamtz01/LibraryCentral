@@ -125,9 +125,12 @@ CORS_ALLOW_ALL_ORIGINS = True
 # - Authenticate every API request using Microsoft Bearer tokens (sets request.user)
 # - Require users to be logged in for all endpoints unless a view overrides with AllowAny
 REST_FRAMEWORK = {
-    # "DEFAULT_AUTHENTICATION_CLASSES": [
-    #    "api.authentication.MicrosoftAuthentication",
-    # ],
+    # This tells DRF how to authenticate the token your login endpoint returns
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+
+    # Default: all endpoints require login unless a view overrides with AllowAny
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
