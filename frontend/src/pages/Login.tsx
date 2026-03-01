@@ -44,6 +44,8 @@ const Login = () => {
     if (!validate()) return; //stops submission if validation fails
     setLoading(true);
     setError(null); // clear previous errors before new attempt
+    localStorage.removeItem("token"); // clears any old tokens before attempting again
+    
     try {
       //send login request to backend API with email and password
       const resp = await api.post('/auth/login/', { email, password });

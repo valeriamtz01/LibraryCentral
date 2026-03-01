@@ -3,6 +3,7 @@ from .views import (
     health, 
     register,
     login,
+    studyspaces_statuses,
     ReservationViewSet,
     CheckoutViewSet,
     RoomViewSet,
@@ -21,5 +22,7 @@ urlpatterns = [
     path("health/", health),
     path("auth/register/", register),
     path("auth/login/", login),
+    path("studyspaces/statuses/", studyspaces_statuses),
+    
     path("", include(router.urls)), #include all router-generated urls
 ]

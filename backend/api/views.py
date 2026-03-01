@@ -20,9 +20,13 @@ from .serializers import (
     RegisterSerializer, 
 )
 from .permissions import IsOwnerOrStaff
+
+
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def health(request):
     return Response({"status": "ok", "message": "Library Central API running"})
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
