@@ -101,3 +101,59 @@ class CheckoutSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This item is currently checked out.")
 
         return attrs
+    
+# Auth serializers (Register/login)
+# get_user_model() returns whichever User model your project is using.
+# validate_password() runs Django's built-in password rules
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+
+User = get_user_model()
+
+class RegisterSerializer(serializers.Serializer):
+    """
+    This serializer defines what data we expect from the frontend when registering.
+
+    Frontend (SignUp.tsx) sends something like:
+      { "name": "...", "email": "...", "password": "..." }
+
+    Serializer responsibilities:
+    1) Validate the incoming payload
+    2) Create the user in the database if valid
+    """
+
+    # Required fields coming from the request body
+    name = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)  # write_only means: accept input, never return it in responses
+
+    def validate_password(self, value):
+        # Runs Django's password validators (configured in settings.py, usually default validators)
+        validate_password(value)
+        return value
+
+    def create(self, validated_data):
+        # We use the email as the username:
+        # This keeps login simple because authenticate() uses "username" by default.
+        # So in our login endpoint, we can authenticate(username=email, password=...)
+        user = User.objects.create_user(
+            username=validated_data["email"],  # treat email as username
+            email=validated_data["email"],
+            password=validated_data["password"],  # create_user automatically hashes the password
+        )
+
+        # Save the "name" to a user field.
+        # Default Django User doesn't have a "name" field, but it DOES have first_name/last_name.
+        # We'll store the full name in first_name for now.
+        full_name = validated_data.get("name", "").strip()
+
+        # hasattr check keeps this safe if your User model changes later.
+        if hasattr(user, "first_name"):
+            user.first_name = full_name
+
+            # update_fields updates ONLY that column (more efficient than saving everything)
+            user.save(update_fields=["first_name"])
+
+        # Return the newly created user object.
+        # This serializer isn't returning the user data automatically
+        return user

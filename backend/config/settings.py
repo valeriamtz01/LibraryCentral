@@ -120,14 +120,36 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 ALLOWED_HOSTS = ["*"]
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 # DRF defaults:
 # - Authenticate every API request using Microsoft Bearer tokens (sets request.user)
 # - Require users to be logged in for all endpoints unless a view overrides with AllowAny
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https:\/\/.*\.app\.github\.dev$",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.app.github.dev",
+]
+# Add this import + settings right here (below CSRF_TRUSTED_ORIGINS)
+from corsheaders.defaults import default_headers, default_methods
+
+# Allow headers axios/JWT commonly send (preflight checks these)
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "authorization",
+]
+
+# Ensure OPTIONS + other methods are allowed for preflight
+CORS_ALLOW_METHODS = list(default_methods)
+
+# Optional: okay for dev; helps if you ever use cookies
+CORS_ALLOW_CREDENTIALS = True
 REST_FRAMEWORK = {
-    # "DEFAULT_AUTHENTICATION_CLASSES": [
-    #    "api.authentication.MicrosoftAuthentication",
-    # ],
+    # This tells DRF how to authenticate the token your login endpoint returns
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+
+    # Default: all endpoints require login unless a view overrides with AllowAny
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
