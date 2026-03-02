@@ -20,6 +20,8 @@ from .serializers import (
     RegisterSerializer, 
 )
 from .permissions import IsOwnerOrStaff
+from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
 
 
 @api_view(["GET"])
@@ -95,6 +97,75 @@ def login(request):
     access_token = str(refresh.access_token)
 
     return Response({"token": access_token}, status=status.HTTP_200_OK)
+
+
+#return what dashboard expects
+#aggregates active study space reservations (rooms & computers) and equipment loans for the logged in user
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_summary(request):
+    """
+    {
+        "activeRooms": int,        # active room reservations
+        "activeComputers": int,    # active computer reservations
+        "equipmentLoans": int,     # currently checked out items
+        "reservations": [...],     # optional: upcoming reservations
+        "equipment": [...]         # optional: currently checked out equipment
+    }
+
+    """
+
+    user = request.user
+    now = timezone.now()
+
+    # active room reservations
+    upcoming_reservations = Reservation.objects.filter(
+        user=user,
+        status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
+        end_time__gte=timezone.now()  # still future or ongoing
+    ).select_related("room")
+
+    activeRooms = upcoming_reservations.filter(room__has_monitor=False).count()
+    activeComputers = upcoming_reservations.filter(room__has_monitor=True).count()
+
+    #equipment loans
+    equipment_loans_qs = Checkout.objects.filter(user=user, returned_at__isnull = True)
+    equipmentLoans = equipment_loans_qs.count()
+
+    #including details for the lists groups
+    reservations = [
+        {
+            "id": r.id,
+            "room": r.room.id,
+            "room_name": r.room.name,
+            "start_time": r.start_time,
+            "end_time": r.end_time,
+            "status": r.status,
+        }
+        for r in upcoming_reservations
+    ]
+
+    equipment = [
+        {
+            "id": c.id,
+            "asset_tag": c.item.asset_tag,
+            "name": c.item.equipment_type.name,
+            "checked_out_at": c.checked_out_at,
+            "due_at": c.due_at,
+            "status": c.item.status,
+        }
+        for c in equipment_loans_qs
+    ]
+
+    return Response({
+        "activeRooms": activeRooms,
+        "activeComputers": activeComputers,
+        "equipmentLoans": equipmentLoans,
+        "reservations": reservations,
+        "equipment": equipment
+    })
+
+
 #create viewsets (get, post, put, delete)
 #reservations
 class ReservationViewSet(viewsets.ModelViewSet):
@@ -139,9 +210,9 @@ class RoomViewSet(viewsets.ModelViewSet):
 
 #equipment
 class EquipmentItemViewSet(viewsets.ModelViewSet):
-    queryset = EquipmentItem.objects.all() #return all equipment items
+    queryset = EquipmentItem.objects.all()
     serializer_class = EquipmentItemSerializer
-    permission_classes = [IsAuthenticated] #must be logged in
+    permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
@@ -149,63 +220,49 @@ class EquipmentItemViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
 
-from django.utils import timezone
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def studyspaces_statuses(request):
 
     #GET /studyspaces/statuses/
-    #Returns variable names that match the frontend directly: activeRooms, reservations statuses
+    #returns variable names that match the frontend directly: activeRooms, reservations statuses
 
-    #Status logic:
+    #statud logic:
       # "occupied" if there is any active reservation overlapping "now"
       #otherwise "available"
     
 
     now = timezone.now()
 
-    # Only rooms that are marked active should show on the map
+    # only rooms that are marked active should show on the map
     rooms_qs = Room.objects.filter(is_active=True).order_by("name")
 
-    # Find reservations overlapping "now" (and not cancelled)
-    overlapping = (
-        Reservation.objects
-        .filter(status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED])
-        .filter(start_time__lt=now, end_time__gt=now)
-        .select_related("room")
-    )
+    # find the reservations overlapping "now" (and not cancelled)
+    overlapping = Reservation.objects.filter(
+        status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
+        start_time__lte=now,
+        end_time__gte=now
+    ).select_related("room")
 
-    # Build statuses dict keyed by EXACT room name string (matches FE keys)
-    statuses = {}
-    for room in rooms_qs:
-        statuses[room.name] = "available"
 
-    for r in overlapping:
-        statuses[r.room.name] = "occupied"
+    # build statuses dict keyed by exact room name string (matches FE keys)
+    statuses = {room.name: "available" for room in rooms_qs}
+
+    # only loop through overlapping reservation to mark rooms occupied
+    for res in overlapping:
+        statuses[res.room.name] = "occupied"
 
     # activeRooms: give FE both id + room_name so it can POST reservations by id later
     activeRooms = [{"id": room.id, "room_name": room.name} for room in rooms_qs]
 
-    # reservations: lightweight payload (only what FE needs for debugging/optional display)
-    reservations = [
-        {
-            "id": r.id,
-            "room": r.room.id,
-            "start_time": r.start_time,
-            "end_time": r.end_time,
-            "status": r.status,
-        }
-        for r in overlapping
-    ]
 
     return Response(
         {
             "activeRooms": activeRooms,
-            "reservations": reservations,
             "statuses": statuses,
         },
         status=status.HTTP_200_OK
     )
+
+
+

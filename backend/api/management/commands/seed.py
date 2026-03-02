@@ -9,27 +9,23 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
 
         # --- going to delete old data first (first seed script filled with fake data)---
+        # can comment out if you don't want to delete or can use flush to delete everything 
         Reservation.objects.all().delete()
         EquipmentItem.objects.all().delete()
         EquipmentType.objects.all().delete()
-        Room.objects.all().delete()
-        Campus.objects.all().delete()
-        User.objects.exclude(is_superuser=True).delete()  # keep superusers if desired
+
+        User.objects.exclude(is_superuser=True).delete()  # keep superusers 
         self.stdout.write(self.style.WARNING("Old data cleared"))
 
 
         
         # --- creating campuses ---
-        campus, _ = Campus.objects.get_or_create(code="EDINBURG", defaults={"name": "Edinburg Campus"})
+        campus, _ = Campus.objects.get_or_create(code="UTRGV", defaults={"name": "UTRGV Main"})
         self.stdout.write(self.style.SUCCESS(f"Campus ensured: {campus}"))
 
         campus, _ = Campus.objects.get_or_create(code="BROWNSVILLE", defaults={"name": "Brownsville Campus"})
         self.stdout.write(self.style.SUCCESS(f"Campus ensured: {campus}"))
 
-        # --- creating rooms ---
-        Room.objects.get_or_create(name="Study Room A", campus=campus, defaults={"is_active": True, "capacity": 4})
-        Room.objects.get_or_create(name="Study Room B", campus=campus, defaults={"is_active": True, "capacity": 6})
-        self.stdout.write(self.style.SUCCESS("Rooms ensured"))
 
         # --- creating some users to test ---
         if not User.objects.filter(username="admin").exists():
@@ -41,15 +37,19 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Users ensured"))
 
         # --- creating equipment types ---
-        media_type, _ = EquipmentType.objects.get_or_create(name="Media")
-        electronics_type, _ = EquipmentType.objects.get_or_create(name="Electronics")
-        accessories_type, _ = EquipmentType.objects.get_or_create(name="Accessories")
-        supplies_type, _ = EquipmentType.objects.get_or_create(name="Supplies")
-        laptop_type, _ = EquipmentType.objects.get_or_create(name="Laptop")
-        camera_type, _ = EquipmentType.objects.get_or_create(name="Camera")
-        self.stdout.write(self.style.SUCCESS("Equipment types ensured"))
+        types_to_create = ["Media", "Electronics", "Accessories", "Supplies", "Laptops", "Cameras"]
+        type_map = {}
+        for t_name in types_to_create:
+            # Note the comma below: this "unpacks" the tuple returned by get_or_create
+            t_obj, created = EquipmentType.objects.get_or_create(
+                name=t_name, 
+                defaults={"category": t_name}
+            )
+            type_map[t_name] = t_obj  # Now this is a model instance, not a tuple!
+            
+        self.stdout.write(self.style.SUCCESS(f"Equipment types ensured: {list(type_map.keys())}"))
 
-        # --- creating the equipment listclear
+        # --- creating the equipment list , received from fe
         #  (catalog) ---
         items = [
             {"name": "DVDs", "category": "Media", "description": "Collection of educational and entertainment DVDs",
@@ -111,34 +111,38 @@ class Command(BaseCommand):
         ]
 
         for i, item in enumerate(items, start=1):
-            eq_type = {
-                "Media": media_type,
-                "Electronics": electronics_type,
-                "Accessories": accessories_type,
-                "Supplies": supplies_type
-            }[item["category"]]
+            eq_type = type_map.get(item["category"])
 
-            # give each item a unique asset_tag
-            asset_tag = f"{eq_type.name.upper()}-{i:03d}"
-
+            asset_tag = f"CAT-{eq_type.name[:3].upper()}-{i:03d}"
+            
             EquipmentItem.objects.update_or_create(
-                asset_tag=asset_tag, # using the unique one from above
+                asset_tag=asset_tag,
                 defaults={
                     "equipment_type": eq_type,
                     "campus": campus,
                     "status" : EquipmentItem.STATUS_AVAILABLE,
-                    "notes": f"{item['name']}\nCategory: {item['category']}\nDescription: {item['description']}\nUse: {item['use']}\nLoan Period: {item['loan_period']}\nLocation: {item['location']}\nTotal Quantity: {item['total_quantity']}\nAvailable Quantity: {item['available_quantity']}\nPhoto: {item['photo_url']}"
+                    "notes": f"{item['name']} - {item.get('description', '')}"
                 }
             )
 
         self.stdout.write(self.style.SUCCESS("Equipment catalog ensured"))
 
-        # --- Individual physical equipment items ---
-        EquipmentItem.objects.get_or_create(
-            equipment_type=laptop_type, campus=campus, asset_tag="LAPTOP-001", defaults={"status": EquipmentItem.STATUS_AVAILABLE}
+        # --- individual physical equipment items created ---
+        EquipmentItem.objects.update_or_create(
+            asset_tag="PHYS-LAPTOP-001", 
+            defaults={
+                "equipment_type": type_map["Media"], 
+                "campus": campus, 
+                "status": EquipmentItem.STATUS_AVAILABLE
+            }
         )
-        EquipmentItem.objects.get_or_create(
-            equipment_type=camera_type, campus=campus, asset_tag="CAMERA-001", defaults={"status": EquipmentItem.STATUS_AVAILABLE}
+        EquipmentItem.objects.update_or_create(
+            asset_tag="PHYS-CAMERA-001", 
+            defaults={
+                "equipment_type": type_map["Media"], 
+                "campus": campus, 
+                "status": EquipmentItem.STATUS_AVAILABLE
+            }
         )
 
         self.stdout.write(self.style.SUCCESS("Individual EquipmentItem assets ensured"))

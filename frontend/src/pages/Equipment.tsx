@@ -1,12 +1,13 @@
 //main inventory list browse/search/filter page for all equipment, with links to individual equipment detail pages.
 //display summary information for each item in the inventory, including name, category, availability status, and a thumbnail image.
 // This page will also include a search bar and filter options for category and availability status.
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Card, InputGroup, Form, Modal } from 'react-bootstrap';
 import StudentHeader from '../components/StudentHeader';
 import Footer from '../components/Footer';
 import './Equipment.css';
+import { api } from '../api'; // axios instance to communicate with be
 
 //represent a single checkout record for an item.
 interface CheckoutRecord {
@@ -33,9 +34,11 @@ interface Equipment {
 const EquipmentPage = () => {
   const navigate = useNavigate();
   
-  //hard coded inventory data for now, I believe this will eventually be fetched from the backend(??) need confirmation on this. 
-  // For now, this is just to have something to work with for the UI and functionality.
-  // Your equipment inventory
+
+  // IMPO: since now we fetch data from the backend, comment out the ui testing code. TO BE DELETED after review
+  /* hard coded inventory data for now, I believe this will eventually be fetched from the backend(??) need confirmation on this. 
+  For now, this is just to have something to work with for the UI and functionality.
+  Your equipment inventory
   const initialEquipment: Equipment[] = [
     { id: 1, name: 'DVDs', category: 'Media', description: 'Collection of educational and entertainment DVDs', use: 'Can be borrowed for personal viewing, classroom presentations, or research purposes', loanPeriod: '7 days', location: 'Media Library - Shelf A1', photoUrl: 'https://via.placeholder.com/400x300?text=DVDs', totalQuantity: 25, availableQuantity: 25, checkoutHistory: [] },
     { id: 2, name: 'CDs', category: 'Media', description: 'Audio CDs including music, audiobooks, and educational content', use: 'For music listening, audiobook review, or audio project work', loanPeriod: '7 days', location: 'Media Library - Shelf B2', photoUrl: 'https://via.placeholder.com/400x300?text=CDs', totalQuantity: 25, availableQuantity: 25, checkoutHistory: [] },
@@ -51,21 +54,22 @@ const EquipmentPage = () => {
     { id: 12, name: 'HDMI Cable', category: 'Accessories', description: 'HDMI cables for video and audio connections', use: 'Connecting devices to projectors, TVs, and displays', loanPeriod: '24 hours', location: 'Tech Center - Cables', photoUrl: 'https://via.placeholder.com/400x300?text=HDMI+Cable', totalQuantity: 7, availableQuantity: 7, checkoutHistory: [] },
     { id: 13, name: 'Mouse', category: 'Accessories', description: 'Computer mice for desktop and laptop use', use: 'Computer navigation and work', loanPeriod: '24 hours', location: 'Tech Center - Peripherals', photoUrl: 'https://via.placeholder.com/400x300?text=Mouse', totalQuantity: 20, availableQuantity: 20, checkoutHistory: [] },
     { id: 14, name: 'Screenflex Portable Display Panels', category: 'Supplies', description: 'Portable room dividers and display panels for events', use: 'Creating spaces for presentations, exhibitions, and events', loanPeriod: '3 days', location: 'Event Space - Storage', photoUrl: 'https://via.placeholder.com/400x300?text=Display+Panels', totalQuantity: 5, availableQuantity: 5, checkoutHistory: [] },
-  ];
+  ]; */
 
-  //state storing full equipment list
-  const [equipment, setEquipment] = useState<Equipment[]>(initialEquipment);
+  //state storing full equipment list that was initially empty (added 'from be')
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [loading, setLoading] = useState(true); // loading state while fetching from be
 
   //list of categories used in the filter modal 
   const categories = ['Accessories', 'Media', 'Electronics', 'Supplies'];
 
-  //search and filter statde
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  //states for search and filter functionality
+  const [searchQuery, setSearchQuery] = useState(''); // what user types in search bar
+  const [selectedCategory, setSelectedCategory] = useState<string>('all'); // applied categpry filter
+  const [selectedStatus, setSelectedStatus] = useState<string>('all'); // applied availiability filter
+  const [showFilterModal, setShowFilterModal] = useState(false); // show or hide filter modal
   
-  // Temporary filter states before applying
+  //temporary filter states used inside modal before the user clicks apply
   const [tempCategory, setTempCategory] = useState<string>('all');
   const [tempStatus, setTempStatus] = useState<string>('all');
 
@@ -73,14 +77,58 @@ const EquipmentPage = () => {
   const getStatus = (availableQuantity: number): 'available' | 'unavailable' => {
     return availableQuantity > 0 ? 'available' : 'unavailable';
   };
+
+  // fetch equipment from backend when component loads
+  // replaces the hardcode data
+  // instead get from be and map the fiels to the equipment interface
+  const fetchEquipment = async () => {
+    try {
+      const response = await api.get("/equipment/", { withCredentials: true });
+      console.log('Fetched data:', response.data);
+
+      // map backend data to frontend equipment structure (basically what is in the serializer)
+      const mapped = response.data.map((item: any) => ({
+        id: item.id,
+        name: item.name,              // from be serializer
+        category: item.category,      // from serializer
+        description: item.description || "No description", // a fallback in case empty
+        use: "See description", // placeholder
+        loanPeriod: "Check policy", // placeholder
+        location: item.location,
+        photoUrl: item.photoUrl,
+        totalQuantity: item.totalQuantity,
+        availableQuantity: item.availableQuantity,
+        checkoutHistory: [], // this isn't fetched for this page, but later if needed
+      }));
+
+      setEquipment(mapped); // set the state to display in the screen
+    }
+    catch (error) {
+      console.error('Failed to fetch equipment: ', error);
+    }
+    finally {
+      setLoading(false);
+    }
+  };
+    
+    // initial fetch when component mounts
+    useEffect(() => {
+      fetchEquipment();
+    }, []);
+
+
   //memorized filtered equipment list
+  //use useMemo so the list is onyl recalculated when any dependencies change
   const filteredEquipment = useMemo(() => {
     return equipment.filter(item => {
       const status = getStatus(item.availableQuantity);
-      //check search match (case in-sensitive)
+
+      //check if item matches search queuery
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      
       //check category filter
       const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      
       //check availability status filter
       const matchesStatus = selectedStatus === 'all' || status === selectedStatus;
       
@@ -95,7 +143,7 @@ const EquipmentPage = () => {
     setShowFilterModal(true);
   };
 
-  //applies selected filters from modal
+  //applies temporary selected filters from modal to the main state
   const handleApplyFilters = () => {
     setSelectedCategory(tempCategory);
     setSelectedStatus(tempStatus);

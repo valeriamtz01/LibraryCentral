@@ -63,11 +63,41 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 
 class EquipmentItemSerializer(serializers.ModelSerializer):
-    #used for listing/creating equipment items
+    # flattening fields from EquipmentType
+    name = serializers.CharField(source='equipment_type.name', read_only=True)
+    category = serializers.CharField(source='equipment_type.category', read_only=True)
+    # Using 'notes' as the description since that's where seed.py puts data
+    description = serializers.CharField(source='notes', read_only=True)
+    
+    # logic for the individual items
+    location = serializers.CharField(source='campus.name', read_only=True)
+    totalQuantity = serializers.SerializerMethodField()
+    availableQuantity = serializers.SerializerMethodField()
+    photoUrl = serializers.SerializerMethodField()
+
     class Meta:
         model = EquipmentItem
-        fields = ["id", "name", "barcode", "is_active"]
+        fields = [
+            'id', 'name', 'category', 'description', 'location', 
+            'totalQuantity', 'availableQuantity', 'photoUrl', 'status', 'asset_tag'
+        ]
 
+    #computed fields
+    def get_totalQuantity(self, obj):
+        return 1  # Each row in database is 1 individual physical item
+
+    def get_availableQuantity(self, obj):
+        return 1 if obj.status == "AVAILABLE" else 0
+
+    def get_photoUrl(self, obj):
+        # defauly placeholder 
+        return "https://via.placeholder.com/400x300?text=Equipment"
+
+    def get_name(self, obj):
+        # takes the first line of your 'notes' field from seed.py
+        if obj.notes:
+            return obj.notes.split('\n')[0]
+        return obj.equipment_type.name
 
 class CheckoutSerializer(serializers.ModelSerializer):
     #Automatically attaches the logged-in users, provides is_returned flag, prevents double checkout 
@@ -86,9 +116,8 @@ class CheckoutSerializer(serializers.ModelSerializer):
         item = attrs["item"]
         due = attrs["due_at"]
 
-        # Don’t allow checkout of inactive items
-        if not item.is_active:
-            raise serializers.ValidationError("This item is not active.")
+        if item.status != EquipmentItem.STATUS_AVAILABLE: #modified
+         raise serializers.ValidationError("This item is not available for checkout.") 
 
         # Due date must be in the future
         if due <= timezone.now():
@@ -103,7 +132,7 @@ class CheckoutSerializer(serializers.ModelSerializer):
         return attrs
     
 # Auth serializers (Register/login)
-# get_user_model() returns whichever User model your project is using.
+# get_user_model() returns whichever User model app is using.
 # validate_password() runs Django's built-in password rules
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password

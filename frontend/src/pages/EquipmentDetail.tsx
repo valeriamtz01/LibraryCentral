@@ -4,12 +4,13 @@
 // After confirming, the equipment's availability status will be updated accordingly.
 //includes state/modals for checkout confirmation and guidelines acceptance, as well as a success message after checkout is completed.
 //manages the mocked checkout process by updating the available quantity of the equipment and recording the checkout history in the component's state.
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Card, Modal, Form } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import StudentHeader from '../components/StudentHeader';
 import Footer from '../components/Footer';
 import './EquipmentDetail.css';
+import { api } from '../api'; // axios instance configured for the be calls
 
 //represents a single checkout record for an equipment item, including the date it was checked out, the quantity, and optionally who checked it out.
 interface CheckoutRecord {
@@ -36,11 +37,17 @@ interface Equipment {
 const EquipmentDetail = () => {
   const navigate = useNavigate(); //used to programmatically navigate the user back to the equipment list page after viewing the details of a specific equipment item.
   const { id } = useParams<{ id: string }>(); //get equip id from url
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [acceptedGuidelines, setAcceptedGuidelines] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  
+  // state variables
+  const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(null); // equipment data stored
+  const [loading, setLoading] = useState(true); // show loading while fetching
+  const [showConfirmation, setShowConfirmation] = useState(false); // shows and hides the checkout modal
+  const [acceptedGuidelines, setAcceptedGuidelines] = useState(false); // checkbox for agreeing to rules
+  const [showSuccess, setShowSuccess] = useState(false); // shows successful modal after checkout
 
-  // Equipment data - hard-coded subject to change(?)
+
+  // IMPO - these data has been added to the seed file so it can be added to the database, can delete once reviewed
+  /*  Equipment data - hard-coded subject to change(?)
   const allEquipment: Equipment[] = [
     {
       id: 1,
@@ -225,13 +232,51 @@ const EquipmentDetail = () => {
       checkoutHistory: [],
     },
   ];
-//load state copy of the equipment
+  */
+
+  // fetch the equipment data from backend when the page loads or the id changes
+  useEffect(() => {
+    const fetchEquipment = async () => {
+      try {
+        const response = await api.get(`/equipment/${id}/`, { withCredentials: true });  // makes GET request to be API for the specific equipment (withcredentials not necessary, delete later)
+        setCurrentEquipment(response.data); // set fetched equipment in state
+      }
+      catch (error) {
+        console.error('Failed to fetch equipment: ', error);
+      }
+      finally {
+        setLoading(false); // stop loading spinner
+      }
+    };
+
+    fetchEquipment();
+  }, [id]); // dependency array ensures fetch runs if the id changes
+
+  // show loading message while fetching data 
+   if (loading) {
+    return (
+      <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
+        <StudentHeader />
+        <main className="flex-grow-1">
+          <Container className="py-5 text-center">
+            <p>Loading equipment details...</p>
+          </Container>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+/*load state copy of the equipment
   const equipment = allEquipment.find(item => item.id === Number(id));
   const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(
     equipment ? { ...equipment } : null
-  );
-//if not found, show not found message and back button
-  if (!equipment) {
+  ); */
+
+
+
+//if equipment is not found, show a 'not found' page with a back button
+  if (!currentEquipment) {
     return (
       <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
         <StudentHeader />
@@ -255,6 +300,47 @@ const EquipmentDetail = () => {
     setShowConfirmation(true);
   };
 
+  //handle final checkout lofic whe user confirms guidelines
+  const handleConfirmCheckout = async () => {
+    try {
+      if (!currentEquipment) return; // safetu check
+
+      // 1. Calculate a due date for the equipment (as of right now, it is 24 hours after??)
+      const dueDate = new Date();
+      dueDate.setHours(dueDate.getHours() + 24); 
+
+      // 2. Send POST request to be to create a checkout record 
+      // CheckoutSerializer expects "item" (the ID) and "due_at"
+      await api.post(
+        "/checkouts/", 
+        { 
+          item: currentEquipment.id, 
+          due_at: dueDate.toISOString() 
+        },
+        { withCredentials: true }
+      );
+ 
+      // 3. Update frontend state to reflect the checkout
+      setCurrentEquipment(prev =>
+        prev
+          ? {
+              ...prev,
+              availableQuantity: 0, // assume a single item checkout out
+              status: 'CHECKED_OUT', // updates the status
+            }
+          : null
+      );
+
+      setShowConfirmation(false); // close confirmation and show success modal
+      setShowSuccess(true);
+      setAcceptedGuidelines(false); // reset guidelines checkbox
+    } catch (error: any) {
+      console.error('Checkout failed:', error.response?.data || error.message);
+      // show alert when specific be error if checkout fails
+      alert(`Checkout failed: ${JSON.stringify(error.response?.data || 'Server error')}`);
+    }
+  };
+
   return (
     <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
       <StudentHeader />
@@ -276,8 +362,8 @@ const EquipmentDetail = () => {
               <Card className="border-0 shadow-sm overflow-hidden">
                 <Card.Img
                   variant="top"
-                  src={equipment.photoUrl}
-                  alt={equipment.name}
+                  src={currentEquipment.photoUrl}
+                  alt={currentEquipment.name}
                   className="equipment-detail-image"
                 />
               </Card>
@@ -286,9 +372,9 @@ const EquipmentDetail = () => {
             {/* Product Details */}
             <Col lg={6}>
               <div className="equipment-details">
-                <h1 className="fw-bold mb-2">{equipment.name}</h1>
+                <h1 className="fw-bold mb-2">{currentEquipment.name}</h1>
                 <p className="text-muted mb-4">
-                  <span className="badge bg-light text-dark">{equipment.category}</span>
+                  <span className="badge bg-light text-dark">{currentEquipment.category}</span>
                 </p>
 
                 {/* Availability Status */}
@@ -328,22 +414,22 @@ const EquipmentDetail = () => {
                 <div className="info-section">
                   <div className="info-item mb-4">
                     <h6 className="fw-semibold text-muted mb-2">DESCRIPTION</h6>
-                    <p className="mb-0">{equipment.description}</p>
+                    <p className="mb-0">{currentEquipment.description}</p>
                   </div>
 
                   <div className="info-item mb-4">
                     <h6 className="fw-semibold text-muted mb-2">USE</h6>
-                    <p className="mb-0">{equipment.use}</p>
+                    <p className="mb-0">{currentEquipment.use}</p>
                   </div>
 
                   <div className="info-item mb-4">
                     <h6 className="fw-semibold text-muted mb-2">LOAN PERIOD</h6>
-                    <p className="mb-0">{equipment.loanPeriod}</p>
+                    <p className="mb-0">{currentEquipment.loanPeriod}</p>
                   </div>
 
                   <div className="info-item">
                     <h6 className="fw-semibold text-muted mb-2">LOCATION</h6>
-                    <p className="mb-0">{equipment.location}</p>
+                    <p className="mb-0">{currentEquipment.location}</p>
                   </div>
                 </div>
               </div>
@@ -395,21 +481,7 @@ const EquipmentDetail = () => {
           <Button
             variant="primary"
             disabled={!acceptedGuidelines}
-            onClick={() => {
-              setShowConfirmation(false);
-              if (currentEquipment) {
-                const updated: Equipment = {
-                  ...currentEquipment,
-                  availableQuantity: currentEquipment.availableQuantity - 1,
-                  checkoutHistory: [
-                    ...currentEquipment.checkoutHistory,
-                    { checkedOutAt: new Date(), quantity: 1 },
-                  ],
-                };
-                setCurrentEquipment(updated);
-              }
-              setShowSuccess(true);
-            }}
+            onClick={handleConfirmCheckout} // before-logic exists in handleConfirmCheckout function
           >
             Accept & Checkout
           </Button>

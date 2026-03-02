@@ -1,18 +1,53 @@
 // this is the main dashboard page for students, it will show a summary of their activity (i.e. active reservations, equipment loans, etc.) and provide links to the different sections of the dashboard (i.e. room reservations, equipment loans, etc.)
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, ListGroup, Badge } from 'react-bootstrap'; // list group will be used to show a list of upcoming reservations and loans, badge will be used to show the number of active reservations and loans
 import { useNavigate } from 'react-router-dom'; // we will use navigate to redirect users to the room reservation and equipment inventory pages when they click the buttons on the dashboard summary cards, this is a better user experience than just showing them a summary without a clear cta
 import StudentHeader from '../components/StudentHeader'; // importing the student header which has the navbar for the dashboard and related pages --> finishing this later, 
 import Footer from '../components/Footer';
+import { api } from '../api';  // added to import centrailized axios instance for be calls
+
 
 const Dashboard = () => {
-  const navigate = useNavigate(); // react-router-dom hook for navigation to other pages using buttons from the dashboard
-  
+  const navigate = useNavigate(); // react-router-dom hook for navigation to other pages using buttons from the dashboard  
+
   // initializing state with 0 to reflect that a new user starts with no activity.
   // we explicitly show "0" rather than hiding the section to provide clear feedback to the user about their current status and encourage them to engage with the library's resources
-  const [activeRooms, setActiveRooms] = useState(0); // this will eventually be populated with data from the backend API to show the user's current active room reservations. starting with 0 for new users
-  const [activeComputers, setActiveComputers] = useState(0); // this will eventually be populated with data from the backend API to show the user's current active computer reservations. starting with 0 for new users
-  const [equipmentLoans, setEquipmentLoans] = useState(0); // likewise, this will be populated with data from the backend API to show the user's current active equipment loans. starting with 0 for new users.
+  
+  // removed the three separate state variables and converted it to one single object below to update entire dashboard in one go
+
+  // this stores the entire dashboard response object in one state, keeping everything synchronized and making it easier to manage 
+  // (updating and accessing the datat simpler than using multiple states like before)
+  const [dashboardData, setDashboardData] = useState ({
+    activeRooms: 0, // number of study rooms reserved by current user
+    activeComputers: 0, // number of computers reserved
+    equipmentLoans: 0, // number of equipment items checkout
+    reservations: [], // list of upcoming reservations (later, need to display them with the listgroup)
+    equipment: [] // list of equipment the user has checkout out
+  });
+
+  /* useEffect will run once when the component loads. 
+  so when the user lands on dashboard, it will immediately request live data from the be
+  where the be will calculate the real reservation and loans */
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        // using our axios instance : baseUrl is automatically applied
+        // GET request to be dashboard summary endpoint
+        const response = await api.get("/user/dashboard-summary/", {
+          withCredentials: true // already on settings
+        });
+
+        // response.data contains a JSON object with activerooms and so on
+        // set this as the new dashboard state
+        setDashboardData(response.data);
+      }
+      catch (error) {
+        console.error("Dashboard fetch failed: ", error);
+      }
+    };
+
+    fetchDashboard(); // calls the async function
+  }, []); // an empty dependency array so will run only once when component mounts
 
   return (
     <div className="d-flex flex-column min-vh-100" style= {{ paddingTop: '56px' }}> {/* paddingTop added to prevent content from being hidden behind the fixed navbar */}
@@ -40,16 +75,16 @@ quick access to their reservation details without having to navigate to a separa
                       <h3 className="h5 fw-bold">Study Spaces</h3>
                       <p className="text-muted small">Your upcoming study sessions.</p>
                     </div>
-                    <Badge bg={activeRooms > 0 ? "primary" : "secondary"} pill>
-                      {activeRooms} Rooms Active
+                    <Badge bg={dashboardData.activeRooms > 0 ? "primary" : "secondary"} pill>
+                      {dashboardData.activeRooms} Rooms Active
                     </Badge>
-                    <Badge bg={activeComputers > 0 ? "primary" : "secondary"} pill>
-                      {activeComputers} Computers Active
+                    <Badge bg={dashboardData.activeComputers > 0 ? "primary" : "secondary"} pill>
+                      {dashboardData.activeComputers} Computers Active
                     </Badge>
                   </div>
                   
                   <div className="py-4 text-center">
-                    {activeRooms === 0 && activeComputers === 0 ? (
+                    {dashboardData.activeRooms === 0 && dashboardData.activeComputers === 0 ? (
                       <p className="text-muted italic">You currently have 0 active reservations.</p>
                     ) : (
                       <p>You have scheduled sessions.</p>
@@ -69,13 +104,13 @@ quick access to their reservation details without having to navigate to a separa
                       <h3 className="h5 fw-bold">Equipment on Loan</h3>
                       <p className="text-muted small">Track your borrowed tech.</p>
                     </div>
-                    <Badge bg={equipmentLoans > 0 ? "success" : "secondary"} pill>
-                      {equipmentLoans} Items
+                    <Badge bg={dashboardData.equipmentLoans > 0 ? "success" : "secondary"} pill>
+                      {dashboardData.equipmentLoans} Items
                     </Badge>
                   </div>
 
                   <div className="py-4 text-center">
-                    {equipmentLoans === 0 ? (
+                    {dashboardData.equipmentLoans === 0 ? (
                       <p className="text-muted italic">You currently have 0 items checked out.</p>
                     ) : (
                       <p>Check your return dates.</p>
