@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'; // we will use navigate to redir
 import StudentHeader from '../components/StudentHeader'; // importing the student header which has the navbar for the dashboard and related pages --> finishing this later, 
 import Footer from '../components/Footer';
 import { api } from '../api';  // added to import centrailized axios instance for be calls
-
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const Dashboard = () => {
   const navigate = useNavigate(); // react-router-dom hook for navigation to other pages using buttons from the dashboard  
@@ -13,10 +13,13 @@ const Dashboard = () => {
   // initializing state with 0 to reflect that a new user starts with no activity.
   // we explicitly show "0" rather than hiding the section to provide clear feedback to the user about their current status and encourage them to engage with the library's resources
   
-  // removed the three separate state variables and converted it to one single object below to update entire dashboard in one go
+  // removed the three separate state variables and consolidated the separate states into a single 'dashboardData' object
 
-  // this stores the entire dashboard response object in one state, keeping everything synchronized and making it easier to manage 
+  // storing the entire dashboard response object in one state, keeping everything synchronized and making it easier to manage 
   // (updating and accessing the datat simpler than using multiple states like before)
+  // also : prevents partial renders where once count updates before another
+  // this mirrors the json strucutre sent by the dashboard_summary view
+  // one api call updates the entire user interface at one
   const [dashboardData, setDashboardData] = useState ({
     activeRooms: 0, // number of study rooms reserved by current user
     activeComputers: 0, // number of computers reserved
@@ -25,20 +28,23 @@ const Dashboard = () => {
     equipment: [] // list of equipment the user has checkout out
   });
 
+  // fetchDashboard inside useEffect:
   /* useEffect will run once when the component loads. 
   so when the user lands on dashboard, it will immediately request live data from the be
   where the be will calculate the real reservation and loans */
+  // sends an authenticated GET request to the be
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
         // using our axios instance : baseUrl is automatically applied
         // GET request to be dashboard summary endpoint
         const response = await api.get("/user/dashboard-summary/", {
-          withCredentials: true // already on settings
+          withCredentials: true // already on settings (ensures the browser sends the session token so django knows which student is asking for data)
         });
 
         // response.data contains a JSON object with activerooms and so on
         // set this as the new dashboard state
+        // updates the unified state with the full object from be
         setDashboardData(response.data);
       }
       catch (error) {
@@ -47,7 +53,41 @@ const Dashboard = () => {
     };
 
     fetchDashboard(); // calls the async function
-  }, []); // an empty dependency array so will run only once when component mounts
+  }, []); // empty array makes sure we only hit the server once on mount
+
+  // helper function for data formatting: 
+  // be iso strings (2026-01-02T14:00:00Z) aren't user friendly
+  // function -> makes the iso string look nice ("Jan 24, 2:00 PM")
+  const formatDateTime = (isoString: string) => {
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    };
+    return new Date(isoString).toLocaleString(undefined, options);
+  }
+
+  const handleDeleteReservation = async (reservationId: number) => {
+  if (!window.confirm("Are you sure you want to cancel this reservation?")) return;
+
+  try {
+    // call the be to delete
+    await api.delete(`/user/reservations/${reservationId}/`, {
+      withCredentials: true
+    });
+
+    // update local state to remove the deleted item
+    setDashboardData(prev => ({
+      ...prev,
+      reservations: prev.reservations.filter((res: any) => res.id !== reservationId),
+      // this is optional to decrement the count if our fe relies on it
+      activeRooms: prev.activeRooms - 1 
+    }));
+    
+    alert("Reservation cancelled successfully.");
+  } catch (error) {
+    console.error("Failed to delete reservation:", error);
+    alert("Could not cancel reservation. Please try again.");
+  }
+};
 
   return (
     <div className="d-flex flex-column min-vh-100" style= {{ paddingTop: '56px' }}> {/* paddingTop added to prevent content from being hidden behind the fixed navbar */}
@@ -69,27 +109,68 @@ quick access to their reservation details without having to navigate to a separa
             {/* study spaces summary card */}
             <Col lg={6}>
               <Card className="h-100 shadow-lg border-0 study-spaces-card">
-                <Card.Body>
+                <Card.Body className="d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-start">
                     <div>
                       <h3 className="h5 fw-bold">Study Spaces</h3>
                       <p className="text-muted small">Your upcoming study sessions.</p>
                     </div>
-                    <Badge bg={dashboardData.activeRooms > 0 ? "primary" : "secondary"} pill>
-                      {dashboardData.activeRooms} Rooms Active
-                    </Badge>
-                    <Badge bg={dashboardData.activeComputers > 0 ? "primary" : "secondary"} pill>
-                      {dashboardData.activeComputers} Computers Active
-                    </Badge>
+                    <div className="d-flex gap-1">
+                        <Badge bg={dashboardData.activeRooms > 0 ? "primary" : "secondary"} pill>
+                          {dashboardData.activeRooms} Rooms Active
+                        </Badge>
+                        <Badge bg={dashboardData.activeComputers > 0 ? "primary" : "secondary"} pill>
+                          {dashboardData.activeComputers} Computers Active
+                        </Badge>
+                    </div>
                   </div>
                   
-                  <div className="py-4 text-center">
-                    {dashboardData.activeRooms === 0 && dashboardData.activeComputers === 0 ? (
-                      <p className="text-muted italic">You currently have 0 active reservations.</p>
+                  <div className="flex-grow-1">
+                    {/* list rendering with .map() => dynamically generates a ListGroup.Item for every object in the array*/}
+                    {dashboardData.reservations.length > 0 ? (
+                      <ListGroup variant="flush" className="mb-3">
+
+                        {/* corrected => loop through reservations here */}
+                        {dashboardData.reservations.map((res: any) => (
+                          <ListGroup.Item key={res.id} className="px-0 py-3 bg-transparent">
+                            <div className="d-flex justify-content-between align-items-center">
+                              
+                              {/* grouping the delete + text together in one div */}
+                              <div className="d-flex align-items-center">
+                                <Button 
+                                  variant="link" 
+                                  className="text-danger p-0 me-2" // reduced it from me-3 to me-2
+                                  onClick={() => handleDeleteReservation(res.id)}
+                                  title="Cancel Reservation"
+                                  style={{ lineHeight: 1 }} // ensuring the button doesn't add extra height
+                                >
+                                  <i className="bi bi-trash3-fill"></i>
+                                </Button>
+                                
+                                <div>
+                                  <h6 className="mb-0 fw-bold">{res.room_name}</h6> 
+                                  <small className="text-muted">
+                                    {formatDateTime(res.start_time)} - {new Date(res.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </small>
+                                </div>
+                              </div>
+
+                              <Badge bg="success">Confirmed</Badge>
+                            </div>
+                          </ListGroup.Item>
+                        ))}
+                      </ListGroup>
                     ) : (
-                      <p>You have scheduled sessions.</p>
+                      <div className="py-4 text-center">
+                        <p className="text-muted italic">You currently have 0 active reservations.</p> {/* replaces an empty list with the message */}
+                      </div>
                     )}
-                    <Button variant="outline-primary" size="sm" onClick={() => navigate('/study-spaces')}>Book a Space</Button>
+                  </div>
+
+                  <div className="mt-auto pt-3 border-top text-center">
+                    <Button variant="outline-primary" size="sm" onClick={() => navigate('/study-spaces')}>
+                      Book a Space
+                    </Button>
                   </div>
                 </Card.Body>
               </Card>
@@ -98,8 +179,8 @@ quick access to their reservation details without having to navigate to a separa
             {/* equipment loans summary cardd*/}
             <Col lg={6}>
               <Card className="h-100 shadow-lg border-0 equipment-card">
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-start">
+                <Card.Body className="d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-start mb-3">
                     <div>
                       <h3 className="h5 fw-bold">Equipment on Loan</h3>
                       <p className="text-muted small">Track your borrowed tech.</p>
@@ -109,17 +190,40 @@ quick access to their reservation details without having to navigate to a separa
                     </Badge>
                   </div>
 
-                  <div className="py-4 text-center">
-                    {dashboardData.equipmentLoans === 0 ? (
-                      <p className="text-muted italic">You currently have 0 items checked out.</p>
+                  <div className="flex-grow-1">
+                    {dashboardData.equipment.length > 0 ? (
+                      <ListGroup variant="flush" className="mb-3">
+                        {/* corrected => loop through equipment here */}
+                        {dashboardData.equipment.map((item: any) => (
+                          <ListGroup.Item key={item.id} className="px-0 py-3 bg-transparent">
+                            <div className="d-flex justify-content-between align-items-center">
+                              <div>
+                                <h6 className="mb-0 fw-bold">{item.item_name}</h6>
+                                <small className="text-danger">
+                                  Due: {item.due_at ? new Date(item.due_at).toLocaleDateString() : 'N/A'} {/* corrected the varirable na,e */}
+                                </small>
+                              </div>
+                              <i className="bi bi-laptop text-muted"></i>
+                            </div>
+                          </ListGroup.Item>
+                        ))}
+                      </ListGroup>
                     ) : (
-                      <p>Check your return dates.</p>
+                      <div className="py-4 text-center">
+                        <p className="text-muted italic">You currently have 0 items checked out.</p>
+                      </div>
                     )}
-                    <Button variant="outline-success" size="sm" onClick={() => navigate('/equipment')}>View Inventory</Button>
+                  </div>
+
+                  <div className="mt-auto pt-3 border-top text-center">
+                    <Button variant="outline-success" size="sm" onClick={() => navigate('/equipment')}>
+                      View Inventory
+                    </Button>
                   </div>
                 </Card.Body>
               </Card>
             </Col>
+
           </Row>
         </Container>
       </main>

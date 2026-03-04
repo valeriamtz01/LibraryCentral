@@ -57,7 +57,12 @@ const EquipmentPage = () => {
   ]; */
 
   //state storing full equipment list that was initially empty (added 'from be')
+  //it is now initialized as an empty array[] (fetching live data = need to start with empty state)
+  //having this typed interface <Equipment[]> ensures typescript catches errors if BE returns unexpected
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+
+  //loading state:
+  //this is to show a spinner and prevent the "no equipment found" from flashing on the screen before the data actually arrives from the server
   const [loading, setLoading] = useState(true); // loading state while fetching from be
 
   //list of categories used in the filter modal 
@@ -78,47 +83,54 @@ const EquipmentPage = () => {
     return availableQuantity > 0 ? 'available' : 'unavailable';
   };
 
+  // fetchEquipment asyn function: 
   // fetch equipment from backend when component loads
   // replaces the hardcode data
   // instead get from be and map the fiels to the equipment interface
+  // idea = core logic that connect the react ui to the django backend by using the centralized 'api' axios instance (handles baseurl and auth headers)
   const fetchEquipment = async () => {
     try {
-      const response = await api.get("/equipment/", { withCredentials: true });
+      const response = await api.get("/equipment/", { withCredentials: true }); // send GET request to /equipment/ endpoint
       console.log('Fetched data:', response.data);
 
       // map backend data to frontend equipment structure (basically what is in the serializer)
+      // be keys and fe keys don't always match perfectly so need data mapping
+      // this tranforms the json from the api into the specifc 'equipment' interface that was defined at the top
       const mapped = response.data.map((item: any) => ({
         id: item.id,
-        name: item.name,              // from be serializer
+        name: item.name,              // the name now comes from the friendly name logic in the serializer
         category: item.category,      // from serializer
         description: item.description || "No description", // a fallback in case empty
-        use: "See description", // placeholder
-        loanPeriod: "Check policy", // placeholder
+        use: "See description", // placeholder until we add a use field to models
+        loanPeriod: "Check policy", 
         location: item.location,
         photoUrl: item.photoUrl,
         totalQuantity: item.totalQuantity,
         availableQuantity: item.availableQuantity,
-        checkoutHistory: [], // this isn't fetched for this page, but later if needed
+        checkoutHistory: [], // this isn't fetched for this page, but later if needed -> empty for now to prevent undefined errors in the interface
       }));
 
-      setEquipment(mapped); // set the state to display in the screen
+      setEquipment(mapped); // update state with the clean, mapped data
     }
     catch (error) {
-      console.error('Failed to fetch equipment: ', error);
+      console.error('Failed to fetch equipment: ', error); // 401 (authorization) or 500 (server) error
     }
     finally {
-      setLoading(false);
+      setLoading(false); // stops the loading state regardless of success or failure
     }
   };
     
+    // useEffect hook:
     // initial fetch when component mounts
+    // only want to call the be once when the user first lands on the page
     useEffect(() => {
       fetchEquipment();
-    }, []);
+    }, []); // empty dependency array [] ensures we don't get into an infinite loop of fetching
 
 
-  //memorized filtered equipment list
-  //use useMemo so the list is onyl recalculated when any dependencies change
+  // useMemo for filtering:
+  // it wraps the equipment list and only recalculates if the search query or filters change
+  // if we add more to inventory, this will prevent the user interface from lagging every time the user types a letter
   const filteredEquipment = useMemo(() => {
     return equipment.filter(item => {
       const status = getStatus(item.availableQuantity);

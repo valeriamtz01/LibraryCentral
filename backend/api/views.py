@@ -113,26 +113,38 @@ def dashboard_summary(request):
         "equipment": [...]         # optional: currently checked out equipment
     }
 
+    what happens: 
+        1. this is the "Data Aggregator." It pulls from three different tables (Reservation, Room, Checkout) and merges them into one JSON response.
+        2. reduces network "waterfalling" (react making 5 separate calls).
+
     """
+
 
     user = request.user
     now = timezone.now()
 
-    # active room reservations
+     # active room reservations => fetching future-active reservations
     upcoming_reservations = Reservation.objects.filter(
         user=user,
         status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
         end_time__gte=timezone.now()  # still future or ongoing
-    ).select_related("room")
+    ).select_related("room") # optimizing: joins the room table to prevent n+1 queries
 
+    # segmenting spaces => so our logic defines computer as a room with a room montior
     activeRooms = upcoming_reservations.filter(room__has_monitor=False).count()
     activeComputers = upcoming_reservations.filter(room__has_monitor=True).count()
 
-    #equipment loans
+    # equipment loans 
+    # active loans: => only items where 'returned_at' is null
     equipment_loans_qs = Checkout.objects.filter(user=user, returned_at__isnull = True)
     equipmentLoans = equipment_loans_qs.count()
 
+    # added: uses the serializer here instead of the manual list
+    # will use the get_item_name() logic automatically
+    equipment_data = CheckoutSerializer(equipment_loans_qs, many=True).data
+
     #including details for the lists groups
+    #manually building the lists to ensure the keys ('room_name' and 'item_name) match what dashboard.tsx expects for easy rendering
     reservations = [
         {
             "id": r.id,
@@ -149,7 +161,13 @@ def dashboard_summary(request):
         {
             "id": c.id,
             "asset_tag": c.item.asset_tag,
-            "name": c.item.equipment_type.name,
+            
+            # notes contain text, so extract a clean name else use the type name
+            #.split('\n')[0]: grabs the first line (just in case there are multiple lines of notes).
+            # .split('-')[0]: splits that line into a list based on the dash and grabs the first part (e.g., "DVDs").
+            # .strip(): cleans up any leftover accidental spaces around the word.
+            "item_name": c.item.notes.split('\n')[0].split('-')[0].strip() if c.item.notes else c.item.equipment_type.name,
+          
             "checked_out_at": c.checked_out_at,
             "due_at": c.due_at,
             "status": c.item.status,
@@ -169,6 +187,12 @@ def dashboard_summary(request):
 #create viewsets (get, post, put, delete)
 #reservations
 class ReservationViewSet(viewsets.ModelViewSet):
+    """
+        Provides GET, POST, PUT, DELETE for Reservations.
+        SECURITY: IsOwnerOrStaff ensures students can't edit other students' bookings.
+
+    """
+
     serializer_class = ReservationSerializer #tells dfr which serializer to use
     permission_classes = [IsAuthenticated, IsOwnerOrStaff] #users must be logged in and either own the thing or be staff
 
@@ -195,6 +219,12 @@ class CheckoutViewSet(viewsets.ModelViewSet):
     
 #rooms - students=read info, staff=manage rooms
 class RoomViewSet(viewsets.ModelViewSet):
+    """
+    what happens: 
+        1. manages the inventory of rooms
+        2. dynamic permission -> want anyone to see what rooms exist (GET) but only admis able to create/delete rooms
+    """
+    
     #Rooms endpoint: Students (any authenticated user): can GET list/retrieve
     #Staff (admin): can create/update/delete
     

@@ -28,6 +28,152 @@ type StatusesResponse = {
   statuses: Record<string, string>; // { "Room 2.111": "occupied" | "available" }
 };
 
+// ===== UTRGV Library slot rules (Spring 2026) =====
+const UTRGV_TIME_ZONE = "America/Chicago"; // Central Time
+const SLOT_MINUTES = 30; // slots every 30 minutes
+
+type LibraryHours = { open: string; close: string }; // HH:MM (24h)
+
+// JS Date.getDay(): 0=Sun ... 6=Sat
+const HOURS_BY_DOW: Record<number, LibraryHours> = {
+  0: { open: "13:00", close: "22:00" }, // Sun 1:00 PM–10:00 PM
+  1: { open: "07:30", close: "23:30" }, // Mon 7:30 AM–11:30 PM
+  2: { open: "07:30", close: "23:30" }, // Tue
+  3: { open: "07:30", close: "23:30" }, // Wed
+  4: { open: "07:30", close: "23:30" }, // Thu
+  5: { open: "07:30", close: "18:00" }, // Fri 7:30 AM–6:00 PM
+  6: { open: "10:00", close: "19:00" }, // Sat 10:00 AM–7:00 PM
+};
+
+function hhmmToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToHHMM(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function format12Hour(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(":");
+  let h = Number(hStr);
+  const m = Number(mStr);
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+/**
+ * Returns YYYY-MM-DD for "today" in a specific IANA timezone.
+ */
+function todayInTimeZone(timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+/**
+ * Build N date options starting from today (in Central Time).
+ */
+function buildDateOptions(daysAhead: number, timeZone: string): string[] {
+  const start = new Date(`${todayInTimeZone(timeZone)}T00:00:00`);
+  const out: string[] = [];
+  for (let i = 0; i < daysAhead; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    out.push(`${y}-${m}-${day}`);
+  }
+  return out;
+}
+
+/**
+ * Build start & end time options for a given date string (YYYY-MM-DD),
+ * respecting UTRGV hours for that day-of-week.
+ *
+ * Values returned are HH:MM (24h). You display them using format12Hour().
+ */
+function buildTimeOptionsForDate(dateYYYYMMDD: string): { startTimes: string[]; endTimes: string[] } {
+  if (!dateYYYYMMDD) return { startTimes: [], endTimes: [] };
+
+  const dow = new Date(`${dateYYYYMMDD}T00:00:00`).getDay();
+  const hours = HOURS_BY_DOW[dow];
+  const openM = hhmmToMinutes(hours.open);
+  const closeM = hhmmToMinutes(hours.close);
+
+  const startTimes: string[] = [];
+  const endTimes: string[] = [];
+
+  // Start times: from open up to close - slot
+  for (let t = openM; t <= closeM - SLOT_MINUTES; t += SLOT_MINUTES) {
+    startTimes.push(minutesToHHMM(t));
+  }
+
+  // End times: from open + slot to close
+  for (let t = openM + SLOT_MINUTES; t <= closeM; t += SLOT_MINUTES) {
+    endTimes.push(minutesToHHMM(t));
+  }
+
+  return { startTimes, endTimes };
+}
+
+/**
+ * Convert "date + time interpreted in America/Chicago" into a real Date.
+ * This avoids using the user's local timezone (important!).
+ */
+function zonedDateTimeToDate(dateMMDDYYYY: string, timeHHMM: string, timeZone: string): Date {  // Build a naive ISO string
+  const [mo, d, y] = dateMMDDYYYY.split("-").map(Number);  const [hh, mm] = timeHHMM.split(":").map(Number);
+  // Create a Date as if it's UTC first
+  const utcGuess = new Date(Date.UTC(mo - 1, d, y, hh, mm, 0));
+
+  // Find the timezone offset at that moment in the target timezone:
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(utcGuess);
+
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+
+  // The "wall time" in target TZ corresponding to utcGuess:
+  const tzY = get("year");
+  const tzMo = get("month");
+  const tzD = get("day");
+  const tzH = get("hour");
+  const tzMi = get("minute");
+  const tzS = get("second");
+
+  // If utcGuess renders as tzY/tzMo/tzD tzH:tzMi in that TZ, compute what UTC would be
+  // for the intended wall time (y/mo/d hh:mm), then shift.
+  const wallAsUTC = Date.UTC( mo - 1, d, y, hh, mm, 0);
+  const renderedAsUTC = Date.UTC(tzMo - 1, tzD, tzY, tzH, tzMi, tzS);
+
+  const offsetMs = renderedAsUTC - utcGuess.getTime();
+  return new Date(wallAsUTC - offsetMs);
+}
+
+function formatDateMMDDYYYY(dateYYYYMMDD: string): string {
+  const [y, m, d] = dateYYYYMMDD.split("-").map(Number);
+  return `${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}/${y}`;
+}
+
+
 const StudySpaces = () => {
   const [selectedFloor, setSelectedFloor] = useState(2);
 
@@ -57,6 +203,18 @@ const StudySpaces = () => {
     for (const r of activeRooms) map.set(r.room_name, r.id);
     return map;
   }, [activeRooms]);
+
+  const dateOptions = useMemo(() => buildDateOptions(14, UTRGV_TIME_ZONE), []);
+  const timeOptions = useMemo(
+    () => buildTimeOptionsForDate(bookingData.date),
+    [bookingData.date]
+  );
+  const endTimeOptions = useMemo(() => {
+    if (!bookingData.startTime) return timeOptions.endTimes;
+    const startM = hhmmToMinutes(bookingData.startTime);
+    return timeOptions.endTimes.filter((t) => hhmmToMinutes(t) > startM);
+  }, [bookingData.startTime, timeOptions.endTimes]);
+
 
   /**
    * Fetch live statuses from backend:
@@ -99,13 +257,17 @@ const StudySpaces = () => {
    */
   const handleRoomClick = (roomName: string) => {
     setBookingError(null);
+
+    const today = todayInTimeZone(UTRGV_TIME_ZONE);
+
     setBookingData((prev) => ({
       ...prev,
       resource: roomName,
-      date: "",
+      date: today,       // default to today automatically
       startTime: "",
       endTime: "",
     }));
+
     setShowModal(true);
   };
 
@@ -131,10 +293,9 @@ const StudySpaces = () => {
       return;
     }
 
-    // Build ISO timestamps (Django DateTimeField expects full datetime)
-    // This uses the user's local time interpretation; for production you’d standardize timezone.
-    const startISO = new Date(`${bookingData.date}T${bookingData.startTime}:00`).toISOString();
-    const endISO = new Date(`${bookingData.date}T${bookingData.endTime}:00`).toISOString();
+    // Build ISO timestamps in Central Time (America/Chicago
+    const startISO = zonedDateTimeToDate(bookingData.date, bookingData.startTime, UTRGV_TIME_ZONE).toISOString();
+    const endISO = zonedDateTimeToDate(bookingData.date, bookingData.endTime, UTRGV_TIME_ZONE).toISOString();
 
     setBookingLoading(true);
 
@@ -254,33 +415,65 @@ const StudySpaces = () => {
               <Form>
                 <Form.Group className="mb-3">
                   <Form.Label>Reservation Date</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={bookingData.date}
-                    onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })}
-                  />
+                  
+                  <Form.Select
+                  value={bookingData.date}
+                  onChange={(e) =>
+                    setBookingData({ ...bookingData, date: e.target.value, startTime: "", endTime: "" })
+                    }
+                    >
+                      {dateOptions.map((d) => (
+                        <option key={d} value={d}>
+                          {formatDateMMDDYYYY(d)}
+                          </option>
+                        ))}
+                        </Form.Select>
+                        
+                        <div className="form-text">
+                           Times shown in Central Time (America/Chicago).
+                           </div>
+
                 </Form.Group>
 
                 <Row>
                   <Col>
                     <Form.Group className="mb-3">
                       <Form.Label>Start Time</Form.Label>
-                      <Form.Control
-                        type="time"
-                        value={bookingData.startTime}
-                        onChange={(e) => setBookingData({ ...bookingData, startTime: e.target.value })}
-                      />
+                      
+                      <Form.Select
+                      value={bookingData.startTime}
+                      onChange={(e) => setBookingData({ ...bookingData, startTime: e.target.value, endTime: "" })}
+                      disabled={!bookingData.date}
+                      >
+                        <option value="">Select start…</option>
+                        {timeOptions.startTimes.map((t) => (
+                          <option key={t} value={t}>
+                            {format12Hour(t)}
+                            </option>
+                          ))}
+                        </Form.Select>
+
                     </Form.Group>
                   </Col>
 
                   <Col>
                     <Form.Group className="mb-3">
                       <Form.Label>End Time</Form.Label>
-                      <Form.Control
-                        type="time"
-                        value={bookingData.endTime}
-                        onChange={(e) => setBookingData({ ...bookingData, endTime: e.target.value })}
-                      />
+                      
+                      <Form.Select
+                      value={bookingData.endTime}
+                      onChange={(e) => setBookingData({ ...bookingData, endTime: e.target.value })}
+                      disabled={!bookingData.startTime}
+                      >
+                        <option value="">Select end…</option>
+                        {endTimeOptions.map((t) => (
+                          <option key={t} value={t}>
+                            {format12Hour(t)}
+                            </option>
+                          ))}
+                        </Form.Select>
+
+
                     </Form.Group>
                   </Col>
                 </Row>
