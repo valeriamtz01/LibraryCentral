@@ -58,11 +58,16 @@ const Dashboard = () => {
   // helper function for data formatting: 
   // be iso strings (2026-01-02T14:00:00Z) aren't user friendly
   // function -> makes the iso string look nice ("Jan 24, 2:00 PM")
+  // helps localize UTC strings from datbase since django stores all timestamps in UTC 
   const formatDateTime = (isoString: string) => {
     const options: Intl.DateTimeFormatOptions = {
-      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      month: 'short',  // a short month ("Mar")
+      day: 'numeric',  // numerica day ("10")
+      hour: '2-digit',  // ensure times alighment (07 instead of 7)
+      minute: '2-digit', // kepps the list from shifting horizontally as numbers change
+      timeZone: 'America/Chicago' // this forces browser to ignore user's local system clock => ensuring time shown is always the time at the utrgv campus
     };
-    return new Date(isoString).toLocaleString(undefined, options);
+    return new Date(isoString).toLocaleString('en-US', options); // newDate(isostring) = parses the ISO-8601 string ("2026-03-10T12:30:00Z"). .toLocalestring = guarantees the "month day, time" order
   }
 
   const handleDeleteReservation = async (reservationId: number) => {
@@ -70,7 +75,7 @@ const Dashboard = () => {
 
   try {
     // call the be to delete
-    await api.delete(`/user/reservations/${reservationId}/`, {
+    await api.delete(`/reservations/${reservationId}/`, {
       withCredentials: true
     });
 
@@ -150,7 +155,18 @@ quick access to their reservation details without having to navigate to a separa
                                 <div>
                                   <h6 className="mb-0 fw-bold">{res.room_name}</h6> 
                                   <small className="text-muted">
-                                    {formatDateTime(res.start_time)} - {new Date(res.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {/* start time and date: the 'formatDateTime' helper function displays both the date and the time
+                                        so this establishes the 'day' of the reservation (ex: Mar 10) so that the student know exactly which
+                                        date they are looking at without needing a seprate column */}
+
+                                    {/* new Date(res.end_time) -> converts the UTC string from the database (ending in z) into a js date object
+                                        .toLocaleTimeString -> extracts only the time portion (hour:minute am/pm) */}  
+                                    {formatDateTime(res.start_time)} - {new Date(res.end_time).toLocaleTimeString('en-US', { 
+                                      hour: '2-digit',  // ensures consistent spacing in the interface (like 07:00 instead of 7:00)
+                                      minute: '2-digit',  
+                                      timeZone: 'America/Chicago', // fix for the five hour jump. even if set to a different timezone, this forces display to match utrgv campus time (central time). it does calculate for daylight saving time
+                                      hour12: true // matches the utrgv library's standard 12 hour clock format
+                                    })}
                                   </small>
                                 </div>
                               </div>

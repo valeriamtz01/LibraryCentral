@@ -128,47 +128,73 @@ function buildTimeOptionsForDate(dateYYYYMMDD: string): { startTimes: string[]; 
   return { startTimes, endTimes };
 }
 
+// updated function after testing out website
+// function creates a 'bridge' between the time a student sees and what the server needs (UTC)
+function zonedDateTimeToDate(dateYYYYMMDD: string, timeHHMM: string, timeZone: string): Date {
+  // 1. create a "wall time" string: "2026-03-10T07:30:00"
+  // combine the date and time into a ISO string (doesn't have a timezone attachted yet)
+  const dateTimeString = `${dateYYYYMMDD}T${timeHHMM}:00`;
+
+  // 2. use Intl.DateTimeFormat to figure out the UTC string for that local time in Chicago
+  // create a temporary date object from the above string
+  // browser will initally assume this is in the student's local time
+  const tempDate = new Date(dateTimeString);
+  
+  // need to return a Date object that, when .toISOString() is called, represents the correct UTC moment.
+  // use the "hack" of locales to force the browser to treat our input as Chicago time.
+  // tempDate.toLocaleString => asks the browser what would the time be in chicago
+  // calculate the diff (offset) btween the user's local clock and chicago clock
+  const locativeString = tempDate.toLocaleString("en-US", { timeZone });
+  const diff = tempDate.getTime() - new Date(locativeString).getTime();
+  
+  // apply that difference to the original timestamp
+  // when .toISOString()' is called on this returned date, it will perfectly match the utc time for utrgv campus, regardless of where the user is
+  return new Date(tempDate.getTime() + diff);
+}
+
+// function split dates into parts (year, month, day) and rebuild them using date.utc -> can cause faultiness
 /**
  * Convert "date + time interpreted in America/Chicago" into a real Date.
  * This avoids using the user's local timezone (important!).
  */
-function zonedDateTimeToDate(dateMMDDYYYY: string, timeHHMM: string, timeZone: string): Date {  // Build a naive ISO string
-  const [mo, d, y] = dateMMDDYYYY.split("-").map(Number);  const [hh, mm] = timeHHMM.split(":").map(Number);
-  // Create a Date as if it's UTC first
-  const utcGuess = new Date(Date.UTC(mo - 1, d, y, hh, mm, 0));
+// function zonedDateTimeToDate(dateMMDDYYYY: string, timeHHMM: string, timeZone: string): Date {  // Build a naive ISO string
+//   const [mo, d, y] = dateMMDDYYYY.split("-").map(Number);  const [hh, mm] = timeHHMM.split(":").map(Number);
+//   // Create a Date as if it's UTC first
+//   const utcGuess = new Date(Date.UTC(mo - 1, d, y, hh, mm, 0));
 
-  // Find the timezone offset at that moment in the target timezone:
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
-    month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(utcGuess);
+//   // Find the timezone offset at that moment in the target timezone:
+//   const parts = new Intl.DateTimeFormat("en-US", {
+//     timeZone,
+//     hour12: false,
+//     month: "2-digit",
+//     day: "2-digit",
+//     year: "numeric",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//     second: "2-digit",
+//   }).formatToParts(utcGuess);
 
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+//   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
 
-  // The "wall time" in target TZ corresponding to utcGuess:
-  const tzY = get("year");
-  const tzMo = get("month");
-  const tzD = get("day");
-  const tzH = get("hour");
-  const tzMi = get("minute");
-  const tzS = get("second");
+//   // The "wall time" in target TZ corresponding to utcGuess:
+//   const tzY = get("year");
+//   const tzMo = get("month");
+//   const tzD = get("day");
+//   const tzH = get("hour");
+//   const tzMi = get("minute");
+//   const tzS = get("second");
 
-  // If utcGuess renders as tzY/tzMo/tzD tzH:tzMi in that TZ, compute what UTC would be
-  // for the intended wall time (y/mo/d hh:mm), then shift.
-  const wallAsUTC = Date.UTC( mo - 1, d, y, hh, mm, 0);
-  const renderedAsUTC = Date.UTC(tzMo - 1, tzD, tzY, tzH, tzMi, tzS);
+//   // If utcGuess renders as tzY/tzMo/tzD tzH:tzMi in that TZ, compute what UTC would be
+//   // for the intended wall time (y/mo/d hh:mm), then shift.
+//   const wallAsUTC = Date.UTC( mo - 1, d, y, hh, mm, 0);
+//   const renderedAsUTC = Date.UTC(tzMo - 1, tzD, tzY, tzH, tzMi, tzS);
 
-  const offsetMs = renderedAsUTC - utcGuess.getTime();
-  return new Date(wallAsUTC - offsetMs);
-}
+//   const offsetMs = renderedAsUTC - utcGuess.getTime();
+//   return new Date(wallAsUTC - offsetMs);
+// }
 
 function formatDateMMDDYYYY(dateYYYYMMDD: string): string {
+  // ensures this matches the YYYY-MM-DD format coming from the state
   const [y, m, d] = dateYYYYMMDD.split("-").map(Number);
   return `${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}/${y}`;
 }
