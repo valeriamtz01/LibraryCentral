@@ -209,11 +209,14 @@ function buildDateOptionsWeekly(timeZone: string): string[] {
   const today = new Date(`${todayInTimeZone(timeZone)}T00:00:00`); //get today's date in target timezone
   const dayOfWeek = today.getDay(); // determine day of the week for today (JS: 0=sunday, 1=monday...6=saturday)
 
-  // find upcoming Sunday (or today if it's Sunday)
-  const daysUntilSunday = (7 - dayOfWeek) % 7; // calculate how many days until next sunday
-  const start = new Date(today); // compute the date of the upcoming sunday (or current)
-  start.setDate(today.getDate() + daysUntilSunday);
+  // // find upcoming Sunday (or today if it's Sunday)
+  // const daysUntilSunday = (7 - dayOfWeek) % 7; // calculate how many days until next sunday
+  // const start = new Date(today); // compute the date of the upcoming sunday (or current)
+  // start.setDate(today.getDate() + daysUntilSunday);
 
+  const start = new Date(today);
+  start.setDate(today.getDate() - dayOfWeek);
+  
   const out: string[] = []; // initialize array to hold the 7 date options
   for (let i = 0; i < 7; i++) { // loops 7 times to generation 7consective dates starting from sunday
     const d = new Date(start); // add i days to the sunday date to get the current option

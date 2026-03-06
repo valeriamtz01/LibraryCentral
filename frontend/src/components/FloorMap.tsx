@@ -19,6 +19,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
 
     // to determine color based on data
     const getRoomStyle = (roomName: string) => {
+        console.log(roomName, statuses[roomName]);
         const status = statuses[roomName] || "available"; // get the current status of the room from the backend (if no status record => asumme room is free)
         
         // for now we'll just use a simple color scheme where "available" rooms are green and "occupied" rooms are red, but later we can expand this to include more status types and corresponding colors (e.g. yellow for "reserved", gray for "out of service", etc.)
@@ -28,6 +29,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
         // determine based on status 
         // reserved = red border 
         switch (status) {
+            case "occupied":
             case "reserved":
                 return "border-danger bg-danger";  // red, clickable
             default:
@@ -45,7 +47,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
 
         const status = statuses[roomName] || "available";
 
-        if (status === "reserved") {
+        if (status === "reserved" || status === "occupied") {
             alert("This room is currently reserved, but you can reserve it for another time.");
         }
 
