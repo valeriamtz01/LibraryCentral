@@ -372,7 +372,7 @@ const EquipmentDetail = () => {
             {/* Product Details */}
             <Col lg={6}>
               <div className="equipment-details">
-                <h1 className="fw-bold mb-2">{currentEquipment.name}</h1>
+                <h1 className="fw-bold mb-2">{currentEquipment.name.split(" - ")[0]}</h1>
                 <p className="text-muted mb-4">
                   <span className="badge bg-light text-dark">{currentEquipment.category}</span>
                 </p>
@@ -446,7 +446,7 @@ const EquipmentDetail = () => {
         <Modal.Body>
           {/* summary of selected equipment */}
           <div className="mb-3">
-            <h5 className="fw-bold">{currentEquipment?.name}</h5>
+            <h5 className="fw-bold">{currentEquipment?.name.split(" - ")[0]}</h5>
             <p className="mb-1"><strong>Loan period:</strong> {currentEquipment?.loanPeriod}</p>
             <p className="mb-1"><strong>Location:</strong> {currentEquipment?.location}</p>
             <p className="mb-0 text-muted">
@@ -497,7 +497,7 @@ const EquipmentDetail = () => {
         </Modal.Header>
         <Modal.Body>
           <p>
-            <strong>{currentEquipment?.name}</strong> has been successfully checked out.
+            <strong>{currentEquipment?.name.split(" - ")[0]}</strong> has been successfully checked out.
           </p>
           <p className="text-muted small">
             Please return it by {currentEquipment?.loanPeriod} and handle it responsibly.

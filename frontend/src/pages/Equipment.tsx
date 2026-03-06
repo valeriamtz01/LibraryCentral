@@ -217,7 +217,7 @@ const EquipmentPage = () => {
                   >
                     <Card.Body className="p-4 d-flex justify-content-between align-items-center">
                       <div className="equipment-info">
-                        <h5 className="mb-2 fw-semibold">{equipment.name}</h5>
+                        <h5 className="mb-2 fw-semibold">{equipment.name.split(" - ")[0]}</h5>
                         <div className="equipment-meta">
                           <span className="badge bg-light text-dark me-2">
                             {equipment.category}

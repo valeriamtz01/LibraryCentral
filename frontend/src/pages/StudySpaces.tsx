@@ -200,6 +200,34 @@ function formatDateMMDDYYYY(dateYYYYMMDD: string): string {
 }
 
 
+/*
+ added: build 7 date options starting from the most recent or upcoming Sunday
+
+ function: generates an array of 7 consective dates starting from recent sunday => used to sow the weekly reservation window for students
+*/
+function buildDateOptionsWeekly(timeZone: string): string[] {
+  const today = new Date(`${todayInTimeZone(timeZone)}T00:00:00`); //get today's date in target timezone
+  const dayOfWeek = today.getDay(); // determine day of the week for today (JS: 0=sunday, 1=monday...6=saturday)
+
+  // find upcoming Sunday (or today if it's Sunday)
+  const daysUntilSunday = (7 - dayOfWeek) % 7; // calculate how many days until next sunday
+  const start = new Date(today); // compute the date of the upcoming sunday (or current)
+  start.setDate(today.getDate() + daysUntilSunday);
+
+  const out: string[] = []; // initialize array to hold the 7 date options
+  for (let i = 0; i < 7; i++) { // loops 7 times to generation 7consective dates starting from sunday
+    const d = new Date(start); // add i days to the sunday date to get the current option
+    d.setDate(start.getDate() + i);
+    const y = d.getFullYear(); // start extracting year then month then day
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    out.push(`${y}-${m}-${day}`); // push formatted string into array
+  }
+
+  return out; // return the array of 7 date strings
+}
+
+
 const StudySpaces = () => {
   const [selectedFloor, setSelectedFloor] = useState(2);
 
@@ -230,7 +258,7 @@ const StudySpaces = () => {
     return map;
   }, [activeRooms]);
 
-  const dateOptions = useMemo(() => buildDateOptions(14, UTRGV_TIME_ZONE), []);
+  const dateOptions = useMemo(() => buildDateOptionsWeekly(UTRGV_TIME_ZONE), []);
   const timeOptions = useMemo(
     () => buildTimeOptionsForDate(bookingData.date),
     [bookingData.date]
@@ -448,9 +476,10 @@ const StudySpaces = () => {
                     setBookingData({ ...bookingData, date: e.target.value, startTime: "", endTime: "" })
                     }
                     >
-                      {dateOptions.map((d) => (
+                      {/* i === 0 => first date in the list is sunday so show a clear label for the first option only */}
+                      {dateOptions.map((d, i) => (
                         <option key={d} value={d}>
-                          {formatDateMMDDYYYY(d)}
+                            {i === 0 ? `Starting Sunday: ${formatDateMMDDYYYY(d)}` : formatDateMMDDYYYY(d)} {/* added so it makes it clear it starts sundary to choose a date*/}
                           </option>
                         ))}
                         </Form.Select>
