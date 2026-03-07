@@ -213,7 +213,7 @@ class EquipmentItemSerializer(serializers.ModelSerializer):
         # takes the first line of your 'notes' field from seed.py
         # => extracs a readble name from the notes field (Dvds - ... becomes "Dvds")
         if obj.notes:
-            return obj.notes.split('\n')[0].strip()
+            return obj.notes.split(" - ")[0].strip() # getting the name (word/s before the -) to show on equipment page
         return obj.equipment_type.name
 
 class CheckoutSerializer(serializers.ModelSerializer):

@@ -133,7 +133,7 @@ class Command(BaseCommand):
             defaults={
                 "equipment_type": type_map["Media"], 
                 "campus": campus, 
-                "status": EquipmentItem.STATUS_AVAILABLE
+                "status": EquipmentItem.STATUS_AVAILABLE,
             }
         )
         EquipmentItem.objects.update_or_create(
@@ -141,7 +141,7 @@ class Command(BaseCommand):
             defaults={
                 "equipment_type": type_map["Media"], 
                 "campus": campus, 
-                "status": EquipmentItem.STATUS_AVAILABLE
+                "status": EquipmentItem.STATUS_AVAILABLE,
             }
         )
 
