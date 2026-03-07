@@ -98,16 +98,16 @@ const EquipmentPage = () => {
       // this tranforms the json from the api into the specifc 'equipment' interface that was defined at the top
       const mapped = response.data.map((item: any) => ({
         id: item.id,
-        name: item.name,              // the name now comes from the friendly name logic in the serializer
-        category: item.category,      // from serializer
-        description: item.description || "No description", // a fallback in case empty
-        use: "See description", // placeholder until we add a use field to models
-        loanPeriod: "Check policy", 
-        location: item.location,
-        photoUrl: item.photoUrl,
-        totalQuantity: item.totalQuantity,
-        availableQuantity: item.availableQuantity,
-        checkoutHistory: [], // this isn't fetched for this page, but later if needed -> empty for now to prevent undefined errors in the interface
+        name: item.name || "Unknown Item",
+        category: item.category || "Uncategorized",
+        description: item.description || "No description",
+        use: "See description",
+        loanPeriod: "Check policy",
+        location: item.location || "unknown",
+        photoUrl: item.photoUrl || "https://via.placeholder.com/400x300?text=Equipment",
+        totalQuantity: item.totalQuantity || 0,
+        availableQuantity: item.availableQuantity || 0,
+        checkoutHistory: [],
       }));
 
       setEquipment(mapped); // update state with the clean, mapped data
@@ -139,9 +139,12 @@ const EquipmentPage = () => {
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
       
       //check category filter
-      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      // const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
       
-      //check availability status filter
+      const matchesCategory = selectedCategory === 'all' || 
+        item.category.toLowerCase() === selectedCategory.toLowerCase();
+      
+        //check availability status filter
       const matchesStatus = selectedStatus === 'all' || status === selectedStatus;
       
       return matchesSearch && matchesCategory && matchesStatus;
@@ -217,7 +220,7 @@ const EquipmentPage = () => {
                   >
                     <Card.Body className="p-4 d-flex justify-content-between align-items-center">
                       <div className="equipment-info">
-                        <h5 className="mb-2 fw-semibold">{equipment.name.split(" - ")[0]}</h5>
+                        <h5 className="mb-2 fw-semibold">{equipment.name ? equipment.name.split(" - ")[0] : "Unnamed Item"}</h5>
                         <div className="equipment-meta">
                           <span className="badge bg-light text-dark me-2">
                             {equipment.category}

@@ -94,53 +94,126 @@ class Reservation(models.Model): # the booking itself creating allowed values an
 
 #equipment type model
 class EquipmentType(models.Model):
-    name = models.CharField(max_length=60, unique=True)  # the type name
-    category = models.CharField(max_length=30, choices=[('Accessories','Accessories'),('Media','Media'),('Electronics','Electronics'),('Supplies','Supplies')], default='Supplies') #categories limited to these specific choices
+    CATEGORY_CHOICES = [
+        ('Accessories', 'Accessories'),
+        ('Media', 'Media'),
+        ('Electronics', 'Electronics'),
+        ('Supplies', 'Supplies'),
+    ]
 
-    def __str__(self) -> str:
+    name = models.CharField(max_length=60, unique=True)
+    category = models.CharField(
+        max_length=30,
+        choices=CATEGORY_CHOICES,
+        default='Supplies'
+    )
+
+    def __str__(self):
         return self.name
 
 
-#individual equipment item
+#equipment item as the 'type' such as DVD, Laptop..
 class EquipmentItem(models.Model):
-    STATUS_AVAILABLE = "AVAILABLE"
-    STATUS_CHECKED_OUT = "CHECKED_OUT"
-    STATUS_MAINTENANCE = "MAINTENANCE"
+    name = models.CharField(max_length=200, default = "Unknown")
+
+    equipment_type = models.ForeignKey(EquipmentType, on_delete=models.CASCADE)
+
+    description = models.TextField(blank=True)
+    use = models.TextField(blank=True)
+    loan_period = models.CharField(max_length=50, blank=True)
+    location = models.CharField(max_length=100, blank=True)
+    
+    total_quantity = models.IntegerField(default=0)    
+    photo_url = models.URLField(blank=True)
+
+    @property
+    def available_quantity(self):
+        return self.assets.filter(
+            status=EquipmentAsset.STATUS_AVAILABLE
+        ).count()
+    
+    def __str__(self):
+        return self.name
+    
+    
+
+#added this new model for better structure of equipment
+#individual physical copy with asset_tag and status
+class EquipmentAsset(models.Model):
+    STATUS_AVAILABLE = 'available'
+    STATUS_UNAVAILABLE = 'unavailable'
     STATUS_CHOICES = [
-        (STATUS_AVAILABLE, "Available"),
-        (STATUS_CHECKED_OUT, "Checked Out"),
-        (STATUS_MAINTENANCE, "Maintenance"),
+        (STATUS_AVAILABLE, 'Available'),
+        (STATUS_UNAVAILABLE, 'Unavailable'),
     ]
 
-    # link to equipment type
-    equipment_type = models.ForeignKey(EquipmentType, on_delete=models.PROTECT, related_name="items")
-    campus = models.ForeignKey(Campus, on_delete=models.PROTECT, related_name="equipment")
-    asset_tag = models.CharField(max_length=40, unique=True)
+    equipment_item = models.ForeignKey(
+        EquipmentItem,
+        on_delete=models.CASCADE,
+        related_name="assets"
+    )
+
+    asset_tag = models.CharField(max_length=50, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_AVAILABLE)
     notes = models.TextField(blank=True)
 
-    def __str__(self) -> str:
-        return f"{self.asset_tag} ({self.equipment_type})"
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.asset_tag} ({self.equipment_item.name})"
 
-
+import random
+from datetime import timedelta
+import re
 #equipment checkout model
 class Checkout(models.Model):
     #borrowing the item( delete user delete checkout)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="checkouts") # links checkout to user
-    item = models.ForeignKey(EquipmentItem, on_delete=models.PROTECT, related_name="checkouts") # linnks checkout to equipment item (PROTECT - can't delete item if it has active checkout records)
-    checked_out_at = models.DateTimeField(default=timezone.now) #borrowed at time
+    item = models.ForeignKey(EquipmentItem, on_delete=models.PROTECT, related_name="checkouts") #fe chooses this
+
+    assigned_asset = models.ForeignKey(
+        EquipmentAsset,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    checked_out_at = models.DateTimeField(default=timezone.now) #borrowed at time 
     due_at = models.DateTimeField() #expcted return date/time
     returned_at = models.DateTimeField(null=True, blank=True) #actual return time
 
-    class Meta:
-        indexes = [ 
-            models.Index(fields=["item", "returned_at"]), #for checking if an item is available
-            models.Index(fields=["user", "returned_at"]), #for fetching all acitve loans for a user
-        ]
+    def save(self, *args, **kwargs):
+        # When creating a new checkout
+        if not self.pk and not self.assigned_asset:
+            available_assets = EquipmentAsset.objects.filter(
+                equipment_item=self.item,
+                status=EquipmentAsset.STATUS_AVAILABLE
+            )
 
-    @property
-    def is_returned(self) -> bool:
-        return self.returned_at is not None #a convience property - true if item is returned
+            if not available_assets.exists():
+                raise ValueError("No available assets for this item.")
 
-    def __str__(self) -> str:
-        return f"{self.item} -> {self.user}"
+            asset = available_assets.first()  # assign first available asset
+            self.assigned_asset = asset
+            asset.status = EquipmentAsset.STATUS_UNAVAILABLE
+            asset.save(update_fields=["status"])
+
+            # calculate due_at from loan_period 
+            if not self.due_at:
+                period_str = self.item.loan_period.lower().strip()  # e.g., "7 days"
+                match = re.match(r"(\d+)\s*(day|days|hour|hours|week|weeks)", period_str)
+                if match:
+                    num = int(match.group(1))
+                    unit = match.group(2)
+                    if "day" in unit:
+                        self.due_at = timezone.now() + timedelta(days=num)
+                    elif "hour" in unit:
+                        self.due_at = timezone.now() + timedelta(hours=num)
+                    elif "week" in unit:
+                        self.due_at = timezone.now() + timedelta(weeks=num)
+                else:
+                    self.due_at = timezone.now() + timedelta(days=1)
+
+        super().save(*args, **kwargs)
+

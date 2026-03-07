@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Campus, Room, Reservation, EquipmentItem, Checkout
+from .models import Campus, Room, Reservation, EquipmentItem, Checkout, EquipmentAsset, EquipmentType
 
 
 # Register your models here.
@@ -34,23 +34,39 @@ class ReservationAdmin(admin.ModelAdmin):
     search_fields = ("room__name", "user__username", "user__email") # allows searching by room name or user info
     date_hierarchy = "start_time" # adds a date navigation abr for start_time
 
+#equipment asset  - shows all assets under each equipmentitem
+class EquipmentAssetInline(admin.TabularInline):
+    model = EquipmentAsset
+    extra = 0  # no extra empty rows
+    readonly_fields = ['asset_tag', 'status', 'notes']
+
 # equipmentitem admin
 @admin.register(EquipmentItem)
 class EquipmentItemAdmin(admin.ModelAdmin):
-    list_display = ("asset_tag", "equipment_type", "campus", "status") # important fields
-    list_filter = ("status", "campus", "equipment_type") # filer by staus, campus and type
-    search_fields = ("asset_tag", "notes") # search by asset tag or notes
+    list_display = (
+        "name",
+        "equipment_type",
+        "total_quantity",
+        "available_quantity",
+    )
+
+    list_filter = ("equipment_type",)
+    search_fields = ("name",)
 
 # checkput admin 
 @admin.register(Checkout)
 class CheckoutAdmin(admin.ModelAdmin):
-    list_display = ("item", "user", "checked_out_at", "due_at", "returned_at", "is_returned") #show the items, user, dates, and if returned
-    list_filter = ("item__equipment_type", "user", "returned_at") # filter by equipment type, user and returned status
-    search_fields = ("item__asset_tag", "user__username", "user__email") # search by item tag or user info
-    date_hierarchy = "checked_out_at" # allows filtering by checout date
+    list_display = ['user', 'item', 'assigned_asset', 'checked_out_at', 'due_at', 'returned_at']
+    readonly_fields = ['assigned_asset']  # hide the dropdown for manual assignment
+    list_filter = ['item', 'checked_out_at', 'due_at', 'returned_at']
 
-    #show the @property is_returned as a boolean in admin
-    def is_returned(self, obj):
-        return obj.is_returned # true if returned_at is not none
-    is_returned.boolean = True #displays as a tick in admin
-    is_returned.short_description = "Returned?" # columns label
+    def save_model(self, request, obj, form, change):
+        # this will call the model's save() method which auto-assigns the asset
+        super().save_model(request, obj, form, change)
+    
+
+
+@admin.register(EquipmentType)
+class EquipmentTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "category")
+    search_fields = ("name", "category")

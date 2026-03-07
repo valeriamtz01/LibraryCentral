@@ -305,11 +305,11 @@ const EquipmentDetail = () => {
     try {
       if (!currentEquipment) return; // safetu check
 
-      // 1. Calculate a due date for the equipment (as of right now, it is 24 hours after??)
+      // 1. calcuate a due date for the equipment (not needed, done in using the loan_period)
       const dueDate = new Date();
       dueDate.setHours(dueDate.getHours() + 24); 
 
-      // 2. Send POST request to be to create a checkout record 
+      // 2. send POST request to be to create a checkout record 
       // CheckoutSerializer expects "item" (the ID) and "due_at"
       await api.post(
         "/checkouts/", 
@@ -320,23 +320,15 @@ const EquipmentDetail = () => {
         { withCredentials: true }
       );
  
-      // 3. Update frontend state to reflect the checkout
-      setCurrentEquipment(prev =>
-        prev
-          ? {
-              ...prev,
-              availableQuantity: 0, // assume a single item checkout out
-              status: 'CHECKED_OUT', // updates the status
-            }
-          : null
-      );
+      // refresh the updated equipment
+      const response = await api.get(`/equipment/${currentEquipment.id}/`, { withCredentials: true });
+      setCurrentEquipment(response.data);
 
-      setShowConfirmation(false); // close confirmation and show success modal
+      setShowConfirmation(false);
       setShowSuccess(true);
-      setAcceptedGuidelines(false); // reset guidelines checkbox
+      setAcceptedGuidelines(false);
     } catch (error: any) {
       console.error('Checkout failed:', error.response?.data || error.message);
-      // show alert when specific be error if checkout fails
       alert(`Checkout failed: ${JSON.stringify(error.response?.data || 'Server error')}`);
     }
   };

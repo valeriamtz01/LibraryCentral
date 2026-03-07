@@ -1,8 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Campus, Room, Reservation, EquipmentItem, Checkout
-
+from .models import Campus, Room, Reservation, EquipmentItem, Checkout, EquipmentAsset
 
 class CampusSerializer(serializers.ModelSerializer):
     # converts Campus model objects used for listing/creating campuses 
@@ -137,6 +136,12 @@ class ReservationSerializer(serializers.ModelSerializer):
         read_only_fields = ["status", "created_at"]
 
     def validate(self, attrs):
+        """
+        Custom validation logic before saving:
+        1) Check time order: end must be after start
+        2) Ensure room is active
+        3) Prevent overlapping reservations
+        """
         room = attrs["room"]
         start = attrs["start_time"]
         end = attrs["end_time"]
@@ -147,13 +152,15 @@ class ReservationSerializer(serializers.ModelSerializer):
         if not room.is_active:
             raise serializers.ValidationError("This room is not active.")
 
+        #query all other reservations for this room that are not cancelled
         qs = Reservation.objects.filter(room=room).exclude(
             status=Reservation.STATUS_CANCELLED
         )
-
+        #if updating an exisitng reservation, exclude iteself from the overlap check
         if self.instance:
             qs = qs.exclude(id=self.instance.id)
 
+        #check for overlap: new reservation conflicts if any exisitngstart<new.end and exisitng.end > new.start
         if qs.filter(start_time__lt=end, end_time__gt=start).exists():
             raise serializers.ValidationError(
                 "This room is already reserved for that time range."
@@ -166,27 +173,36 @@ class EquipmentItemSerializer(serializers.ModelSerializer):
     # flattening fields from EquipmentType
     # uses serializermethodfield for computed values 
     # our databae stored individal items but the userinterface expects specific naming convetions
-    name = serializers.SerializerMethodField() #modified
-    category = serializers.CharField(source='equipment_type.category', read_only=True)
-    # Using 'notes' as the description since that's where seed.py puts data
-    description = serializers.CharField(source='notes', read_only=True)
+    # name = serializers.SerializerMethodField() #modified
+    # category = serializers.CharField(source='equipment_type.category', read_only=True)
+    # # Using 'notes' as the description since that's where seed.py puts data
+    # description = serializers.CharField(source='notes', read_only=True)
     
-    # logic for the individual items
+    # # logic for the individual items
+    # location = serializers.CharField(source='campus.name', read_only=True)
+    # totalQuantity = serializers.SerializerMethodField()
+    # availableQuantity = serializers.SerializerMethodField()
+    # photoUrl = serializers.SerializerMethodField()
+
+    category = serializers.CharField(source='equipment_type.category', read_only=True)
+    description = serializers.CharField(read_only=True)
     location = serializers.CharField(source='campus.name', read_only=True)
     totalQuantity = serializers.SerializerMethodField()
     availableQuantity = serializers.SerializerMethodField()
     photoUrl = serializers.SerializerMethodField()
 
+    use =  serializers.CharField(read_only = True)
+    loanPeriod = serializers.CharField(source='loan_period', read_only=True)
+    location = serializers.CharField(read_only=True)   
     class Meta:
         model = EquipmentItem
         fields = [
-            'id', 'name', 'category', 'description', 'location', 
-            'totalQuantity', 'availableQuantity', 'photoUrl', 'status', 'asset_tag'
-        ]
+            'id', 'name', 'category', 'description', 'use', 'loanPeriod',
+            'location', 'totalQuantity', 'availableQuantity', 'photoUrl']
 
     #computed fields
     def get_totalQuantity(self, obj):
-        return 1  # Each row in database is 1 individual physical item
+        return EquipmentAsset.objects.filter(equipment_item=obj).count()
 
     def get_availableQuantity(self, obj):
         """
@@ -195,79 +211,55 @@ class EquipmentItemSerializer(serializers.ModelSerializer):
                     1. its status says explicitly available
                     2. there an no active checkout (where returned_at is null)
         """
-        # check for any active loans for this specific item:
-        is_currently_loaned = Checkout.objects.filter(
-            item=obj, 
-            returned_at__isnull=True
-        ).exists()
+        # Count only available assets for this exact EquipmentItem
+        return obj.assets.filter(
+            status=EquipmentAsset.STATUS_AVAILABLE
+        ).count()
 
-        if obj.status == "AVAILABLE" and not is_currently_loaned:
-            return 1
-        return 0
+
 
     def get_photoUrl(self, obj):
         # defauly placeholder 
-        return "https://via.placeholder.com/400x300?text=Equipment"
+        return obj.photo_url or "https://via.placeholder.com/400x300?text=Equipment"
 
-    def get_name(self, obj):
-        # takes the first line of your 'notes' field from seed.py
-        # => extracs a readble name from the notes field (Dvds - ... becomes "Dvds")
-        if obj.notes:
-            return obj.notes.split(" - ")[0].strip() # getting the name (word/s before the -) to show on equipment page
-        return obj.equipment_type.name
+
 
 class CheckoutSerializer(serializers.ModelSerializer):
-    # Automatically attaches the logged-in users, provides is_returned flag, prevents double checkout 
-    # tracks current equipment loans and prevents checking out an item that's already out
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    # updated name
     item_name = serializers.SerializerMethodField()
-    is_returned = serializers.ReadOnlyField()     # ReadOnlyField: included in responses, ignored in requests
-
-
+    is_returned = serializers.ReadOnlyField()  
+    loan_period = serializers.CharField(source='item.loan_period', read_only=True) 
     class Meta:
         model = Checkout
         fields = [
             "id",
             "user",
-            "item",
+            "item",        # EquipmentItem
             "item_name",
             "checked_out_at",
+            'loan_period',
             "due_at",
             "returned_at",
-            "is_returned",
+            "assigned_asset",
+            'is_returned',
         ]
-        # The system sets checked_out_at; returned_at should be set by a "return" endpoint later
-        read_only_fields = ["checked_out_at", "returned_at", "is_returned"]
+        read_only_fields = ["checked_out_at", "assigned_asset", "due_at"]
 
     def get_item_name(self, obj):
-        # obj is the Checkout instance. 
-        # We need to go: Checkout -> EquipmentItem (item) -> notes
-        item = obj.item
-        if item.notes:
-            return item.notes.split('\n')[0].strip()
-        return item.equipment_type.name
-    
+        return obj.item.name
+
     def validate(self, attrs):
-        item = attrs["item"]
-        due = attrs["due_at"]
+        item_type = attrs["item"]  # this is the EquipmentItem
 
-        if item.status != EquipmentItem.STATUS_AVAILABLE: #modified
-         raise serializers.ValidationError("This item is not available for checkout.") 
+        # check that at least one asset is available for this item type
+        available_assets = EquipmentAsset.objects.filter(
+            equipment_item=item_type,
+            status=EquipmentAsset.STATUS_AVAILABLE
+        )
+        if not available_assets.exists():
+            raise serializers.ValidationError("No available assets for this item type.")
 
-        # Due date must be in the future
-        if due <= timezone.now():
-            raise serializers.ValidationError("due_at must be in the future.")
-
-        # Prevent double checkout:
-        # If any checkout exists for this item where returned_at is NULL, item is currently out
-        active_exists = Checkout.objects.filter(
-            item=item, returned_at__isnull=True
-        ).exists()
-        if active_exists:
-            raise serializers.ValidationError("This item is currently checked out.")
-
+        # don't access due_at here
         return attrs
     
 # Auth serializers (Register/login)

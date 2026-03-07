@@ -28,6 +28,11 @@ const Dashboard = () => {
     equipment: [] // list of equipment the user has checkout out
   });
 
+  // show in the console the array
+  useEffect(() => {
+    console.log("Dashboard equipment data:", dashboardData.equipment);
+  }, [dashboardData.equipment]);
+
   // fetchDashboard inside useEffect:
   /* useEffect will run once when the component loads. 
   so when the user lands on dashboard, it will immediately request live data from the be
@@ -93,6 +98,30 @@ const Dashboard = () => {
     alert("Could not cancel reservation. Please try again.");
   }
 };
+
+  // calculate due date using loan_period and checked_out_at
+  const calculateDueDate = (loanPeriod: string, checkedOutAt?: string) => {
+    if (!loanPeriod || !checkedOutAt) return 'N/A';
+
+    let dueDate = new Date(checkedOutAt);
+    const period = loanPeriod.toLowerCase();
+
+    if (period.includes('day')) {
+      const match = period.match(/(\d+)\s*day/);
+      const days = match ? parseInt(match[1]) : 1;
+      dueDate.setDate(dueDate.getDate() + days);
+    } else if (period.includes('hour')) {
+      const match = period.match(/(\d+)\s*hour/);
+      const hours = match ? parseInt(match[1]) : 24;
+      dueDate.setHours(dueDate.getHours() + hours);
+    } else if (period.includes('semester')) {
+      dueDate.setMonth(dueDate.getMonth() + 4);
+    } else {
+      dueDate.setDate(dueDate.getDate() + 1);
+    }
+
+    return dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
 
   return (
     <div className="d-flex flex-column min-vh-100" style= {{ paddingTop: '56px' }}> {/* paddingTop added to prevent content from being hidden behind the fixed navbar */}
@@ -216,7 +245,7 @@ quick access to their reservation details without having to navigate to a separa
                               <div>
                                 <h6 className="mb-0 fw-bold">{item.item_name}</h6>
                                 <small className="text-danger">
-                                  Due: {item.due_at ? new Date(item.due_at).toLocaleDateString() : 'N/A'} {/* corrected the varirable na,e */}
+                                  Due: {calculateDueDate(item.loan_period, item.checked_out_at)}
                                 </small>
                               </div>
                               <i className="bi bi-laptop text-muted"></i>

@@ -11,7 +11,7 @@ from rest_framework.permissions import (
 
 from rest_framework_simplejwt.tokens import RefreshToken  # generates JWT tokens
 
-from .models import Reservation, Checkout, Room, EquipmentItem
+from .models import Reservation, Checkout, Room, EquipmentItem, EquipmentAsset
 from .serializers import (
     ReservationSerializer,
     CheckoutSerializer,
@@ -160,17 +160,16 @@ def dashboard_summary(request):
     equipment = [
         {
             "id": c.id,
-            "asset_tag": c.item.asset_tag,
-            
+            "asset_tag": c.assigned_asset.asset_tag,
+            "loan_period": c.item.loan_period, 
             # notes contain text, so extract a clean name else use the type name
             #.split('\n')[0]: grabs the first line (just in case there are multiple lines of notes).
             # .split('-')[0]: splits that line into a list based on the dash and grabs the first part (e.g., "DVDs").
             # .strip(): cleans up any leftover accidental spaces around the word.
-            "item_name": c.item.notes.split('\n')[0].split('-')[0].strip() if c.item.notes else c.item.equipment_type.name,
-          
+            "item_name": c.item.name,          
             "checked_out_at": c.checked_out_at,
             "due_at": c.due_at,
-            "status": c.item.status,
+            "status": c.assigned_asset.status
         }
         for c in equipment_loans_qs
     ]
@@ -205,18 +204,65 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return Reservation.objects.filter(user=user) #students can only see their own resverations
     
 #checkouts
+# class CheckoutViewSet(viewsets.ModelViewSet):
+#     serializer_class = CheckoutSerializer
+#     permission_classes = [IsAuthenticated, IsOwnerOrStaff]
+
+#     def update_available_quantity(equipment_item):
+#         available_count = EquipmentAsset.objects.filter(
+#             equipment_item=equipment_item,
+#             status=EquipmentAsset.STATUS_AVAILABLE
+#         ).count()
+#         equipment_item.available_quantity = available_count
+#         equipment_item.save()
+
+#     # Example: checking out an asset
+#     asset.status = EquipmentAsset.STATUS_UNAVAILABLE
+#     asset.save()
+
+#     # Update available quantity on the parent item
+#     update_available_quantity(asset.equipment_item)
+#     def get_queryset(self):
+#         user = self.request.user
+
+#         if user.is_staff:
+#             return Checkout.objects.all()
+        
+#         return .objects.filter(user=user)
+
+import random
+from rest_framework import serializers 
 class CheckoutViewSet(viewsets.ModelViewSet):
     serializer_class = CheckoutSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrStaff]
 
     def get_queryset(self):
         user = self.request.user
-
         if user.is_staff:
             return Checkout.objects.all()
-        
         return Checkout.objects.filter(user=user)
-    
+
+    # def update_available_quantity(self, equipment_item):
+    #     available_count = EquipmentAsset.objects.filter(
+    #         equipment_item=equipment_item,
+    #         status=EquipmentAsset.STATUS_AVAILABLE
+    #     ).count()
+    #     equipment_item.available_quantity = available_count
+    #     equipment_item.save(update_fields=['available_quantity'])
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        checkout = serializer.save()
+        asset = checkout.assigned_asset
+
+        if checkout.returned_at and asset:
+            asset.status = EquipmentAsset.STATUS_AVAILABLE
+            asset.save(update_fields=["status"])
+
+            # asset.equipment_item.update_available_quantity()
+        
 #rooms - students=read info, staff=manage rooms
 class RoomViewSet(viewsets.ModelViewSet):
     """
@@ -240,9 +286,14 @@ class RoomViewSet(viewsets.ModelViewSet):
 
 #equipment
 class EquipmentItemViewSet(viewsets.ModelViewSet):
-    queryset = EquipmentItem.objects.all()
     serializer_class = EquipmentItemSerializer
     permission_classes = [IsAuthenticated]
+
+    #get one item per equipment type
+    def get_queryset(self):
+        return EquipmentItem.objects.select_related(
+            "equipment_type"
+        ).all().order_by("equipment_type__name", "name")
 
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
