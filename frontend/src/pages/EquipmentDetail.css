@@ -1,9 +1,11 @@
 .equipment-detail-image {
   width: 100%;
   height: 400px;
-  object-fit: cover;
+  object-fit: contain; /* changed to show entire image instead of cropping */
   border-radius: 8px;
+
 }
+
 
 .equipment-details {
   padding: 1rem 0;
