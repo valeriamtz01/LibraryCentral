@@ -22,6 +22,7 @@ class Command(BaseCommand):
 
     help = "Seed Room entries into the DB by extracting room names from FloorMap.tsx"
 
+    # edited the code and name 
     def add_arguments(self, parser):
         parser.add_argument(
             "--campus-code",
