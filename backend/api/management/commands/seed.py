@@ -51,72 +51,72 @@ class Command(BaseCommand):
             {"name": "DVDs", "category": "Media", "description": "Collection of educational and entertainment DVDs",
              "use": "Can be borrowed for personal viewing, classroom presentations, or research purposes",
              "loan_period": "7 days", "location": "Media Library - Shelf A1", "total_quantity": 25, 
-             "photo_url": "https://via.placeholder.com/400x300?text=DVDs"},
+             "photo_url": "/media/equipment/dvds.jpg"},
 
             {"name": "CDs", "category": "Media", "description": "Audio CDs including music, audiobooks, and educational content",
              "use": "For music listening, audiobook review, or audio project work",
              "loan_period": "7 days", "location": "Media Library - Shelf B2", "total_quantity": 25, 
-             "photo_url": "https://via.placeholder.com/400x300?text=CDs"},
+             "photo_url": "/media/equipment/cds.jpg"},
 
             {"name": "Digital Camcorder", "category": "Media", "description": "Professional digital camcorders for video recording projects",
              "use": "Student projects, documentaries, and research video documentation",
              "loan_period": "3 days", "location": "Media Center - Equipment Room", "total_quantity": 10, 
-             "photo_url": "https://via.placeholder.com/400x300?text=Camcorder"},
+             "photo_url": "/media/equipment/digitalcamcorder.jpg"},
 
             {"name": "Digital Camera", "category": "Media", "description": "Digital cameras for photography and image capture",
              "use": "Photography projects, presentations, research documentation",
              "loan_period": "3 days", "location": "Media Center - Equipment Room", "total_quantity": 8, 
-             "photo_url": "https://via.placeholder.com/400x300?text=Camera"},
+             "photo_url": "/media/equipment/digitalcamera.jpg"},
 
             {"name": "Laptops (MacBook and PC)", "category": "Electronics", "description": "MacBook Pro and Dell XPS laptops for computing needs",
              "use": "Assignments, research, coding projects, and general computing",
              "loan_period": "24 hours (can be renewed)", "location": "Tech Center - Laptop Station",
-             "total_quantity": 50, "photo_url": "https://via.placeholder.com/400x300?text=Laptops"},
+             "total_quantity": 50, "photo_url": "/media/equipment/laptops.jpg"},
 
             {"name": "Mobile Phone Charger", "category": "Accessories", "description": "Various phone chargers compatible with most devices",
              "use": "Charging mobile devices, emergency use",
              "loan_period": "24 hours", "location": "Tech Center - Accessories Counter",
-             "total_quantity": 30, "photo_url": "https://via.placeholder.com/400x300?text=Charger"},
+             "total_quantity": 30, "photo_url": "/media/equipment/charger.jpg"},
 
             {"name": "Projector", "category": "Electronics", "description": "High-definition projectors for presentations and screenings",
              "use": "Class presentations, events, movie screenings",
              "loan_period": "1 day", "location": "Presentation Room - Storage",
-             "total_quantity": 15, "photo_url": "https://via.placeholder.com/400x300?text=Projector"},
+             "total_quantity": 15, "photo_url": "/media/equipment/projector.jpg"},
 
             {"name": "Graphing Calculator (TI-84 CE Plus)", "category": "Supplies", "description": "TI-84 CE Plus graphing calculators for mathematics",
              "use": "Math courses, scientific calculations, engineering work",
              "loan_period": "Semester", "location": "Math Tutoring Center",
-             "total_quantity": 65, "photo_url": "https://via.placeholder.com/400x300?text=Calculator"},
+             "total_quantity": 65, "photo_url": "/media/equipment/graphingcalculator.jpg"},
 
-            {"name": "Graphing Calculator (models vary, batteries not included)", "category": "Supplies", "description": "Various graphing calculator models for mathematics courses",
+            {"name": "Scientific Calculator (models vary, batteries not included)", "category": "Supplies", "description": "Various graphing calculator models for mathematics courses",
              "use": "Math courses, scientific calculations, problem solving",
              "loan_period": "Semester", "location": "Math Tutoring Center",
-             "total_quantity": 55, "photo_url": "https://via.placeholder.com/400x300?text=Calculator2"},
+             "total_quantity": 55, "photo_url": "/media/equipment/scientificalculator.jpg"},
 
             {"name": "iPad", "category": "Electronics", "description": "iPad tablets for note-taking and academic work",
              "use": "Digital note-taking, research, multimedia projects",
              "loan_period": "24 hours (can be renewed)", "location": "Tech Center - Mobile Devices",
-             "total_quantity": 20,  "photo_url": "https://via.placeholder.com/400x300?text=iPad"},
+             "total_quantity": 20,  "photo_url": "/media/equipment/ipad.jpg"},
 
             {"name": "Headphones", "category": "Accessories", "description": "Quality headphones for audio work and listening",
              "use": "Multimedia projects, language learning, audio editing",
              "loan_period": "24 hours", "location": "Tech Center - Accessories",
-             "total_quantity": 7,  "photo_url": "https://via.placeholder.com/400x300?text=Headphones"},
+             "total_quantity": 7,  "photo_url": "/media/equipment/headphones.jpg"},
 
             {"name": "HDMI Cable", "category": "Accessories", "description": "HDMI cables for video and audio connections",
              "use": "Connecting devices to projectors, TVs, and displays",
              "loan_period": "24 hours", "location": "Tech Center - Cables",
-             "total_quantity": 7,  "photo_url": "https://via.placeholder.com/400x300?text=HDMI+Cable"},
+             "total_quantity": 7,  "photo_url": "/media/equipment/hdmicable.jpg"},
 
             {"name": "Mouse", "category": "Accessories", "description": "Computer mice for desktop and laptop use",
              "use": "Computer navigation and work",
              "loan_period": "24 hours", "location": "Tech Center - Peripherals",
-             "total_quantity": 20, "photo_url": "https://via.placeholder.com/400x300?text=Mouse"},
+             "total_quantity": 20, "photo_url": "/media/equipment/mouse.jpg"},
 
             {"name": "Screenflex Portable Display Panels", "category": "Supplies", "description": "Portable room dividers and display panels for events",
              "use": "Creating spaces for presentations, exhibitions, and events",
              "loan_period": "3 days", "location": "Event Space - Storage",
-             "total_quantity": 5, "photo_url": "https://via.placeholder.com/400x300?text=Display+Panels"},
+             "total_quantity": 5, "photo_url": "/media/equipment/screenflex.jpg"},
 
         ]
 

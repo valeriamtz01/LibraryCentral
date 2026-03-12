@@ -53,7 +53,7 @@ class EquipmentItemAdmin(admin.ModelAdmin):
     list_filter = ("equipment_type",)
     search_fields = ("name",)
 
-    inlines = [EquipmentAssetInline] #connect to equipment item to the inline assets (instead of managing assets separately, they appear directly under the equipment item)
+    inlines = [EquipmentAssetInline] #connect to equipment item to the inline assets (instead of managing assets separately, they appear directly under the equipment item n)
 
 # checkput admin 
 @admin.register(Checkout)

@@ -354,7 +354,11 @@ const EquipmentDetail = () => {
               <Card className="border-0 shadow-sm overflow-hidden">
                 <Card.Img
                   variant="top"
-                  src={currentEquipment.photoUrl}
+                  // src={currentEquipment.photoUrl}
+                  // change - be returns the image path not the full url 
+                  // so prepend the be base url so the browser knows where to request the image from.
+                  // without this, fe would try to load image from fe server (commented out line)
+                  src={`http://localhost:8000${currentEquipment.photoUrl}`}
                   alt={currentEquipment.name}
                   className="equipment-detail-image"
                 />

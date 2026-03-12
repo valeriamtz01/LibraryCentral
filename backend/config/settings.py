@@ -123,6 +123,9 @@ ALLOWED_HOSTS = ["*"]
 # CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_ALL_ORIGINS = True #changed to allow requsest from any origin (wasn't sure if react was running on a diferent port thandjango backend)
 
+# Media files (uploaded images of equipment)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # DRF defaults:
 # - Authenticate every API request using Microsoft Bearer tokens (sets request.user)

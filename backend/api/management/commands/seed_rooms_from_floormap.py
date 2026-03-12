@@ -22,18 +22,19 @@ class Command(BaseCommand):
 
     help = "Seed Room entries into the DB by extracting room names from FloorMap.tsx"
 
+    # edited the code and name 
     def add_arguments(self, parser):
         parser.add_argument(
             "--campus-code",
             type=str,
-            default="UTRGV",
-            help="Campus code to attach rooms to (default: UTRGV)",
+            default="E-UTRGV",
+            help="Campus code to attach rooms to (default: E-UTRGV)",
         )
         parser.add_argument(
             "--campus-name",
             type=str,
-            default="UTRGV Main",
-            help="Campus name to create if campus does not exist (default: UTRGV Main)",
+            default="Edinburg Campus",
+            help="Campus name to create if campus does not exist (default: Edinburg Campus)",
         )
         parser.add_argument(
             "--capacity",
