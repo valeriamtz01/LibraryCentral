@@ -39,19 +39,27 @@ Library Central is a full-stack web application designed to streamline the stude
 
     # Install dependencies
     pip install django djangorestframework 
+    pip install djangorestframework-simplejwt 
     pip install django-cors-headers
     # Or, once created: pip install -r requirements.txt
 
     # Setup database
     python manage.py migrate
+    
+    # Update Database - if already created and need to simply update with new work
+    python manage.py makemigrations
+    python manage.py migrate
+    python manage.py seed
+    python manage.py seed_rooms_from_floormap
 
-    # Start server
+    # Start server - and leave runnning in this terminal
     python manage.py runserver
 
 Backend API runs at: http://127.0.0.1:8000/
 
 *Note: 404 is normal for now as current empty path does not exist as no (/) route is defined.
-we can route to admin login if deemed good idea*
+we can route to admin login if deemed good idea* for now if you want to see admin page for Backend side add /admin address
+
 
 
 In new terminal with Backend still running...
