@@ -42,6 +42,7 @@ Library Central is a full-stack web application designed to streamline the stude
     pip install djangorestframework-simplejwt 
     pip install django-cors-headers
     # Or, once created: pip install -r requirements.txt
+    pip install apscheduler django-apscheduler
 
     # Setup database
     python manage.py migrate
