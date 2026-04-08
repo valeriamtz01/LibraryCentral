@@ -51,6 +51,8 @@ const Dashboard = () => {
         // set this as the new dashboard state
         // updates the unified state with the full object from be
         setDashboardData(response.data);
+
+        setUserName(response.data.user_name);
       }
       catch (error) {
         console.error("Dashboard fetch failed: ", error);
@@ -59,6 +61,54 @@ const Dashboard = () => {
 
     fetchDashboard(); // calls the async function
   }, []); // empty array makes sure we only hit the server once on mount
+
+  type DashNotification = {
+    id: number;
+    message: string;
+    room_name: string | null;
+    room_id: number | null;
+    created_at: string;
+  };
+
+  const [notifications, setNotifications] = useState<DashNotification[]>([]);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get("/notifications/");
+      setNotifications(res.data.notifications);
+    } catch (err) {
+      console.error("Failed to fetch notifications", err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await api.post("/notifications/mark-read/", {});
+      setNotifications([]);
+      setShowNotifDropdown(false);
+    } catch (err) {
+      console.error("Failed to mark notifications read", err);
+    }
+  };
+
+  // poll for notifications every 10 seconds
+  // evert 10 seconds, the broswer makes a GET request to /notifications/ and check if there's anything new
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // added for the delete reservation
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  
+  // add a state to track the global warning - will control whether the bottom warning is visible 
+  const [showCancelWarning, setShowCancelWarning] = useState(false);
+
+  // add username to state
+  const [userName, setUserName] = useState("");
 
   // helper function for data formatting: 
   // be iso strings (2026-01-02T14:00:00Z) aren't user friendly
@@ -76,7 +126,7 @@ const Dashboard = () => {
   }
 
   const handleDeleteReservation = async (reservationId: number) => {
-  if (!window.confirm("Are you sure you want to cancel this reservation?")) return;
+   setDeletingId(reservationId);
 
   try {
     // call the be to delete
@@ -123,15 +173,116 @@ const Dashboard = () => {
     return dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  function async(): import("react").MouseEventHandler<HTMLButtonElement> | undefined {
+    throw new Error('Function not implemented.');
+  }
+
   return (
     <div className="d-flex flex-column min-vh-100" style= {{ paddingTop: '56px' }}> {/* paddingTop added to prevent content from being hidden behind the fixed navbar */}
       <StudentHeader />
       <main className="flex-grow-1 dashboard-page">
         <Container className="py-5">
-          <header className="mb-5">
-            <h1 className="fw-bold">Student Dashboard</h1>
-            <p className="text-muted">Welcome back! Here is your library activity at a glance.</p>
-          </header>
+          <header className="mb-5 d-flex justify-content-between align-items-center">
+            <div>
+              <h1 className="fw-bold">Student Dashboard</h1>
+              <p className="text-muted">Welcome back <strong>{userName}</strong>! Here is your library activity at a glance.</p>
+            </div>
+
+            {/* notification bell: 
+            sits in the top right of the dashboard header. It polls /notifications/ every 30 seconds using setInterval inside a useEffect
+            If there are unread notifications, a red badge appears on the bell showing the count. Clicking the bell opens a dropdown listing each notification message. 
+            Each notification has a "Book [room name] →" this link that calls markAllRead() and navigates to the study spaces page so the student can go book the room immediately. */}
+            <div className="position-relative">
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={() => setShowNotifDropdown((prev) => !prev)}
+                className="position-relative"
+              >
+                <i className="bi bi-bell-fill" />
+                {notifications.length > 0 && (
+                  <span
+                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                    style={{ fontSize: "0.65rem" }}
+                  >
+                    {notifications.length}
+                  </span>
+                )}
+              </Button>
+
+              {showNotifDropdown && (
+                <div
+                  className="position-absolute end-0 mt-2 shadow-lg border rounded bg-white"
+                  style={{ width: "360px", zIndex: 999 }} // ✅ increased width for clarity
+                >
+                  <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                    <strong className="small">Notifications</strong>
+                    {notifications.length > 0 && (
+                      <Button variant="link" size="sm" className="p-0 text-muted small" onClick={markAllRead}>
+                        Mark all read
+                      </Button>
+                    )}
+                  </div>
+
+        
+                  {notifications.map((n) => (
+                    <div key={n.id} className="p-3 mb-2 bg-light rounded shadow-sm">
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <p className="mb-0 small text-dark">
+                          {/* before: (wrong — always shows created_at which is "right now"): */}
+                          {/* <strong>{n.room_name}</strong> is now available! <br />
+                              You have until <strong>{formatDateTime(n.created_at)}</strong> to book it. */}
+
+                          {/* fix: display the full message from the backend, which already
+                              contains the correct slot times and deadline string computed
+                              by notify_next_user. doesn't need to recompute anything on the fe. */}
+                          {n.message}
+                        </p>
+                      </div>
+
+                      <div className="d-flex gap-2">
+                        <Button
+                          variant="success"
+                          size="sm"
+                          className="flex-grow-1"
+                          onClick={() => { markAllRead(); navigate("/study-spaces"); }}
+                        >
+                          Reserve
+                        </Button>
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          className="flex-grow-1"
+                          onClick={async () => {
+                            try {
+                              if (!n.room_id) {
+                                setNotifications((prev) => prev.filter((notif) => notif.id !== n.id));
+                                return;
+                              }
+                              await api.post("/waitlist/decline/", { room_id: n.room_id });
+                              setNotifications((prev) => {
+                                const updated = prev.filter((notif) => notif.id !== n.id);
+                                if (updated.length === 0) setShowNotifDropdown(false);
+                                return updated;
+                              });
+                            } catch (err) {
+                              console.error("Failed to decline waitlist", err);
+                            }
+                          }}
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                
+                </div>
+              )}
+
+                          
+              </div>
+            </header>
+            
 {/* 
 ****room reservations card no longer needed as we updated to 'Study Spaces' to encompass rooms and computers as planned in key features***
 plan is to have a single 'Study Spaces' card that shows active room and computer reservations with separate badges for each, this simplifies the dashboard and provides a clearer overview of the user's study space activity
@@ -143,11 +294,16 @@ quick access to their reservation details without having to navigate to a separa
             {/* study spaces summary card */}
             <Col lg={6}>
               <Card className="h-100 shadow-lg border-0 study-spaces-card">
+
+        
                 <Card.Body className="d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-start">
                     <div>
                       <h3 className="h5 fw-bold">Study Spaces</h3>
-                      <p className="text-muted small">Your upcoming study sessions.</p>
+                      <p className="text-muted small">Your upcoming study sessions. </p>
+                      
+                
+
                     </div>
                     <div className="d-flex gap-1">
                         <Badge bg={dashboardData.activeRooms > 0 ? "primary" : "secondary"} pill>
@@ -171,7 +327,7 @@ quick access to their reservation details without having to navigate to a separa
                               
                               {/* grouping the delete + text together in one div */}
                               <div className="d-flex align-items-center">
-                                <Button 
+                                {/* <Button 
                                   variant="link" 
                                   className="text-danger p-0 me-2" // reduced it from me-3 to me-2
                                   onClick={() => handleDeleteReservation(res.id)}
@@ -179,7 +335,54 @@ quick access to their reservation details without having to navigate to a separa
                                   style={{ lineHeight: 1 }} // ensuring the button doesn't add extra height
                                 >
                                   <i className="bi bi-trash3-fill"></i>
-                                </Button>
+                                </Button> */}
+
+                                {/* replaced the above trash can section with inline confirm pattern of yes/no to make the ui faster */}
+                                {confirmDeleteId === res.id ? (
+                                  <div className="d-flex align-items-center gap-2 me-2">
+                                    <small className="text-danger fw-bold">Cancel?</small>
+                                    <Button
+                                      variant="danger"
+                                      size="sm"
+                                      className="py-0 px-2"
+                                      style={{ fontSize: "0.75rem" }}
+                                      onClick={async () => { 
+                                        await handleDeleteReservation(res.id); 
+                                        setShowCancelWarning(false);
+                                      }} // hide warning after deletion
+                                      disabled={deletingId === res.id}
+                                    >
+                                      {deletingId === res.id ? "…" : "Yes"}
+                                    </Button>
+                                    <Button
+                                      variant="outline-secondary"
+                                      size="sm"
+                                      className="py-0 px-2"
+                                      style={{ fontSize: "0.75rem" }}
+                                      onClick={() => {
+                                        setConfirmDeleteId(null)
+                                        setShowCancelWarning(false); // hide warning
+                                      }}
+                                    >
+                                      No
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="link"
+                                    className="text-danger p-0 me-2"
+                                    onClick={() => {
+                                      setConfirmDeleteId(res.id);
+                                      setShowCancelWarning(true); // show bottom warning
+                                    }}
+                                    title="Cancel Reservation"
+                                    style={{ lineHeight: 1 }}
+                                    disabled={deletingId === res.id}
+                                  >
+                                    <i className="bi bi-trash3-fill"></i>
+                                  </Button>
+                                )}
+
                                 
                                 <div>
                                   <h6 className="mb-0 fw-bold">{res.room_name}</h6> 
@@ -211,6 +414,26 @@ quick access to their reservation details without having to navigate to a separa
                       </div>
                     )}
                   </div>
+
+
+                  {/* moved cancellation warning to bottom of Study Spaces card */}
+                  {showCancelWarning && (
+                    <div
+                      className="d-flex align-items-center gap-2 rounded-2 px-3 py-2 mb-3 mt-3 border-start border-4"
+                      style={{
+                        backgroundColor: "#fff9f0",
+                        borderColor: "#ffcc80",
+                        fontSize: "0.8rem",
+                        color: "#8a6d3b",
+                      }}
+                    >
+                      <i className="bi bi-exclamation-triangle-fill text-warning"></i>
+                      <span>
+                        <strong>Heads up:</strong> Cancellations cannot be undone — you must book again if needed.
+                      </span>
+                    </div>
+                  )}
+
 
                   <div className="mt-auto pt-3 border-top text-center">
                     <Button variant="outline-primary" size="sm" onClick={() => navigate('/study-spaces')}>

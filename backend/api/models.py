@@ -3,6 +3,8 @@
 from django.conf import settings # to reference project settings 
 from django.db import models # ORM base classes 
 from django.utils import timezone # timezone aware
+from django.core.exceptions import ValidationError
+
 
 #campus model 
 class Campus(models.Model):
@@ -87,10 +89,47 @@ class Reservation(models.Model): # the booking itself creating allowed values an
             models.Index(fields=["room", "start_time", "end_time"]),
             models.Index(fields=["user", "start_time"]),
         ]
+        unique_together = ("user", "room")
+        ordering = ["created_at"]
 
     def __str__(self) -> str: #shows room and reservation time raneg with user
         return f"{self.room} {self.start_time:%Y-%m-%d %H:%M}–{self.end_time:%H:%M} ({self.user})"
 
+
+    def clean(self):
+        overlapping = Reservation.objects.filter(
+            room=self.room,
+            start_time__lt=self.end_time,
+            end_time__gt=self.start_time,
+            status__in=[self.STATUS_PENDING, self.STATUS_CONFIRMED]
+        ).exclude(pk=self.pk)
+
+        if overlapping.exists():
+            raise ValidationError("This time slot is already booked.")
+
+        hold = WaitlistHold.objects.filter(
+            room=self.room,
+            held_start__lt=self.end_time,
+            held_end__gt=self.start_time,
+            is_active=True
+        ).first()
+
+        if hold:
+            if hold.reserved_for != self.user:
+                raise ValidationError(
+                    "This time is reserved for a waitlisted user."
+                )
+        if hold and hold.reserved_for == self.user:
+            hold.is_active = False
+            hold.save(update_fields=["is_active"])
+
+        if self.start_time >= self.end_time:
+            raise ValidationError("End time must be after start time.")
+    
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+        
 
 #equipment type model
 class EquipmentType(models.Model):
@@ -217,3 +256,126 @@ class Checkout(models.Model):
 
         super().save(*args, **kwargs)
 
+# adding the waitlist hold model
+# when a reservation is cancelled and  waitlist entry exist for that room, "locl" the cancelled time window for the notified user only
+# like ex) student1 books 5:00–6:30pm → cancels → system creates a WaitlistHold for
+#   that exact window → student1 (or anyone else) CANNOT re-book 5:00–6:30pm
+#   → only the notified waitlist user can book during that window.
+# fixes this:  If a new student tries to book a time overlapping a WaitlistHold, they get
+#   a specific message: "This time is pending for a waitlisted user. Join the
+#   waitlist or choose another time."
+class WaitlistHold(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="waitlist_holds")
+
+    #the exact cancelled time window that is now "held"
+    held_start = models.DateTimeField() # start of the locked window (matches cancelled reservation)
+    held_end = models.DateTimeField()
+
+    #the one waitlist user who has priority to book this window
+    reserved_for = models.ForeignKey( 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, # to be able to create a hold even if the queue is empty (blocks re-booking by canceller)
+        blank=True,
+        related_name="waitlist_holds",
+    )
+
+    #records who cancelled the reservation that created this hold
+    #it is tored so the serializer can let the original canceller book other windows freely, while still 
+    #protecting this exact window for the waitlist user
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="holds_created_by_cancellation",
+    )
+
+    expires_at = models.DateTimeField() #when this hold automatically expires (dunamic - see notify_next_user)
+
+    is_active = models.BooleanField(default=True) # flipped to false when the hold is claimed (Waitlist user books)
+
+    created_at = models.DateTimeField(default = timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["room", "held_start", "held_end", "is_active"]),
+        ]
+
+    def __str__(self):
+        who = self.reserved_for.email if self.reserved_for else "no one"
+        return f"Hold: {self.room} {self.held_start:%H:%M}–{self.held_end:%H:%M} for {who}"
+
+# adding the waitlist model
+# stores each student's place in line for a room
+class Waitlist(models.Model):
+    STATUS_WAITING = "waiting"
+    STATUS_NOTIFIED = "notified"
+    STATUS_EXPIRED = "expired"
+    STATUS_BOOKED = "booked"
+
+    STATUS_CHOICES = [
+        (STATUS_WAITING, "Waiting"),        
+        (STATUS_NOTIFIED, "Notified"),
+        (STATUS_EXPIRED, "Expiring"),
+        (STATUS_BOOKED, "Booked"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE) # user field - who is waiting
+    room = models.ForeignKey(Room, on_delete=models.CASCADE) # room field - which room the student wants
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_WAITING) # the status field that moves thorugh the four stages listed above
+    notification_time = models.DateTimeField(null=True, blank=True) # records when the student was notifies so that the 24 hours can be tracked
+
+                                         
+    # field - notification_deadline
+    #   previously the system always gave 24 hours after notification.
+    #   but if it's 1:00pm now and the slot starts at 1:30pm (30-min advance
+    #   rule means booking must happen by 1:00pm), the student only has 0 min.
+    #   more realistically: slot starts at 2:00pm → deadline = 1:30pm (30 min
+    #   advance) → student has from now until 1:30pm, not 24 hours.
+    notification_deadline = models.DateTimeField(null=True, blank=True) #calculate the deadline (min now+24h, slot_start=30) and stores it here so checked_Expired_waitlist knows the real cutoff
+
+    # stores the start time of the slot the user was trying to book
+    # when a user hits the waitlist trying to book 9-10:30, save 9 here
+    # this way, even if notify_next_user is called with no cancelled_start, still can compute the correct deadline 
+    # as: room_start_time - 30 mins = 8:30
+    room_start_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="The slot start time this user was trying to reserve. Used to compute their booking deadline."
+    )
+
+    room_end_time = models.DateTimeField(null=True, blank=True)
+
+
+    def __str__(self):
+        return f"{self.user} waiting for {self.room}"
+    
+# added the notification model
+# stores the notifications on the dashboard that appear as the bell badge
+class Notification(models.Model):
+    TYPE_WAITLIST = "waitlist_available"
+
+    user = models.ForeignKey (
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications"
+    )
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    message = models.TextField()
+    is_read = models.BooleanField(default=False) # when it is read the notifiation disappears from the bell
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Notification for {self.user} — {self.message[:40]}"

@@ -1,8 +1,9 @@
 from django.contrib import admin
-from .models import Campus, Room, Reservation, EquipmentItem, Checkout, EquipmentAsset, EquipmentType
+from .models import Campus, Room, Reservation, EquipmentItem, Checkout, EquipmentAsset, EquipmentType, Waitlist, WaitlistHold, Notification
 
 
 # Register your models here.
+
 
 #campus admin - register the campus model in admin
 @admin.register(Campus)
@@ -25,6 +26,7 @@ class RoomAdmin(admin.ModelAdmin):
     )
     list_filter = ("campus", "accessible", "has_whiteboard", "has_monitor", "has_power", "is_active")
     search_fields = ("name", "location_text")
+
 
 # reservation admin
 @admin.register(Reservation)
@@ -72,3 +74,27 @@ class CheckoutAdmin(admin.ModelAdmin):
 class EquipmentTypeAdmin(admin.ModelAdmin):
     list_display = ("name", "category")
     search_fields = ("name", "category")
+
+
+# waitlist visible in admin panel
+class WaitlistAdmin(admin.ModelAdmin):
+    list_display = ["id", "user", "room", "status", "created_at", "notification_time", "notification_deadline"]
+    list_filter = ["status", "room"]
+    search_fields = ["user__email", "room__name"]
+
+# the waitlist hold now visible in admin panel
+class WaitlistHoldAdmin(admin.ModelAdmin):
+    list_display = ["id", "room", "held_start", "held_end", "reserved_for", "expires_at", "is_active"]
+    list_filter = ["is_active", "room"]
+    search_fields = ["reserved_for__email", "room__name"]
+
+# notification visible in admin panel
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ["id", "user", "room", "message", "is_read", "created_at"]
+    list_filter = ["is_read"]
+    search_fields = ["user__email", "message"]
+
+admin.site.register(Waitlist, WaitlistAdmin)
+admin.site.register(WaitlistHold, WaitlistHoldAdmin)
+admin.site.register(Notification, NotificationAdmin)
+

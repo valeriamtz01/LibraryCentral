@@ -1,7 +1,10 @@
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Campus, Room, Reservation, EquipmentItem, Checkout, EquipmentAsset
+from .models import Campus, Room, Reservation, EquipmentItem, Checkout, EquipmentAsset, WaitlistHold
+from datetime import timedelta
+
+ADVANCE_MINUTES = 30 # defined once at module level
 
 class CampusSerializer(serializers.ModelSerializer):
     # converts Campus model objects used for listing/creating campuses 
@@ -32,11 +35,11 @@ class RoomSerializer(serializers.ModelSerializer):
         ]
 
 class ReservationSerializer(serializers.ModelSerializer):
-    # Automatically attaches the logged-in user (request.user), validates time ranges, prevents overlapping reservations
+    # automatically attaches the logged-in user (request.user), validates time ranges, prevents overlapping reservations
     # CurrentUserDefault() fills it from request user auto
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
-    #added
+    #added - read only fiels so fe gets the room name string with the room id without a second api call
     room_name = serializers.CharField(source = "room.name", read_only = True)
 
     class Meta:
@@ -45,17 +48,24 @@ class ReservationSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "room",
-            "room_name",
+            "room_name",   # read-only, comes from source="room.name"
             "start_time",
             "end_time",
             "status",
             "created_at",
         ]
-        # Frontend should not set these directly
+        # status and created_at are set by be 
         read_only_fields = ["status", "created_at"]
 
     def validate(self, attrs):
-        # runs before create/update
+        """
+        Runs before create() or update(). Checks in order:
+          1. end_time must be after start_time
+          2. room must be active
+          3. booking must be at least ADVANCE_MINUTES from now  (Goal 1)
+          4. no overlapping non-cancelled reservations
+          5. no active WaitlistHold covering this window         (Goal 4)
+        """
         room = attrs["room"]
         start = attrs["start_time"]
         end = attrs["end_time"]
@@ -64,9 +74,19 @@ class ReservationSerializer(serializers.ModelSerializer):
         if end <= start:
             raise serializers.ValidationError("end_time must be after start_time.")
 
-                  # Don’t allow bookings for rooms that are turned off
+        # Don’t allow bookings for rooms that are turned off
         if not room.is_active:
             raise serializers.ValidationError("This room is not active.")
+
+        # 30 mins advance booking rule 
+        # 'start' is a timezone aware utc datetime (sent by the fe as an iso string)
+        # timezone.now() is also utc so comparison is safe (regardless of user local clocl)
+        min_start = timezone.now() + timedelta(minutes=ADVANCE_MINUTES)
+        if start < min_start:
+            raise serializers.ValidationError(
+                f"Rooms must be booked at least {ADVANCE_MINUTES} minutes in advance."
+            )
+ 
 
         # Overlap logic:
         # An overlap exists when:
@@ -74,7 +94,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         qs = Reservation.objects.filter(room=room).exclude(
                     status=Reservation.STATUS_CANCELLED
                 )
-        # If updating an existing reservation, exclude itself from overlap check
+        # if updating an existing reservation, exclude itself from overlap check
         if self.instance:
             qs = qs.exclude(id=self.instance.id)
 
@@ -84,23 +104,70 @@ class ReservationSerializer(serializers.ModelSerializer):
                 "This room is already reserved for that time range."
             )
 
+
+        # waitlisthold blocks this window
+        # if a cancelled reservation created a hold for a waitlisted user,
+        # nobody else can book that exact window until the hold expires
+        # the priority user (which is the reserved_for) is excluded so they can still book
+        request = self.context.get("request")  # key must be a string
+        current_user = request.user if request else None
+    
+        # find any ac\tive, unexpired hold that overlaps the requested window
+        # behavior: user1 blcoked from the held window, free on other times
+        # reserved_for is allowed only if bookings fis insde the held window
+        conflicting_hold = WaitlistHold.objects.filter(
+            room=room,
+            is_active=True,
+            held_start__lt=end,
+            held_end__gt=start,
+            expires_at__gt=timezone.now(),  # ignore expired holds
+        ).first()
+
+        if conflicting_hold:
+            # priority user: allow booking only if it fits exactly within the held window
+            if (
+                conflicting_hold.reserved_for == current_user
+                and start >= conflicting_hold.held_start
+                and end <= conflicting_hold.held_end
+            ):
+                return attrs # priority user booking their exact held slot
+
+            # original canceller: always blocked, even if reserved_for is none
+            # covers the case where no one was on the waitlist but we still want to prevent the canceller from immediately re-grabbing the slot
+            elif conflicting_hold.cancelled_by == current_user:
+                raise serializers.ValidationError(
+                    "WAITLIST_HOLD|You cancelled this reservation. "
+                    "This time is now pending for a waitlisted user. "
+                    "You may join the waitlist to be notified if it becomes available."
+                )
+            
+            #everyone else: blocked with the waitlist prompt
+            else:
+                raise serializers.ValidationError(
+                    "WAITLIST_HOLD|These times conflict with a pending reservation. "
+                    "Would you like to join the waitlist and be notified "
+                    "if the room becomes available, or choose another time?"
+                )
+
         return attrs
 
     def create(self, validated_data):
-        """Create reservation with a re-check inside a transaction.
-
-        Why: the `validate()` overlap check can be bypassed under a race condition
-        if two requests validate at the same time.
-
-        Fix: re-check overlaps inside `transaction.atomic()` while holding a
-        `select_for_update()` lock on the Room row.
         """
+        Re-checks for overlaps inside a database transaction with a row lock.
+ 
+        Why this exists: validate() runs before the DB write, but two requests
+        can pass validate() simultaneously (race condition). By locking the
+        Room row with select_for_update(), the second request blocks until the
+        first transaction commits, then re-checks and fails cleanly.
+        """
+
         room: Room = validated_data["room"]
         start = validated_data["start_time"]
         end = validated_data["end_time"]
 
         with transaction.atomic():
-            # Lock the room row for the duration of the transaction.
+            # lock the room row for the duration of the transaction
+            # any concurrent POST /reservations/ for the same room will wait here
             Room.objects.select_for_update().get(pk=room.pk)
 
             overlap = (
@@ -116,57 +183,6 @@ class ReservationSerializer(serializers.ModelSerializer):
                 )
 
             return super().create(validated_data)
-
-
-class ReservationSerializer(serializers.ModelSerializer):
-    # Automatically attaches the logged-in user (request.user)
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    class Meta:
-        model = Reservation
-        fields = [
-            "id",
-            "user",
-            "room",
-            "start_time",
-            "end_time",
-            "status",
-            "created_at",
-        ]
-        read_only_fields = ["status", "created_at"]
-
-    def validate(self, attrs):
-        """
-        Custom validation logic before saving:
-        1) Check time order: end must be after start
-        2) Ensure room is active
-        3) Prevent overlapping reservations
-        """
-        room = attrs["room"]
-        start = attrs["start_time"]
-        end = attrs["end_time"]
-
-        if end <= start:
-            raise serializers.ValidationError("end_time must be after start_time.")
-
-        if not room.is_active:
-            raise serializers.ValidationError("This room is not active.")
-
-        #query all other reservations for this room that are not cancelled
-        qs = Reservation.objects.filter(room=room).exclude(
-            status=Reservation.STATUS_CANCELLED
-        )
-        #if updating an exisitng reservation, exclude iteself from the overlap check
-        if self.instance:
-            qs = qs.exclude(id=self.instance.id)
-
-        #check for overlap: new reservation conflicts if any exisitngstart<new.end and exisitng.end > new.start
-        if qs.filter(start_time__lt=end, end_time__gt=start).exists():
-            raise serializers.ValidationError(
-                "This room is already reserved for that time range."
-            )
-
-        return attrs
 
 
 class EquipmentItemSerializer(serializers.ModelSerializer):
@@ -186,7 +202,7 @@ class EquipmentItemSerializer(serializers.ModelSerializer):
 
     category = serializers.CharField(source='equipment_type.category', read_only=True)
     description = serializers.CharField(read_only=True)
-    location = serializers.CharField(source='campus.name', read_only=True)
+
     totalQuantity = serializers.SerializerMethodField()
     availableQuantity = serializers.SerializerMethodField()
     photoUrl = serializers.SerializerMethodField()
@@ -211,7 +227,7 @@ class EquipmentItemSerializer(serializers.ModelSerializer):
                     1. its status says explicitly available
                     2. there an no active checkout (where returned_at is null)
         """
-        # Count only available assets for this exact EquipmentItem
+        # count only available assets for this exact EquipmentItem
         return obj.assets.filter(
             status=EquipmentAsset.STATUS_AVAILABLE
         ).count()
@@ -288,15 +304,16 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(
         write_only=True
     )  # write_only means: accept input, never return it in responses
+
     def validate_password(self, value):
         # Runs Django's password validators (configured in settings.py, usually default validators)
         validate_password(value)
         return value
 
     def create(self, validated_data):
-        # We use the email as the username:
-        # This keeps login simple because authenticate() uses "username" by default.
-        # So in our login endpoint, we can authenticate(username=email, password=...)
+        # we use the email as the username:
+        # this keeps login simple because authenticate() uses "username" by default.
+        # so in our login endpoint, we can authenticate(username=email, password=...)
         user = User.objects.create_user(
             username=validated_data["email"],  # treat email as username
             email=validated_data["email"],
@@ -317,6 +334,6 @@ class RegisterSerializer(serializers.Serializer):
             # update_fields updates ONLY that column (more efficient than saving everything)
             user.save(update_fields=["first_name"])
 
-        # Return the newly created user object.
-        # This serializer isn't returning the user data automatically
+        # return the newly created user object.
+        # this serializer isn't returning the user data automatically
         return user

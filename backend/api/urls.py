@@ -9,6 +9,11 @@ from .views import (
     RoomViewSet,
     EquipmentItemViewSet,
     dashboard_summary,
+    join_waitlist,
+    get_notifications,
+    mark_notifications_read,
+    decline_waitlist,
+    room_schedule,
 )
 from rest_framework.routers import DefaultRouter
 
@@ -25,6 +30,11 @@ urlpatterns = [
     path("auth/login/", login), #issues JWT tokem
     path("studyspaces/statuses/", studyspaces_statuses), #returns room statuses
     path("user/dashboard-summary/", dashboard_summary), #summary for dashboard (updates)
-
+    path("waitlist/join/", join_waitlist),
+    path("waitlist/decline/", decline_waitlist),
+    path("notifications/", get_notifications),
+    path("notifications/mark-read/", mark_notifications_read),
+    path("studyspaces/<int:room_id>/schedule/", room_schedule),
+        
     path("", include(router.urls)), #include all router-generated urls
 ]
