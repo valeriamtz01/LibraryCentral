@@ -123,7 +123,23 @@ const Login = () => {
               <span>New here? </span>
               <Link to="/signup">Create an account</Link>
             </div>
-          </div>
+
+
+            {/* admin login button */}
+            <div className="text-center mt-3 pt-3 border-top">
+             <a 
+                href="http://localhost:8000/admin/" 
+                target="_blank"
+                rel="noreferrer"
+                className="text-muted small d-inline-flex align-items-center gap-1 border rounded px-3 py-1"
+                style={{ textDecoration: 'none', fontSize: '0.85rem' }}
+              >
+                <i className="bi bi-lock"></i>
+                Admin login
+              </a>
+            </div>
+
+        </div>
         </section>
       </main>
       <Footer />

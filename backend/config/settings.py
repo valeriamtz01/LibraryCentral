@@ -29,6 +29,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin', # added for jazzmin 
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -39,8 +40,112 @@ INSTALLED_APPS = [
     "corsheaders",
     "api",
     "django_apscheduler",
-
 ]
+
+# new for django admin panel
+JAZZMIN_SETTINGS = {
+    # title in the browser tab and top bar
+    "site_title": "LibraryCentral Admin",
+    "site_header": "LibraryCentral Administration",
+    "site_brand": "LibraryCentral",
+
+    # welcome text on the login page
+    "welcome_sign": "Welcome to LibraryCentral Administration",
+
+    # copyright footer
+    "copyright": "LibraryCentral",
+
+    # top nav links (optional — shows quick links in the top bar)
+    "topmenu_links": [
+        {"name": "View Site", "url": "/", "new_window": False},
+    ],
+
+    # side nav icons — uses Font Awesome 5 free icon names
+    "icons": {
+        "auth":                     "fas fa-users-cog",
+        "auth.user":                "fas fa-user",
+        "auth.Group":               "fas fa-users",
+        "api.Campus":               "fas fa-university",
+        "api.Room":                 "fas fa-door-open",
+        "api.Reservation":          "fas fa-calendar-check",
+        "api.EquipmentItem":        "fas fa-box",
+        "api.EquipmentType":        "fas fa-tags",
+        "api.Checkout":             "fas fa-clipboard-list",
+        "api.Waitlist":             "fas fa-hourglass-half",
+        "api.WaitlistHold":         "fas fa-lock",
+        "api.Notification":         "fas fa-bell",
+    },
+
+    # group models in the sidebar under custom headings
+    "order_with_respect_to": [
+        "auth",
+        "api.Campus",
+        "api.Room",
+        "api.Reservation",
+        "api.Waitlist",
+        "api.WaitlistHold",
+        "api.EquipmentType",
+        "api.EquipmentItem",
+        "api.EquipmentAsset",
+        "api.Checkout",
+        "api.Notification",
+    ],
+
+    # hide models from sidebar if you don't need them cluttering the nav
+    "hide_models": [],
+
+    # show model count in sidebar
+    "show_sidebar": True,
+    "navigation_expanded": True,
+
+    # search bar in top nav — lets you search across all models
+    "search_model": ["auth.user"],
+
+    # user avatar in top nav
+    "user_avatar": None,
+}
+
+
+# optional: customize the color theme (commented out for now)
+# JAZZMIN_UI_TWEAKS = {
+#     "navbar_small_text": False,
+#     "footer_small_text": False,
+#     "body_small_text": False,
+#     "brand_small_text": False,
+
+#     # color theme for the top bar and sidebar
+#     # options: "primary","secondary","info","warning","danger","success","dark","light"
+#     "brand_colour": "navbar-dark",
+#     "accent": "accent-primary",
+#     "navbar": "navbar-dark",
+#     "no_navbar_border": True,
+#     "navbar_fixed": True,
+
+#     # side style
+#     "sidebar": "sidebar-dark-primary",   # dark sidebar (matches the mockup I showed you)
+#     "sidebar_nav_small_text": False,
+#     "sidebar_disable_expand": False,
+#     "sidebar_nav_child_indent": True,
+#     "sidebar_nav_compact_style": False,
+#     "sidebar_nav_flat_style": False,
+
+#     # theme — pick one:
+#     # "default", "cerulean", "cosmo", "flatly", "journal", "litera",
+#     # "lumen", "lux", "materia", "minty", "pulse", "sandstone",
+#     # "simplex", "sketchy", "slate", "solar", "spacelab", "superhero",
+#     # "united", "yeti"
+#     "theme": "flatly",       # clean, modern — closest to what I showed you
+#     "dark_mode_theme": None,
+
+#     "button_classes": {
+#         "primary": "btn-primary",
+#         "secondary": "btn-secondary",
+#         "info": "btn-outline-info",
+#         "warning": "btn-warning",
+#         "danger": "btn-danger",
+#         "success": "btn-success",
+#     },
+# }
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
