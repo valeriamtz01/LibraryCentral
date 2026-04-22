@@ -89,7 +89,6 @@ class Reservation(models.Model): # the booking itself creating allowed values an
             models.Index(fields=["room", "start_time", "end_time"]),
             models.Index(fields=["user", "start_time"]),
         ]
-        unique_together = ("user", "room")
         ordering = ["created_at"]
 
     def __str__(self) -> str: #shows room and reservation time raneg with user
