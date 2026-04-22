@@ -1,0 +1,3 @@
+{
+  "postStartCommand": "cd backend && pgrep -f run_reminders.sh || nohup ./run_reminders.sh > reminders.log 2>&1 &"
+}

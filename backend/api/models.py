@@ -83,6 +83,14 @@ class Reservation(models.Model): # the booking itself creating allowed values an
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=STATUS_PENDING)
     created_at = models.DateTimeField(default=timezone.now)
 
+    # NEW: optional phone number for SMS reminders.
+    # If blank, email can still be sent and SMS is skipped.
+    reminder_phone_number = models.CharField(max_length=30, blank=True)
+
+    # NEW: stores when the reminder was sent.
+    # This prevents duplicate reminder messages.
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         #database indexes for faster lookup in the queuries
         indexes = [
@@ -95,6 +103,7 @@ class Reservation(models.Model): # the booking itself creating allowed values an
         return f"{self.room} {self.start_time:%Y-%m-%d %H:%M}–{self.end_time:%H:%M} ({self.user})"
 
 
+    # waitlist feature
     def clean(self):
         overlapping = Reservation.objects.filter(
             room=self.room,
@@ -221,6 +230,13 @@ class Checkout(models.Model):
     due_at = models.DateTimeField() #expcted return date/time
     returned_at = models.DateTimeField(null=True, blank=True) #actual return time
 
+    # NEW: optional phone number for SMS reminders for due equipment.
+    reminder_phone_number = models.CharField(max_length=30, blank=True)
+
+    # NEW: stores when the due-date reminder was sent.
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
+
     def save(self, *args, **kwargs):
         # When creating a new checkout
         if not self.pk and not self.assigned_asset:
@@ -254,6 +270,9 @@ class Checkout(models.Model):
                     self.due_at = timezone.now() + timedelta(days=1)
 
         super().save(*args, **kwargs)
+
+
+# new models: waitlist + notification for 'waitlist feature'
 
 # adding the waitlist hold model
 # when a reservation is cancelled and  waitlist entry exist for that room, "locl" the cancelled time window for the notified user only

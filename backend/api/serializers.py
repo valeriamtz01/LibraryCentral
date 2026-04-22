@@ -3,8 +3,9 @@ from django.utils import timezone
 from rest_framework import serializers
 from .models import Campus, Room, Reservation, EquipmentItem, Checkout, EquipmentAsset, WaitlistHold
 from datetime import timedelta
+from api.notifications import maybe_send_reservation_reminder, maybe_send_checkout_reminder # new: for email notifications
 
-ADVANCE_MINUTES = 30 # defined once at module level
+ADVANCE_MINUTES = 30 # defined once at module level: this is for the room booking logic
 
 class CampusSerializer(serializers.ModelSerializer):
     # converts Campus model objects used for listing/creating campuses 
@@ -53,6 +54,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             "end_time",
             "status",
             "created_at",
+            "reminder_phone_number",  # NEW: optional SMS number for room reminders
+            "reminder_sent_at",       # NEW: read-only tracking to avoid duplicate reminders
         ]
         # status and created_at are set by be 
         read_only_fields = ["status", "created_at"]
@@ -86,7 +89,6 @@ class ReservationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f"Rooms must be booked at least {ADVANCE_MINUTES} minutes in advance."
             )
- 
 
         # Overlap logic:
         # An overlap exists when:
@@ -181,8 +183,12 @@ class ReservationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "This room is already reserved for that time range."
                 )
-
-            return super().create(validated_data)
+            
+            # reminder_notification: 
+            created_reservation = super().create(validated_data)
+            maybe_send_reservation_reminder(created_reservation)
+           
+            return created_reservation
 
 
 class EquipmentItemSerializer(serializers.ModelSerializer):
@@ -258,8 +264,10 @@ class CheckoutSerializer(serializers.ModelSerializer):
             "returned_at",
             "assigned_asset",
             'is_returned',
+            "reminder_phone_number",  # NEW: optional SMS number for equipment reminders
+            "reminder_sent_at",       # NEW: read-only tracking to avoid duplicate reminders
         ]
-        read_only_fields = ["checked_out_at", "assigned_asset", "due_at"]
+        read_only_fields = ["checked_out_at", "assigned_asset", "due_at", "reminder_sent_at"]
 
     def get_item_name(self, obj):
         return obj.item.name
@@ -277,6 +285,15 @@ class CheckoutSerializer(serializers.ModelSerializer):
 
         # don't access due_at here
         return attrs
+    
+    # NEW: reminder notification
+    def create(self, validated_data):
+        checkout = super().create(validated_data)
+
+        # NEW: send reminder immediately if checkout is already inside the reminder window
+        maybe_send_checkout_reminder(checkout)
+
+        return checkout
     
 # Auth serializers (Register/login)
 # get_user_model() returns whichever User model app is using.
