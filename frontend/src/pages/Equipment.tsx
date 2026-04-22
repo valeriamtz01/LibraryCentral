@@ -171,179 +171,840 @@ const EquipmentPage = () => {
     setTempStatus('all');
   };
 
-  return (
-    <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
-      <StudentHeader />
+//   return (
+//     <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
+//       <StudentHeader />
       
-      <main className="flex-grow-1">
-        <Container className="py-5">
-          <header className="mb-5">
-            <h1 className="fw-bold">Equipment</h1>
-            <p className="text-muted">View inventory and checkout equipment.</p>
-          </header>
+//       <main className="flex-grow-1">
+//         <Container className="py-5">
+//           <header className="mb-5">
+//             <h1 className="fw-bold">Equipment</h1>
+//             <p className="text-muted">View inventory and checkout equipment.</p>
+//           </header>
 
-          {/* Search and Filter Section */}
-          <Row className="mb-4 align-items-end">
-            <Col lg={6} md={8} className="mb-3">
-              <InputGroup>
-                <InputGroup.Text className="bg-white">
-                  <i className="bi bi-search"></i>
-                </InputGroup.Text>
-                <Form.Control
-                  placeholder="Search equipment..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="border-start-0"
-                />
-              </InputGroup>
-            </Col>
-            <Col lg="auto" className="mb-3">
-              <Button
-                variant="outline-secondary"
-                onClick={handleOpenFilterModal}
-                className="d-flex align-items-center gap-2"
-              >
-                <i className="bi bi-funnel"></i>
-                Filters
-              </Button>
-            </Col>
-          </Row>
+//           {/* Search and Filter Section */}
+//           <Row className="mb-4 align-items-end">
+//             <Col lg={6} md={8} className="mb-3">
+//               <InputGroup>
+//                 <InputGroup.Text className="bg-white">
+//                   <i className="bi bi-search"></i>
+//                 </InputGroup.Text>
+//                 <Form.Control
+//                   placeholder="Search equipment..."
+//                   value={searchQuery}
+//                   onChange={(e) => setSearchQuery(e.target.value)}
+//                   className="border-start-0"
+//                 />
+//               </InputGroup>
+//             </Col>
+//             <Col lg="auto" className="mb-3">
+//               <Button
+//                 variant="outline-secondary"
+//                 onClick={handleOpenFilterModal}
+//                 className="d-flex align-items-center gap-2"
+//               >
+//                 <i className="bi bi-funnel"></i>
+//                 Filters
+//               </Button>
+//             </Col>
+//           </Row>
 
-          {/* Equipment List */}
-          <div className="equipment-list-container">
-            {filteredEquipment.length > 0 ? (
-              <div className="equipment-list">
-                {filteredEquipment.map(equipment => (
-                  <Card
-                    key={equipment.id}
-                    className="equipment-card mb-3 border-0 shadow-sm hover-lift"
-                  >
-                    <Card.Body className="p-4 d-flex justify-content-between align-items-center">
-                      <div className="equipment-info">
-                        <h5 className="mb-2 fw-semibold">{equipment.name ? equipment.name.split(" - ")[0] : "Unnamed Item"}</h5>
-                        <div className="equipment-meta">
-                          <span className="badge bg-light text-dark me-2">
-                            {equipment.category}
-                          </span>
-                          <span
-                            className={`badge ${
-                              getStatus(equipment.availableQuantity) === 'available'
-                                ? 'bg-success'
-                                : 'bg-danger'
-                            }`}
-                          >
-                            {getStatus(equipment.availableQuantity) === 'available' ? 'Available' : 'Unavailable'}
-                          </span>
-                          <span className="text-muted ms-2 small">
-                            ({equipment.availableQuantity}/{equipment.totalQuantity} available)
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => navigate(`/equipment/${equipment.id}`)}
-                        className="ms-3"
-                      >
-                        View
-                      </Button>
-                    </Card.Body>
-                  </Card>
-                ))}
+//           {/* Equipment List */}
+//           <div className="equipment-list-container">
+//             {filteredEquipment.length > 0 ? (
+//               <div className="equipment-list">
+//                 {filteredEquipment.map(equipment => (
+//                   <Card
+//                     key={equipment.id}
+//                     className="equipment-card mb-3 border-0 shadow-sm hover-lift"
+//                   >
+//                     <Card.Body className="p-4 d-flex justify-content-between align-items-center">
+//                       <div className="equipment-info">
+//                         <h5 className="mb-2 fw-semibold">{equipment.name ? equipment.name.split(" - ")[0] : "Unnamed Item"}</h5>
+//                         <div className="equipment-meta">
+//                           <span className="badge bg-light text-dark me-2">
+//                             {equipment.category}
+//                           </span>
+//                           <span
+//                             className={`badge ${
+//                               getStatus(equipment.availableQuantity) === 'available'
+//                                 ? 'bg-success'
+//                                 : 'bg-danger'
+//                             }`}
+//                           >
+//                             {getStatus(equipment.availableQuantity) === 'available' ? 'Available' : 'Unavailable'}
+//                           </span>
+//                           <span className="text-muted ms-2 small">
+//                             ({equipment.availableQuantity}/{equipment.totalQuantity} available)
+//                           </span>
+//                         </div>
+//                       </div>
+//                       <Button
+//                         variant="primary"
+//                         size="sm"
+//                         onClick={() => navigate(`/equipment/${equipment.id}`)}
+//                         className="ms-3"
+//                       >
+//                         View
+//                       </Button>
+//                     </Card.Body>
+//                   </Card>
+//                 ))}
+//               </div>
+//             ) : (
+//               <Card className="border-0 shadow-sm p-5 text-center">
+//                 <Card.Body>
+//                   <p className="text-muted mb-0">
+//                     No equipment found matching your search and filters.
+//                   </p>
+//                 </Card.Body>
+//               </Card>
+//             )}
+//           </div>
+//         </Container>
+//       </main>
+//       {/* Filter Modal */}
+//       <Modal show={showFilterModal} onHide={() => setShowFilterModal(false)} centered>
+//         <Modal.Header closeButton>
+//           <Modal.Title>Filter Equipment</Modal.Title>
+//         </Modal.Header>
+//         <Modal.Body>
+//           {/* Category Filter */}
+//           <div className="mb-4">
+//             <label className="fw-semibold d-block mb-3">Category</label>
+//             <div className="filter-options">
+//               <Form.Check
+//                 type="radio"
+//                 label="All"
+//                 name="category"
+//                 value="all"
+//                 checked={tempCategory === 'all'}
+//                 onChange={(e) => setTempCategory(e.target.value)}
+//                 id="category-all"
+//               />
+//               {categories.map(category => (
+//                 <Form.Check
+//                   key={category}
+//                   type="radio"
+//                   label={category}
+//                   name="category"
+//                   value={category}
+//                   checked={tempCategory === category}
+//                   onChange={(e) => setTempCategory(e.target.value)}
+//                   id={`category-${category}`}
+//                 />
+//               ))}
+//             </div>
+//           </div>
+
+//           {/* Status Filter */}
+//           <div className="mb-4">
+//             <label className="fw-semibold d-block mb-3">Status</label>
+//             <div className="filter-options">
+//               <Form.Check
+//                 type="radio"
+//                 label="All"
+//                 name="status"
+//                 value="all"
+//                 checked={tempStatus === 'all'}
+//                 onChange={(e) => setTempStatus(e.target.value)}
+//                 id="status-all"
+//               />
+//               <Form.Check
+//                 type="radio"
+//                 label="Available"
+//                 name="status"
+//                 value="available"
+//                 checked={tempStatus === 'available'}
+//                 onChange={(e) => setTempStatus(e.target.value)}
+//                 id="status-available"
+//               />
+//               <Form.Check
+//                 type="radio"
+//                 label="Unavailable"
+//                 name="status"
+//                 value="unavailable"
+//                 checked={tempStatus === 'unavailable'}
+//                 onChange={(e) => setTempStatus(e.target.value)}
+//                 id="status-unavailable"
+//               />
+//             </div>
+//           </div>
+//         </Modal.Body>
+//         <Modal.Footer>
+//           <Button variant="secondary" onClick={handleClearFilters}>
+//             Clear Filters
+//           </Button>
+//           <Button variant="primary" onClick={handleApplyFilters}>
+//             Apply Filters
+//           </Button>
+//         </Modal.Footer>
+//       </Modal>
+
+//       <Footer />
+//     </div>
+//   );
+// };
+
+// export default EquipmentPage;
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CURRENT EQUIPMENT PAGE:
+// ─────────────────────────────────────────────────────────────────────────────
+// DROP-IN REPLACEMENT: paste this entire return() in place of the existing one.
+// All state, hooks, and handlers above remain completely untouched:
+//   - equipment, loading, categories, searchQuery, selectedCategory,
+//     selectedStatus, showFilterModal, tempCategory, tempStatus
+//   - fetchEquipment, getStatus, filteredEquipment (useMemo)
+//   - handleOpenFilterModal, handleApplyFilters, handleClearFilters
+//
+// Design goals:
+//   - Matches the dashboard: #f4f5f7 page bg, #C0421A brand orange, white cards,
+//     same border radius, same font sizes, same badge patterns
+//   - Dark charcoal hero banner with live stat strip (no photo needed here)
+//   - Equipment cards are wide list-style rows — easier to scan a long inventory
+//     list vs a cramped grid
+//   - Filter modal (react-bootstrap Modal) is unchanged — only trigger style changes
+// ─────────────────────────────────────────────────────────────────────────────
+
+return (
+  // ── Page shell ───────────────────────────────────────────────────────────────
+  // min-vh-100 → page always fills the full viewport height (Bootstrap utility)
+  // paddingTop → clears the fixed StudentHeader navbar (56px tall)
+  // backgroundColor → matches dashboard page background (#f4f5f7 light gray)
+  <div
+    className="d-flex flex-column min-vh-100"
+    style={{ paddingTop: '56px', backgroundColor: '#f4f5f7' }}
+  >
+    {/* StudentHeader — fixed navbar, identical to dashboard */}
+    <StudentHeader />
+
+    <main className="flex-grow-1">
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 1 — PAGE HEADER BANNER
+          Dark charcoal banner — mirrors the dashboard hero structure but uses
+          a solid dark bg instead of the library photo (equipment page doesn't
+          need a photo, keeps the visual hierarchy clean).
+          Shows page title + three live stat counts:
+            - equipment.length    → total distinct item types from BE
+            - reduce(availableQuantity) → total units available right now
+            - filteredEquipment.length → how many results are currently showing
+          All three update reactively as the user searches/filters.
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div style={{
+        backgroundColor: '#f4f5f7',
+        padding: '22px 28px 16px',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+
+          {/* LEFT: label → title → subtitle → stat strip */}
+          <div>
+
+            {/* All-caps micro label — same pattern as dashboard hero "STUDENT DASHBOARD · LC PORTAL" */}
+            {/* <div style={{ 
+              fontSize: '10px', 
+              color: '#6c757d', 
+              textTransform: 'uppercase',
+              letterSpacing: '.09em',
+              marginBottom: '4px',
+            }}>
+              LC Portal · Equipment
+            </div> */}
+
+            {/* Page title */}
+            <div style={{ fontSize: '30px', fontWeight: 600, color: '#1a1a1a', marginBottom: '2px' }}>
+              Equipment Inventory
+            </div>
+
+            {/* Subtitle — tells the user what to do on this page */}
+            <div style={{ fontSize: '15px', color: '#6c757d', marginBottom: '18px' }}>
+              Browse, search, and check out library equipment.
+            </div>
+
+            {/* ── Live stat strip ─────────────────────────────────────────────
+                Same divider + number pattern as the dashboard hero stat strip.
+                All three numbers update live as equipment state changes.
+            ── */}
+            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+
+              {/* Stat 1: total distinct equipment types (rows returned by /equipment/ BE endpoint) */}
+              <div style={{ paddingRight: '20px' }}>
+                <div style={{ fontSize: '13px', color: '#6c757d', marginBottom: '2px' }}>
+                  Item types
+                </div>
+                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#1a1a1a', lineHeight: 1 }}>
+                  {/* loading guard prevents NaN flash before fetchEquipment() resolves */}
+                  {loading ? '—' : equipment.length}
+                </div>
               </div>
-            ) : (
-              <Card className="border-0 shadow-sm p-5 text-center">
-                <Card.Body>
-                  <p className="text-muted mb-0">
-                    No equipment found matching your search and filters.
-                  </p>
-                </Card.Body>
-              </Card>
+
+              {/* Divider — thin white separator, same as dashboard hero */}
+              <div style={{ width: '1px', backgroundColor: '#dee2e6', alignSelf: 'stretch', marginRight: '20px' }} />
+
+              {/* Stat 2: sum of availableQuantity across all equipment items
+                  reduce() accumulates the availableQuantity field from every
+                  item in the equipment state array (mapped from BE serializer) */}
+              <div style={{ paddingRight: '20px' }}>
+                <div style={{ fontSize: '13px', color: '#6c757d', marginBottom: '2px' }}>
+                  Units available
+                </div>
+                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#1a1a1a', lineHeight: 1 }}>
+                  {loading ? '—' : equipment.reduce((sum, item) => sum + item.availableQuantity, 0)}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{ width: '1px', backgroundColor: '#dee2e6', alignSelf: 'stretch', marginRight: '20px' }} />
+
+              {/* Stat 3: filteredEquipment.length — updates live as user types/filters
+                  filteredEquipment is the useMemo result defined above return() */}
+              <div>
+                <div style={{ fontSize: '13px', color: '#6c757d', marginBottom: '2px' }}>
+                  Showing
+                </div>
+                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#1a1a1a', lineHeight: 1 }}>
+                  {loading ? '—' : filteredEquipment.length}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: cross-navigation shortcut to study spaces booking
+              Same frosted-glass pill style as the dashboard hero bell button.
+              navigate() from react-router-dom (imported at top of file). */}
+          <button
+            onClick={() => navigate('/study-spaces')}
+             style={{
+              background: '#C0421A',
+              border: 'none',
+              borderRadius: '10px',
+              color: '#fff',
+              padding: '8px 14px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            {/* bi-calendar2-check — Bootstrap Icon: calendar + checkmark, links to room booking */}
+            <i className="bi bi-calendar2-check" style={{ fontSize: '13px' }} />
+            Book a space
+          </button>
+        </div>
+      </div>
+      {/* END SECTION 1 — HEADER BANNER */}
+
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 2 — SEARCH + FILTER PILL ROW
+          White bar directly below the banner — same layout as the dashboard
+          quick-action pill row. Three elements:
+            1. Search input (flex 1, pill-shaped) — bound to searchQuery state
+            2. Active filter pills — only render when a non-"all" filter is applied
+            3. Filter button — opens the react-bootstrap Modal (unchanged logic)
+          All state and handlers come from above return() — untouched.
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '10px 16px',
+        backgroundColor: '#fff',
+        borderBottom: '1px solid #e9ecef',
+        flexWrap: 'wrap',   // wraps to second line on small screens
+      }}>
+
+        {/* Search input — pill-shaped, flex 1 fills available width
+            onChange updates searchQuery state → useMemo re-filters filteredEquipment
+            bi-search — Bootstrap Icon: magnifying glass */}
+        <div style={{
+          flex: 1,
+          minWidth: '200px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          backgroundColor: '#f4f5f7',
+          border: '1px solid #e9ecef',
+          borderRadius: '20px',
+          padding: '7px 14px',
+        }}>
+          {/* bi-search — Bootstrap Icon: magnifying glass, standard search indicator */}
+          <i className="bi bi-search" style={{ fontSize: '13px', color: '#6c757d' }} />
+          <input
+            placeholder="Search equipment..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              outline: 'none',
+              fontSize: '13px',
+              color: '#1a1a1a',
+              width: '100%',
+            }}
+          />
+          {/* Clear X — only visible when searchQuery is non-empty.
+              Clicking resets searchQuery to '' → useMemo re-runs with no search filter.
+              bi-x — Bootstrap Icon: X mark */}
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{
+                border: 'none', background: 'none',
+                cursor: 'pointer', color: '#6c757d',
+                fontSize: '14px', padding: 0, lineHeight: 1,
+              }}
+            >
+              <i className="bi bi-x" />
+            </button>
+          )}
+        </div>
+
+        {/* Active filter pill: category — only renders when selectedCategory !== 'all'
+            Shows which category filter is active and lets the user remove it inline
+            without reopening the modal. Clicking × resets selectedCategory → 'all'. */}
+        {selectedCategory !== 'all' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '4px',
+            backgroundColor: '#fff4f1',         // light orange tint — brand color family
+            border: '1px solid #f5c4b3',
+            borderRadius: '20px',
+            padding: '5px 10px',
+            fontSize: '12px',
+            color: '#C0421A',
+            fontWeight: 500,
+          }}>
+            {selectedCategory}
+            <button
+              onClick={() => setSelectedCategory('all')}
+              style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#C0421A', padding: '0 0 0 4px', fontSize: '13px', lineHeight: 1 }}
+            >
+              <i className="bi bi-x" />
+            </button>
+          </div>
+        )}
+
+        {/* Active filter pill: status — only renders when selectedStatus !== 'all'
+            Green tint for 'available', red tint for 'unavailable' — matches badge colors below. */}
+        {selectedStatus !== 'all' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '4px',
+            backgroundColor: selectedStatus === 'available' ? '#eaf3de' : '#fcebeb',
+            border: `1px solid ${selectedStatus === 'available' ? '#C0DD97' : '#F7C1C1'}`,
+            borderRadius: '20px',
+            padding: '5px 10px',
+            fontSize: '12px',
+            color: selectedStatus === 'available' ? '#3B6D11' : '#A32D2D',
+            fontWeight: 500,
+          }}>
+            {selectedStatus === 'available' ? 'Available' : 'Unavailable'}
+            <button
+              onClick={() => setSelectedStatus('all')}
+              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit', padding: '0 0 0 4px', fontSize: '13px', lineHeight: 1 }}
+            >
+              <i className="bi bi-x" />
+            </button>
+          </div>
+        )}
+
+        {/* Filter button — pill-shaped, calls handleOpenFilterModal() which snapshots
+            current filters into tempCategory/tempStatus before opening so Cancel preserves
+            the previous selection.
+            Orange dot indicator appears when any filter is active.
+            bi-funnel — Bootstrap Icon: funnel shape, standard filter icon */}
+        <button
+          onClick={handleOpenFilterModal}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '7px 16px',
+            borderRadius: '20px',
+            border: '1px solid #dee2e6',
+            backgroundColor: '#fff',
+            color: '#495057',
+            fontSize: '13px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          {/* bi-funnel — Bootstrap Icon: filter funnel */}
+          <i className="bi bi-funnel" style={{ fontSize: '13px' }} />
+          Filters
+          {/* Orange dot — signals an active filter without requiring the user to read the pills */}
+          {(selectedCategory !== 'all' || selectedStatus !== 'all') && (
+            <span style={{
+              width: '7px', height: '7px',
+              borderRadius: '50%',
+              backgroundColor: '#C0421A',
+              display: 'inline-block',
+              flexShrink: 0,
+            }} />
+          )}
+        </button>
+      </div>
+      {/* END SECTION 2 — SEARCH + FILTER ROW */}
+
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 3 — EQUIPMENT LIST
+          Main content area. Three possible render states:
+            1. loading=true → skeleton pulse rows (no content flash)
+            2. filteredEquipment.length === 0 → empty state
+            3. filteredEquipment.length > 0 → list of row cards
+
+          filteredEquipment = result of useMemo() defined above return().
+          It filters the `equipment` state array (fetched from /equipment/ BE endpoint)
+          by searchQuery, selectedCategory, and selectedStatus on every change.
+
+          Each card row layout:
+            LEFT  — colored icon circle (category) + name + badge strip
+            RIGHT — quantity fraction (available/total) + View button
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div style={{ flex: 1, padding: '20px 24px', backgroundColor: '#f4f5f7' }}>
+
+        {/* Section micro-label — dynamic: shows result count when loaded
+            Matches dashboard "UPCOMING ACTIVITY" label style */}
+        <div style={{
+          fontSize: '10px',
+          fontWeight: 600,
+          color: '#6c757d',
+          textTransform: 'uppercase',
+          letterSpacing: '.08em',
+          marginBottom: '14px',
+        }}>
+          {loading
+            ? 'Loading inventory...'
+            : `${filteredEquipment.length} item${filteredEquipment.length !== 1 ? 's' : ''}`
+          }
+        </div>
+
+        {/* ── STATE 1: Loading skeletons ────────────────────────────────────────
+            5 placeholder rows while fetchEquipment() awaits the BE response.
+            skeleton-pulse class in Equipment.css drives the opacity animation.
+            Prevents the "no results" empty state from flashing before data arrives.
+        ── */}
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div
+                key={n}
+                className="skeleton-pulse"  // Equipment.css: opacity pulse animation
+                style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e9ecef',
+                  borderRadius: '10px',
+                  height: '68px',
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* ── STATE 2: Empty state ──────────────────────────────────────────────
+            Shows only after loading completes and no items match the current filters.
+            Offers a "Clear all filters" escape hatch if filters are the cause.
+            bi-box-seam — Bootstrap Icon: sealed cardboard box, no items present.
+        ── */}
+        {!loading && filteredEquipment.length === 0 && (
+          <div style={{
+            backgroundColor: '#fff',
+            border: '1px solid #e9ecef',
+            borderRadius: '10px',
+            padding: '40px 20px',
+            textAlign: 'center',
+          }}>
+            {/* bi-box-seam — Bootstrap Icon: sealed box, represents empty inventory state */}
+            <i className="bi bi-box-seam" style={{ fontSize: '2rem', color: '#dee2e6' }} />
+            <p className="text-muted mt-3 mb-2" style={{ fontSize: '14px' }}>
+              No equipment found matching your search and filters.
+            </p>
+            {/* Only show "Clear all filters" when at least one filter is active */}
+            {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');        // clears the search input
+                  setSelectedCategory('all'); // resets category filter
+                  setSelectedStatus('all');   // resets status filter
+                }}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: '#C0421A',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                Clear all filters
+              </button>
             )}
           </div>
-        </Container>
-      </main>
-      {/* Filter Modal */}
-      <Modal show={showFilterModal} onHide={() => setShowFilterModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Filter Equipment</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {/* Category Filter */}
-          <div className="mb-4">
-            <label className="fw-semibold d-block mb-3">Category</label>
-            <div className="filter-options">
+        )}
+
+        {/* ── STATE 3: Equipment row cards ─────────────────────────────────────
+            Renders when loading is complete and filteredEquipment has items.
+            Each item gets a horizontal card row.
+        ── */}
+        {!loading && filteredEquipment.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {filteredEquipment.map((item) => {
+
+              // getStatus() is defined above return() — returns 'available' | 'unavailable'
+              // based purely on availableQuantity > 0
+              const status = getStatus(item.availableQuantity);
+              const isAvailable = status === 'available';
+
+              // categoryIcon: maps each category string to a Bootstrap Icon class name
+              // These icons make each row visually scannable without reading the category badge
+              // bi-laptop        → Electronics (computing devices)
+              // bi-camera-video  → Media (cameras, camcorders, AV)
+              // bi-headphones    → Accessories (peripherals, cables, chargers)
+              // bi-calculator    → Supplies (calculators, display panels)
+              const categoryIcon: Record<string, string> = {
+                Electronics: 'bi-laptop',
+                Media:       'bi-camera-video',
+                Accessories: 'bi-headphones',
+                Supplies:    'bi-calculator',
+              };
+              const icon = categoryIcon[item.category] || 'bi-box'; // fallback icon
+
+              // categoryColor: bg + text color pair for icon circles and category badges
+              // Each category gets a consistent color so repeated items group visually
+              // Blue → Electronics, Purple → Media, Green → Accessories, Amber → Supplies
+              const categoryColor: Record<string, { bg: string; color: string }> = {
+                Electronics: { bg: '#eef4fc', color: '#185FA5' },
+                Media:       { bg: '#f3eeff', color: '#534AB7' },
+                Accessories: { bg: '#eaf3de', color: '#3B6D11' },
+                Supplies:    { bg: '#faeeda', color: '#854F0B' },
+              };
+              const accent = categoryColor[item.category] || { bg: '#f4f5f7', color: '#6c757d' };
+
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '10px',
+                    padding: '14px 18px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                  }}
+                >
+
+                  {/* LEFT: icon circle + item name + badge strip */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+
+                    {/* Category icon circle — rounded square colored by categoryColor map
+                        Width/height 38px gives a compact but readable icon area */}
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      backgroundColor: accent.bg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,   // don't let the icon shrink when name is long
+                    }}>
+                      {/* Dynamic Bootstrap Icon — determined by categoryIcon map above */}
+                      <i className={`bi ${icon}`} style={{ fontSize: '16px', color: accent.color }} />
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      {/* Item name — overflow hidden + ellipsis prevents long names breaking layout
+                          split(' - ')[0] strips any " - suffix" that some names include */}
+                      <div style={{
+                        fontWeight: 500,
+                        fontSize: '14px',
+                        color: '#1a1a1a',
+                        marginBottom: '5px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {item.name ? item.name.split(' - ')[0] : 'Unnamed Item'}
+                      </div>
+
+                      {/* Badge strip: category pill + availability pill
+                          Both use color-coded backgrounds — no border needed at this small size */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+
+                        {/* Category badge — same accent color as the icon circle for visual consistency */}
+                        <span style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          backgroundColor: accent.bg,
+                          color: accent.color,
+                          fontWeight: 500,
+                        }}>
+                          {item.category}
+                        </span>
+
+                        {/* Availability badge — green if any units available, red if all checked out
+                            getStatus() determines this from availableQuantity */}
+                        <span style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          backgroundColor: isAvailable ? '#eaf3de' : '#fcebeb',
+                          color: isAvailable ? '#3B6D11' : '#A32D2D',
+                          fontWeight: 500,
+                        }}>
+                          {isAvailable ? 'Available' : 'Unavailable'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RIGHT: quantity fraction + View button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+
+                    {/* Quantity fraction — "X / Y available"
+                        availableQuantity and totalQuantity come from the BE serializer
+                        (EquipmentItemSerializer → get_availableQuantity, get_totalQuantity)
+                        Color: green if any available, red if fully checked out */}
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        color: isAvailable ? '#1D9E75' : '#dc3545',
+                        lineHeight: 1,
+                      }}>
+                        {item.availableQuantity}
+                        <span style={{ fontSize: '11px', fontWeight: 400, color: '#6c757d' }}>
+                          {' '}/ {item.totalQuantity}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#6c757d', marginTop: '2px' }}>
+                        available
+                      </div>
+                    </div>
+
+                    {/* View button — navigates to /equipment/{id} (EquipmentDetail page)
+                        Uses brand orange (#C0421A) to match all CTA buttons on the dashboard
+                        navigate() comes from useNavigate() hook at the top of the file */}
+                    <button
+                      onClick={() => navigate(`/equipment/${item.id}`)}
+                      style={{
+                        backgroundColor: '#C0421A',  // brand orange — consistent with dashboard
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        padding: '7px 16px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {/* END SECTION 3 — EQUIPMENT LIST */}
+
+    </main>
+
+    {/* ══════════════════════════════════════════════════════════════════════
+        FILTER MODAL — react-bootstrap Modal, logic completely unchanged.
+        Only the trigger button style changed (orange Apply, pill-shaped).
+        Modal state:   showFilterModal (bool) — toggled by handleOpenFilterModal
+        Temp states:   tempCategory, tempStatus — staged before Apply is clicked
+        On Apply:      handleApplyFilters() copies temp → selected, closes modal
+        On Clear:      handleClearFilters() resets both temp states to 'all'
+        On Cancel/X:   setShowFilterModal(false) — discards temp changes
+    ══════════════════════════════════════════════════════════════════════ */}
+    <Modal show={showFilterModal} onHide={() => setShowFilterModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title style={{ fontSize: '16px', fontWeight: 500 }}>Filter Equipment</Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body>
+        {/* Category radio group — bound to tempCategory (staged state)
+            categories array = ['Accessories', 'Media', 'Electronics', 'Supplies']
+            defined above return() */}
+        <div className="mb-4">
+          <label className="fw-semibold d-block mb-3" style={{ fontSize: '13px' }}>Category</label>
+          <div className="filter-options">
+            <Form.Check
+              type="radio" label="All" name="category" value="all"
+              checked={tempCategory === 'all'}
+              onChange={(e) => setTempCategory(e.target.value)}
+              id="category-all"
+            />
+            {categories.map(category => (
               <Form.Check
-                type="radio"
-                label="All"
-                name="category"
-                value="all"
-                checked={tempCategory === 'all'}
+                key={category}
+                type="radio" label={category} name="category" value={category}
+                checked={tempCategory === category}
                 onChange={(e) => setTempCategory(e.target.value)}
-                id="category-all"
+                id={`category-${category}`}
               />
-              {categories.map(category => (
-                <Form.Check
-                  key={category}
-                  type="radio"
-                  label={category}
-                  name="category"
-                  value={category}
-                  checked={tempCategory === category}
-                  onChange={(e) => setTempCategory(e.target.value)}
-                  id={`category-${category}`}
-                />
-              ))}
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Status Filter */}
-          <div className="mb-4">
-            <label className="fw-semibold d-block mb-3">Status</label>
-            <div className="filter-options">
-              <Form.Check
-                type="radio"
-                label="All"
-                name="status"
-                value="all"
-                checked={tempStatus === 'all'}
-                onChange={(e) => setTempStatus(e.target.value)}
-                id="status-all"
-              />
-              <Form.Check
-                type="radio"
-                label="Available"
-                name="status"
-                value="available"
-                checked={tempStatus === 'available'}
-                onChange={(e) => setTempStatus(e.target.value)}
-                id="status-available"
-              />
-              <Form.Check
-                type="radio"
-                label="Unavailable"
-                name="status"
-                value="unavailable"
-                checked={tempStatus === 'unavailable'}
-                onChange={(e) => setTempStatus(e.target.value)}
-                id="status-unavailable"
-              />
-            </div>
+        {/* Status radio group — bound to tempStatus (staged state) */}
+        <div className="mb-2">
+          <label className="fw-semibold d-block mb-3" style={{ fontSize: '13px' }}>Availability</label>
+          <div className="filter-options">
+            <Form.Check
+              type="radio" label="All" name="status" value="all"
+              checked={tempStatus === 'all'}
+              onChange={(e) => setTempStatus(e.target.value)}
+              id="status-all"
+            />
+            <Form.Check
+              type="radio" label="Available" name="status" value="available"
+              checked={tempStatus === 'available'}
+              onChange={(e) => setTempStatus(e.target.value)}
+              id="status-available"
+            />
+            <Form.Check
+              type="radio" label="Unavailable" name="status" value="unavailable"
+              checked={tempStatus === 'unavailable'}
+              onChange={(e) => setTempStatus(e.target.value)}
+              id="status-unavailable"
+            />
           </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleClearFilters}>
-            Clear Filters
-          </Button>
-          <Button variant="primary" onClick={handleApplyFilters}>
-            Apply Filters
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        </div>
+      </Modal.Body>
 
-      <Footer />
-    </div>
-  );
+      <Modal.Footer>
+        {/* Clear — resets temp filters to 'all' without closing the modal */}
+        <Button variant="outline-secondary" onClick={handleClearFilters}>
+          Clear filters
+        </Button>
+        {/* Apply — copies tempCategory/tempStatus to selectedCategory/selectedStatus
+            then closes the modal. handleApplyFilters() defined above return(). */}
+        <Button
+          onClick={handleApplyFilters}
+          style={{ backgroundColor: '#C0421A', borderColor: '#C0421A' }}
+        >
+          Apply filters
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Footer — existing Footer component, completely unchanged */}
+    <Footer />
+
+  </div>
+);
+
 };
 
 export default EquipmentPage;

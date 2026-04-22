@@ -125,8 +125,8 @@ const Login = () => {
             </div>
 
 
-            {/* admin login button */}
-            <div className="text-center mt-3 pt-3 border-top">
+            {/* admin login button - removed it and instead added it to the header */}
+            {/* <div className="text-center mt-3 pt-3 border-top">
              <a 
                 href="http://localhost:8000/admin/" 
                 target="_blank"
@@ -137,7 +137,7 @@ const Login = () => {
                 <i className="bi bi-lock"></i>
                 Admin login
               </a>
-            </div>
+            </div> */}
 
         </div>
         </section>
