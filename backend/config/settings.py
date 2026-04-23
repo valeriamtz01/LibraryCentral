@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+import os # new for django email configuration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +30,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin', # added for jazzmin 
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -37,8 +40,113 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "api",
-
+    "django_apscheduler",
 ]
+
+# new for django admin panel
+JAZZMIN_SETTINGS = {
+    # title in the browser tab and top bar
+    "site_title": "LibraryCentral Admin",
+    "site_header": "LibraryCentral Administration",
+    "site_brand": "LibraryCentral",
+
+    # welcome text on the login page
+    "welcome_sign": "Welcome to LibraryCentral Administration",
+
+    # copyright footer
+    "copyright": "LibraryCentral",
+
+    # top nav links (optional — shows quick links in the top bar)
+    "topmenu_links": [
+        {"name": "View Site", "url": "/", "new_window": False},
+    ],
+
+    # side nav icons — uses Font Awesome 5 free icon names
+    "icons": {
+        "auth":                     "fas fa-users-cog",
+        "auth.user":                "fas fa-user",
+        "auth.Group":               "fas fa-users",
+        "api.Campus":               "fas fa-university",
+        "api.Room":                 "fas fa-door-open",
+        "api.Reservation":          "fas fa-calendar-check",
+        "api.EquipmentItem":        "fas fa-box",
+        "api.EquipmentType":        "fas fa-tags",
+        "api.Checkout":             "fas fa-clipboard-list",
+        "api.Waitlist":             "fas fa-hourglass-half",
+        "api.WaitlistHold":         "fas fa-lock",
+        "api.Notification":         "fas fa-bell",
+    },
+
+    # group models in the sidebar under custom headings
+    "order_with_respect_to": [
+        "auth",
+        "api.Campus",
+        "api.Room",
+        "api.Reservation",
+        "api.Waitlist",
+        "api.WaitlistHold",
+        "api.EquipmentType",
+        "api.EquipmentItem",
+        "api.EquipmentAsset",
+        "api.Checkout",
+        "api.Notification",
+    ],
+
+    # hide models from sidebar if you don't need them cluttering the nav
+    "hide_models": [],
+
+    # show model count in sidebar
+    "show_sidebar": True,
+    "navigation_expanded": True,
+
+    # search bar in top nav — lets you search across all models
+    "search_model": ["auth.user"],
+
+    # user avatar in top nav
+    "user_avatar": None,
+}
+
+
+# optional: customize the color theme (commented out for now)
+# JAZZMIN_UI_TWEAKS = {
+#     "navbar_small_text": False,
+#     "footer_small_text": False,
+#     "body_small_text": False,
+#     "brand_small_text": False,
+
+#     # color theme for the top bar and sidebar
+#     # options: "primary","secondary","info","warning","danger","success","dark","light"
+#     "brand_colour": "navbar-dark",
+#     "accent": "accent-primary",
+#     "navbar": "navbar-dark",
+#     "no_navbar_border": True,
+#     "navbar_fixed": True,
+
+#     # side style
+#     "sidebar": "sidebar-dark-primary",   # dark sidebar (matches the mockup I showed you)
+#     "sidebar_nav_small_text": False,
+#     "sidebar_disable_expand": False,
+#     "sidebar_nav_child_indent": True,
+#     "sidebar_nav_compact_style": False,
+#     "sidebar_nav_flat_style": False,
+
+#     # theme — pick one:
+#     # "default", "cerulean", "cosmo", "flatly", "journal", "litera",
+#     # "lumen", "lux", "materia", "minty", "pulse", "sandstone",
+#     # "simplex", "sketchy", "slate", "solar", "spacelab", "superhero",
+#     # "united", "yeti"
+#     "theme": "flatly",       # clean, modern — closest to what I showed you
+#     "dark_mode_theme": None,
+
+#     "button_classes": {
+#         "primary": "btn-primary",
+#         "secondary": "btn-secondary",
+#         "info": "btn-outline-info",
+#         "warning": "btn-warning",
+#         "danger": "btn-danger",
+#         "success": "btn-success",
+#     },
+# }
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -160,3 +268,37 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
+
+# before we didn't have any JWT settings defined, so Django used SimpleJWT defaults ( access token=5 mins, refresh token=1 day )
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),   # login pass expires in 60 minutes (can change it, need to decide)
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+
+# NEW: Django email configuration
+# In development, the console backend prints emails in the terminal.
+# switch EMAIL_BACKEND to SMTP for real email sending LATERRRRRR
+#https://docs.djangoproject.com/en/6.0/topics/email/?utm_
+
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@librarycentral.local")
+
+# NEW: reminder windows in hours
+# Room reminder = how many hours before reservation start we send the reminder
+ROOM_REMINDER_HOURS = int(os.getenv("ROOM_REMINDER_HOURS", "2"))
+
+# Equipment reminder = how many hours before equipment due date we send the reminder
+EQUIPMENT_REMINDER_HOURS = int(os.getenv("EQUIPMENT_REMINDER_HOURS", "2"))
+
+#optional SMS webhook configuration
+# blank, SMS is skipped safely and email still works.
+SMS_WEBHOOK_URL = os.getenv("SMS_WEBHOOK_URL", "")
+SMS_WEBHOOK_TOKEN = os.getenv("SMS_WEBHOOK_TOKEN", "")

@@ -6,6 +6,8 @@ import StudentHeader from '../components/StudentHeader'; // importing the studen
 import Footer from '../components/Footer';
 import { api } from '../api';  // added to import centrailized axios instance for be calls
 import 'bootstrap-icons/font/bootstrap-icons.css';
+import libraryBg from '../assets/background-image.jpg';
+
 
 const Dashboard = () => {
   const navigate = useNavigate(); // react-router-dom hook for navigation to other pages using buttons from the dashboard  
@@ -51,6 +53,8 @@ const Dashboard = () => {
         // set this as the new dashboard state
         // updates the unified state with the full object from be
         setDashboardData(response.data);
+
+        setUserName(response.data.user_name);
       }
       catch (error) {
         console.error("Dashboard fetch failed: ", error);
@@ -59,6 +63,54 @@ const Dashboard = () => {
 
     fetchDashboard(); // calls the async function
   }, []); // empty array makes sure we only hit the server once on mount
+
+  type DashNotification = {
+    id: number;
+    message: string;
+    room_name: string | null;
+    room_id: number | null;
+    created_at: string;
+  };
+
+  const [notifications, setNotifications] = useState<DashNotification[]>([]);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get("/notifications/");
+      setNotifications(res.data.notifications);
+    } catch (err) {
+      console.error("Failed to fetch notifications", err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await api.post("/notifications/mark-read/", {});
+      setNotifications([]);
+      setShowNotifDropdown(false);
+    } catch (err) {
+      console.error("Failed to mark notifications read", err);
+    }
+  };
+
+  // poll for notifications every 10 seconds
+  // evert 10 seconds, the broswer makes a GET request to /notifications/ and check if there's anything new
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // added for the delete reservation
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  
+  // add a state to track the global warning - will control whether the bottom warning is visible 
+  const [showCancelWarning, setShowCancelWarning] = useState(false);
+
+  // add username to state
+  const [userName, setUserName] = useState("");
 
   // helper function for data formatting: 
   // be iso strings (2026-01-02T14:00:00Z) aren't user friendly
@@ -76,7 +128,7 @@ const Dashboard = () => {
   }
 
   const handleDeleteReservation = async (reservationId: number) => {
-  if (!window.confirm("Are you sure you want to cancel this reservation?")) return;
+   setDeletingId(reservationId);
 
   try {
     // call the be to delete
@@ -123,158 +175,864 @@ const Dashboard = () => {
     return dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  return (
-    <div className="d-flex flex-column min-vh-100" style= {{ paddingTop: '56px' }}> {/* paddingTop added to prevent content from being hidden behind the fixed navbar */}
+  function async(): import("react").MouseEventHandler<HTMLButtonElement> | undefined {
+    throw new Error('Function not implemented.');
+  }
+
+
+// CURRENT DASHBOARD STARTS HERE: 
+// Hero + Timeline Focus 
+
+// Layout (top → bottom):
+//   1. StudentHeader  — existing navbar, unchanged
+//   2. Hero banner    — orange (#C0421A) strip: greeting, date, 3 stat counts, bell
+//   3. Quick-action pills — "+ Book a space", "View inventory", "My account"
+//   4. Body row (flexbox, no Container so it stretches edge-to-edge inside the page):
+//        LEFT  (flex 1.1) — vertical timeline of upcoming reservations + equipment due dates
+//        RIGHT (248px)    — Notifications card | Equipment on Loan card | LC Assistant card (AI, blank)
+//   5. Bottom CTA bar — "Book a space" + "View inventory" buttons
+//   6. Footer — existing Footer component, unchanged
+// ─────────────────────────────────────────────────────────────────────────────
+
+return (
+    //  Page shell 
+    // min-vh-100  → page always fills the full viewport height (Bootstrap utility)
+    // paddingTop  → clears the fixed StudentHeader navbar (56px tall)
+    // backgroundColor → light gray page background, same as the other dashboard options
+    <div
+      className="d-flex flex-column min-vh-100"
+      style={{ paddingTop: '56px', backgroundColor: '#f4f5f7' }}
+    >
+      {/* StudentHeader — fixed navbar with LC Portal branding + nav links */}
       <StudentHeader />
-      <main className="flex-grow-1 dashboard-page">
-        <Container className="py-5">
-          <header className="mb-5">
-            <h1 className="fw-bold">Student Dashboard</h1>
-            <p className="text-muted">Welcome back! Here is your library activity at a glance.</p>
-          </header>
-{/* 
-****room reservations card no longer needed as we updated to 'Study Spaces' to encompass rooms and computers as planned in key features***
-plan is to have a single 'Study Spaces' card that shows active room and computer reservations with separate badges for each, this simplifies the dashboard and provides a clearer overview of the user's study space activity
-it will contain info about upcoming reservations and a cta button to book a new space, this encourages user engagement and makes it easy for them to manage their study space reservations directly from the dashboard
-later on once reservations are implemented, we can add a list group below the summary info to show details of upcoming reservations (e.g. date, time, location) for both rooms and computers, this provides users with 
-quick access to their reservation details without having to navigate to a separate page
-*/}
-          <Row className="g-4">
-            {/* study spaces summary card */}
-            <Col lg={6}>
-              <Card className="h-100 shadow-lg border-0 study-spaces-card">
-                <Card.Body className="d-flex flex-column">
-                  <div className="d-flex justify-content-between align-items-start">
-                    <div>
-                      <h3 className="h5 fw-bold">Study Spaces</h3>
-                      <p className="text-muted small">Your upcoming study sessions.</p>
-                    </div>
-                    <div className="d-flex gap-1">
-                        <Badge bg={dashboardData.activeRooms > 0 ? "primary" : "secondary"} pill>
-                          {dashboardData.activeRooms} Rooms Active
-                        </Badge>
-                        <Badge bg={dashboardData.activeComputers > 0 ? "primary" : "secondary"} pill>
-                          {dashboardData.activeComputers} Computers Active
-                        </Badge>
-                    </div>
+
+      {/* ── Dashboard-only notification bell — fixed to top-right of viewport ──────
+      This only renders on the Dashboard page since it lives inside Dashboard.tsx.
+      position: fixed + top: 10px + right: 16px → sits inside the navbar bar area
+      (navbar is 56px tall, so top: 10px centers it vertically in the bar).
+      zIndex: 1050 → above Bootstrap's navbar (zIndex 1030) so it renders on top.
+      This is the same bell logic as the hero banner bell — same state, same dropdown.
+      ── */}
+      <div style={{
+        position: 'fixed',
+        top: '19px',
+        right: '16px',
+        zIndex: 1050,   // above Bootstrap navbar z-index of 1030
+      }}>
+        <button
+          onClick={() => setShowNotifDropdown((prev) => !prev)}
+          style={{
+            background: 'rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: '8px',
+            color: '#fff',
+            padding: '6px 10px',
+            cursor: 'pointer',
+            position: 'relative',
+            fontSize: '14px',
+          }}
+        >
+          {/* bi-bell-fill — Bootstrap Icon: filled bell, represents notifications */}
+          <i className="bi bi-bell-fill" />
+
+          {/* Red badge — shows unread count, only renders when notifications.length > 0
+              Same notifications state as the rest of the dashboard — no extra fetch needed */}
+          {notifications.length > 0 && (
+            <span
+              className="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+              style={{
+                backgroundColor: '#dc3545',
+                color: '#fff',
+                fontSize: '0.6rem',
+                fontWeight: 700,
+              }}
+            >
+              {notifications.length}
+            </span>
+          )}
+        </button>
+
+        {/* ── Notification dropdown — same dropdown as the hero bell ──────────────
+            Reuses the exact same showNotifDropdown state, notifications array,
+            markAllRead() handler, and waitlist decline logic as the hero banner bell.
+            end-0 is not available here since we're not in a Bootstrap flex context,
+            so use right: 0 on the dropdown div directly.
+        ── */}
+        {showNotifDropdown && (
+          <div
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '42px',
+              width: '360px',
+              zIndex: 999,
+              backgroundColor: '#fff',
+              border: '1px solid #e9ecef',
+              borderRadius: '10px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            }}
+          >
+            {/* Dropdown header */}
+            <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+              <strong className="small">Notifications</strong>
+              {notifications.length > 0 && (
+                <Button variant="link" size="sm" className="p-0 text-muted small" onClick={markAllRead}>
+                  Mark all read
+                </Button>
+              )}
+            </div>
+
+            {/* Empty state */}
+            {notifications.length === 0 && (
+              <div className="text-center py-3 text-muted small">No new notifications.</div>
+            )}
+
+            {/* Notification items */}
+            {notifications.map((n) => (
+              <div key={n.id} className="p-3 border-bottom">
+                <p className="mb-2 small text-dark">{n.message}</p>
+                <div className="d-flex gap-2">
+                  <Button
+                    variant="success" size="sm" className="flex-grow-1"
+                    onClick={() => { markAllRead(); navigate('/study-spaces'); }}
+                  >
+                    Reserve
+                  </Button>
+                  <Button
+                    variant="outline-secondary" size="sm" className="flex-grow-1"
+                    onClick={async () => {
+                      try {
+                        if (!n.room_id) {
+                          setNotifications((prev) => prev.filter((notif) => notif.id !== n.id));
+                          return;
+                        }
+                        await api.post('/waitlist/decline/', { room_id: n.room_id });
+                        setNotifications((prev) => {
+                          const updated = prev.filter((notif) => notif.id !== n.id);
+                          if (updated.length === 0) setShowNotifDropdown(false);
+                          return updated;
+                        });
+                      } catch (err) {
+                        console.error('Failed to decline waitlist', err);
+                      }
+                    }}
+                  >
+                    Decline
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+
+      {/* ── Main scrollable content  */}
+      <main className="flex-grow-1">
+
+        {/* ════════════════════════════════════════════════════════════════════
+            SECTION 1 — HERO BANNER
+            Full-width orange strip. Shows the student's name (from userName state),
+            today's date, and the three live stat counts from dashboardData.
+            The bell icon opens/closes the notification dropdown (showNotifDropdown state).
+            No Container wrapper here so the orange bleeds edge-to-edge.
+        ════════════════════════════════════════════════════════════════════ */}
+        <div style={{
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.62)), url(${libraryBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 45%',
+          padding: '22px 28px 24px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+
+            {/* LEFT side of hero: label → name → date → stat strip */}
+            <div style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+              {/* Small all-caps label above the name */}
+              <div style={{
+                fontSize: '10px',
+                color: 'rgba(255,255,255,0.55)',
+                textTransform: 'uppercase',
+                letterSpacing: '.09em',
+                marginBottom: '4px',
+              }}>
+                Student Dashboard · LC Portal
+              </div>
+
+              {/* Personalized greeting — userName comes from the fetchDashboard useEffect */}
+              <div style={{ fontSize: '22px', fontWeight: 600, color: '#fff', marginBottom: '2px' }}>
+                Welcome back, {userName || 'Student'}!
+              </div>
+
+              {/* Subtitle: branding + today's local date (browser locale, no timezone override needed) */}
+              <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '18px' }}>
+                LibraryCentral · UTRGV ·{' '}
+                {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </div>
+
+              {/* ── Stat strip (inside hero) ──────────────────────────────────
+                  Three live counts pulled from dashboardData state.
+                  Vertical dividers (1px rgba white) visually separate each stat.
+              ── */}
+              <div style={{ display: 'flex', gap: '0', alignItems: 'flex-start' }}>
+
+                {/* Stat 1: active study room reservations */}
+                <div style={{ paddingRight: '20px' }}>
+                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px' }}>
+                    Rooms active
                   </div>
-                  
-                  <div className="flex-grow-1">
-                    {/* list rendering with .map() => dynamically generates a ListGroup.Item for every object in the array*/}
-                    {dashboardData.reservations.length > 0 ? (
-                      <ListGroup variant="flush" className="mb-3">
+                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#fff', lineHeight: 1 }}>
+                    {dashboardData.activeRooms}
+                  </div>
+                </div>
 
-                        {/* corrected => loop through reservations here */}
-                        {dashboardData.reservations.map((res: any) => (
-                          <ListGroup.Item key={res.id} className="px-0 py-3 bg-transparent">
-                            <div className="d-flex justify-content-between align-items-center">
-                              
-                              {/* grouping the delete + text together in one div */}
-                              <div className="d-flex align-items-center">
-                                <Button 
-                                  variant="link" 
-                                  className="text-danger p-0 me-2" // reduced it from me-3 to me-2
-                                  onClick={() => handleDeleteReservation(res.id)}
-                                  title="Cancel Reservation"
-                                  style={{ lineHeight: 1 }} // ensuring the button doesn't add extra height
-                                >
-                                  <i className="bi bi-trash3-fill"></i>
-                                </Button>
-                                
-                                <div>
-                                  <h6 className="mb-0 fw-bold">{res.room_name}</h6> 
-                                  <small className="text-muted">
-                                    {/* start time and date: the 'formatDateTime' helper function displays both the date and the time
-                                        so this establishes the 'day' of the reservation (ex: Mar 10) so that the student know exactly which
-                                        date they are looking at without needing a seprate column */}
+                {/* Divider — thin white line between stats */}
+                <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'stretch', marginRight: '20px' }} />
 
-                                    {/* new Date(res.end_time) -> converts the UTC string from the database (ending in z) into a js date object
-                                        .toLocaleTimeString -> extracts only the time portion (hour:minute am/pm) */}  
-                                    {formatDateTime(res.start_time)} - {new Date(res.end_time).toLocaleTimeString('en-US', { 
-                                      hour: '2-digit',  // ensures consistent spacing in the interface (like 07:00 instead of 7:00)
-                                      minute: '2-digit',  
-                                      timeZone: 'America/Chicago', // fix for the five hour jump. even if set to a different timezone, this forces display to match utrgv campus time (central time). it does calculate for daylight saving time
-                                      hour12: true // matches the utrgv library's standard 12 hour clock format
-                                    })}
-                                  </small>
-                                </div>
-                              </div>
+                {/* Stat 2: active computer reservations */}
+                <div style={{ paddingRight: '20px' }}>
+                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px' }}>
+                    Computers
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#fff', lineHeight: 1 }}>
+                    {dashboardData.activeComputers}
+                  </div>
+                </div>
 
-                              <Badge bg="success">Confirmed</Badge>
+                {/* Divider */}
+                <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'stretch', marginRight: '20px' }} />
+
+                {/* Stat 3: equipment items currently checked out */}
+                <div>
+                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px' }}>
+                    Equipment loans
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#fff', lineHeight: 1 }}>
+                    {dashboardData.equipmentLoans}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            
+          </div>
+        </div>
+        {/* END SECTION 1 — HERO BANNER */}
+
+{/* ════════════════════════════════════════════════════════════════════
+            SECTION 3 — BODY: TIMELINE (LEFT) + SIDEBAR CARDS (RIGHT)
+            Two-column flex row. No Bootstrap Container — stretches full width.
+            LEFT:  flex 1.1  — takes most of the space — timeline of activity
+            RIGHT: 248px fixed — stacked cards (notifications, AI agent)
+        ════════════════════════════════════════════════════════════════════ */}
+        <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+
+          {/* ── LEFT COLUMN: Upcoming Activity Timeline ─────────────────────
+              Vertical timeline that lists reservations + equipment due dates
+              in chronological order. Each item = a colored dot + a card.
+              A continuous vertical line (2px, #e9ecef) connects all dots.
+          ── */}
+          <div style={{
+            flex: '1 1 0',
+            minWidth: 0,
+            padding: '20px 20px 20px 24px',
+            borderRight: '1px solid #e9ecef',
+            backgroundColor: '#f4f5f7',
+          }}>
+
+            {/* Section label — all-caps micro label above the timeline */}
+            <div style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              color: '#6c757d',
+              textTransform: 'uppercase',
+              letterSpacing: '.08em',
+              marginBottom: '16px',
+            }}>
+              Upcoming activity
+            </div>
+
+            {/* ── Timeline container ─────────────────────────────────────────
+                paddingLeft: 24px → makes room for the dot + connecting line
+                that sit in the 24px gutter to the left of each card.
+            ── */}
+            <div style={{ position: 'relative', paddingLeft: '24px' }}>
+
+              {/* Vertical connecting line — only renders when there is content */}
+              {(dashboardData.reservations.length > 0 || dashboardData.equipment.length > 0) && (
+                <div style={{
+                  position: 'absolute',
+                  left: '7px',
+                  top: '10px',
+                  bottom: '10px',
+                  width: '2px',
+                  backgroundColor: '#e9ecef',
+                }} />
+              )}
+
+              {/* ── RESERVATION ITEMS ──────────────────────────────────────────
+                  Maps over dashboardData.reservations (set by fetchDashboard useEffect).
+                  Each renders as: orange dot + white card.
+                  Card layout:
+                    - Room name + trash icon inline on the same row (left side)
+                    - Time range below the name row
+                    - Confirmed badge on the right
+                  Cancel logic: confirmDeleteId controls the confirm form;
+                  handleDeleteReservation fires axios DELETE to /reservations/{id}/.
+              ── */}
+              {dashboardData.reservations.length > 0 ? (
+                dashboardData.reservations.map((res: any) => (
+                  <div key={res.id} style={{ position: 'relative', marginBottom: '14px' }}>
+
+                    {/* Orange dot — brand color for room reservations */}
+                    <div style={{
+                      position: 'absolute',
+                      left: '-24px',
+                      top: '8px',
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '50%',
+                      backgroundColor: '#C0421A',
+                      border: '2px solid #f4f5f7',
+                    }} />
+
+                    {/* Reservation card */}
+                    <div style={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '10px',
+                      padding: '11px 14px',
+                    }}>
+                      <div className="d-flex justify-content-between align-items-start">
+
+                        {/* LEFT: room name + trash icon inline, then time below */}
+                        <div style={{ flex: 1 }}>
+
+                          {/* Room name row — name and trash icon sit side by side on the same line
+                              gap: 6px keeps the icon close to the name without crowding it */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+
+                            {/* Room name text */}
+                            <div style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a' }}>
+                              {res.room_name}
                             </div>
-                          </ListGroup.Item>
-                        ))}
-                      </ListGroup>
-                    ) : (
-                      <div className="py-4 text-center">
-                        <p className="text-muted italic">You currently have 0 active reservations.</p> {/* replaces an empty list with the message */}
+
+                            {/* ── Inline cancel confirm — lives next to the room name ──────
+                                When trash is clicked → confirmDeleteId is set to res.id.
+                                This swaps the trash icon for the "Cancel? Yes / No" mini-form.
+                                "Yes" → handleDeleteReservation(res.id) fires the axios DELETE
+                                        to /reservations/{id}/ and removes it from local state.
+                                "No"  → resets confirmDeleteId to null, hides warning banner.
+                                deletingId disables the Yes button while the request is in flight.
+                            ── */}
+                            {confirmDeleteId === res.id ? (
+                              <div className="d-flex align-items-center gap-1">
+                                <small className="text-danger fw-bold" style={{ fontSize: '11px' }}>Cancel?</small>
+
+                                {/* Yes — fires DELETE, hides warning banner */}
+                                <Button
+                                  variant="danger" size="sm"
+                                  className="py-0 px-2"
+                                  style={{ fontSize: '0.7rem' }}
+                                  onClick={async () => {
+                                    await handleDeleteReservation(res.id);
+                                    setShowCancelWarning(false);
+                                  }}
+                                  disabled={deletingId === res.id}
+                                >
+                                  {deletingId === res.id ? '…' : 'Yes'}
+                                </Button>
+
+                                {/* No — resets confirm state, hides warning banner */}
+                                <Button
+                                  variant="outline-secondary" size="sm"
+                                  className="py-0 px-2"
+                                  style={{ fontSize: '0.7rem' }}
+                                  onClick={() => { setConfirmDeleteId(null); setShowCancelWarning(false); }}
+                                >
+                                  No
+                                </Button>
+                              </div>
+                            ) : (
+                              /* Trash icon button — clicking it sets confirmDeleteId = res.id
+                                 which triggers the Cancel? Yes/No form above.
+                                 bi-trash3-fill — Bootstrap Icon: solid filled trash can */
+                              <Button
+                                variant="link"
+                                className="text-danger p-0"
+                                onClick={() => { setConfirmDeleteId(res.id); setShowCancelWarning(true); }}
+                                title="Cancel Reservation"
+                                style={{ lineHeight: 1, fontSize: '12px' }}
+                                disabled={deletingId === res.id}
+                              >
+                                {/* bi-trash3-fill — Bootstrap Icon: filled trash can, destructive action */}
+                                <i className="bi bi-trash3-fill" />
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Time range — sits below the room name + trash icon row
+                              formatDateTime() converts Django ISO UTC → readable CST (America/Chicago) */}
+                          <div style={{ fontSize: '12px', color: '#6c757d' }}>
+                            {formatDateTime(res.start_time)} –{' '}
+                            {new Date(res.end_time).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZone: 'America/Chicago',
+                              hour12: true,
+                            })}
+                          </div>
+                        </div>
+
+                        {/* RIGHT: Time-away badge — shows how soon the reservation is
+                            instead of a static "Confirmed" label.
+                            Logic (all derived from res.start_time):
+                              - diffMs   → milliseconds between now and the reservation start
+                              - diffDays → full calendar days until start (Math.floor)
+                              - 'Now'         → reservation is currently happening (diffMs < 0)
+                              - 'Today'       → same calendar day as today (diffDays === 0)
+                              - 'Tomorrow'    → exactly 1 day away
+                              - 'In X days'   → 2–6 days away
+                              - 'In X weeks'  → 7+ days away (divided by 7, rounded)
+                            Badge color:
+                              - danger  (red)   → happening now
+                              - warning (amber) → today
+                              - success (green) → tomorrow or further out
+                        ── */}
+                        <div className="d-flex align-items-center gap-2 ms-2">
+                          {(() => {
+                            // calculate how far away the reservation is from right now
+                            const now = new Date();
+                            const start = new Date(res.start_time);
+                            const end = new Date(res.end_time);
+                            const diffMs = start.getTime() - now.getTime();
+
+                            // compare CALENDAR dates only (strip time component)
+                            // this ensures Apr 22 9:00 AM vs Apr 21 10:59 PM = 1 day away
+                            // rather than "less than 24 hours" which Math.floor would give 0
+                            const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+                            const diffDays = Math.round((startDate.getTime() - nowDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                            // determine the label and badge color
+                            let label = '';
+                            let bg: string = 'success';
+
+                            if (now >= start && now <= end) {
+                              // reservation is actively happening right now
+                              label = 'Happening now';
+                              bg = 'danger';
+                            } else if (diffDays < 0) {
+                              // start has passed but end hasn't (shouldn't normally show, but safe fallback)
+                              label = 'In progress';
+                              bg = 'danger';
+                            } else if (diffDays === 0) {
+                              // same calendar day
+                              label = 'Today';
+                              bg = 'warning';
+                            } else if (diffDays === 1) {
+                              label = 'Tomorrow';
+                              bg = 'success';
+                            } else if (diffDays < 7) {
+                              label = `In ${diffDays} days`;
+                              bg = 'success';
+                            } else {
+                              // 7+ days away — show weeks
+                              const weeks = Math.round(diffDays / 7);
+                              label = `In ${weeks} week${weeks > 1 ? 's' : ''}`;
+                              bg = 'success';
+                            }
+
+                            return (
+                              // Bootstrap Badge — color and label both dynamic based on time calculation above
+                              <Badge
+                                bg={bg}
+                                text={bg === 'warning' ? 'dark' : undefined}
+                                style={{ fontSize: '11px' }}
+                              >
+                                {label}
+                              </Badge>
+                            );
+                          })()}
+                        </div>
+
                       </div>
-                    )}
-                  </div>
-
-                  <div className="mt-auto pt-3 border-top text-center">
-                    <Button variant="outline-primary" size="sm" onClick={() => navigate('/study-spaces')}>
-                      Book a Space
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-
-            {/* equipment loans summary cardd*/}
-            <Col lg={6}>
-              <Card className="h-100 shadow-lg border-0 equipment-card">
-                <Card.Body className="d-flex flex-column">
-                  <div className="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                      <h3 className="h5 fw-bold">Equipment on Loan</h3>
-                      <p className="text-muted small">Track your borrowed tech.</p>
                     </div>
-                    <Badge bg={dashboardData.equipmentLoans > 0 ? "success" : "secondary"} pill>
-                      {dashboardData.equipmentLoans} Items
+                  </div>
+                ))
+              ) : (
+                // ── Empty state: no upcoming reservations ──────────────────────
+                // bi-calendar2-x — Bootstrap Icon: calendar with X, no events
+                <div
+                  style={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '10px',
+                    padding: '28px 16px',
+                    textAlign: 'center',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <i className="bi bi-calendar2-x" style={{ fontSize: '2rem', color: '#dee2e6' }} />
+                  <p className="text-muted mt-2 mb-0" style={{ fontSize: '13px' }}>
+                    You have no upcoming reservations.
+                  </p>
+                </div>
+              )}
+
+              {/* ── EQUIPMENT DUE DATE ITEMS ────────────────────────────────────
+                  Renders each checked-out equipment item as a timeline entry.
+                  Amber dot differentiates from orange room dots.
+                  Badge logic:
+                    - 'Overdue'   (red)   → due_at is before right now
+                    - 'Due today' (amber) → due_at is same calendar day as today
+                    - 'Due soon'  (amber) → due_at is a future date
+                  toDateString() strips time so only the calendar date is compared.
+              ── */}
+              {dashboardData.equipment.map((item: any) => (
+                <div key={`equip-${item.id}`} style={{ position: 'relative', marginBottom: '14px' }}>
+
+                  {/* Amber dot — distinct from orange room dots */}
+                  <div style={{
+                    position: 'absolute',
+                    left: '-24px',
+                    top: '8px',
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    backgroundColor: '#E5A020',
+                    border: '2px solid #f4f5f7',
+                  }} />
+
+                  {/* Equipment card */}
+                  <div style={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '10px',
+                    padding: '11px 14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a', marginBottom: '2px' }}>
+                        {item.item_name} · Return due
+                      </div>
+                      {/* due_at comes directly from BE Checkout.due_at — authoritative value
+                          toLocaleDateString with America/Chicago keeps displayed date campus-accurate */}
+                      <div style={{ fontSize: '12px', color: '#dc3545' }}>
+                        {new Date(item.due_at).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                          timeZone: 'America/Chicago'
+                        })} · Equipment loan
+                      </div>
+                    </div>
+
+                    {/* Bootstrap Badge — danger/warning based on due_at vs today */}
+                    <Badge
+                      bg={new Date(item.due_at) < new Date() ? 'danger' : 'warning'}
+                      text="dark"
+                      style={{ fontSize: '11px', flexShrink: 0 }}
+                    >
+                      {new Date(item.due_at) < new Date()
+                        ? 'Overdue'
+                        : new Date(item.due_at).toDateString() === new Date().toDateString()
+                        ? 'Due today'
+                        : 'Due soon'}
                     </Badge>
                   </div>
+                </div>
+              ))}
 
-                  <div className="flex-grow-1">
-                    {dashboardData.equipment.length > 0 ? (
-                      <ListGroup variant="flush" className="mb-3">
-                        {/* corrected => loop through equipment here */}
-                        {dashboardData.equipment.map((item: any) => (
-                          <ListGroup.Item key={item.id} className="px-0 py-3 bg-transparent">
-                            <div className="d-flex justify-content-between align-items-center">
-                              <div>
-                                <h6 className="mb-0 fw-bold">{item.item_name}</h6>
-                                <small className="text-danger">
-                                  Due: {calculateDueDate(item.loan_period, item.checked_out_at)}
-                                </small>
-                              </div>
-                              <i className="bi bi-laptop text-muted"></i>
-                            </div>
-                          </ListGroup.Item>
-                        ))}
-                      </ListGroup>
-                    ) : (
-                      <div className="py-4 text-center">
-                        <p className="text-muted italic">You currently have 0 items checked out.</p>
-                      </div>
-                    )}
-                  </div>
+              {/* ── End-of-timeline gray dot ────────────────────────────────────
+                  Caps the vertical line. Italic text signals end of activity.
+              ── */}
+              <div style={{ position: 'relative' }}>
+                <div style={{
+                  position: 'absolute',
+                  left: '-24px',
+                  top: '4px',
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '50%',
+                  backgroundColor: '#dee2e6',
+                  border: '2px solid #f4f5f7',
+                }} />
+                <div style={{ fontSize: '12px', color: '#adb5bd', fontStyle: 'italic', paddingLeft: '2px' }}>
+                  Nothing else scheduled
+                </div>
+              </div>
 
-                  <div className="mt-auto pt-3 border-top text-center">
-                    <Button variant="outline-success" size="sm" onClick={() => navigate('/equipment')}>
-                      View Inventory
+              {/* ── Cancellation warning banner ──────────────────────────────────
+                  Appears when showCancelWarning is true (trash icon clicked).
+                  Resets to false when user clicks Yes or No.
+                  borderLeft: 4px amber → standard warning stripe pattern.
+              ── */}
+              {showCancelWarning && (
+                <div
+                  className="d-flex align-items-center gap-2 px-3 py-2 mt-3"
+                  style={{
+                    backgroundColor: '#fff9f0',
+                    border: '1px solid #ffcc80',
+                    borderLeft: '4px solid #ffcc80',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    color: '#8a6d3b',
+                  }}
+                >
+                  {/* bi-exclamation-triangle-fill — Bootstrap Icon: warning triangle */}
+                  <i className="bi bi-exclamation-triangle-fill text-warning" />
+                  <span>
+                    <strong>Heads up:</strong> Cancellations cannot be undone — you must book again if needed.
+                  </span>
+                </div>
+              )}
+            </div>
+            {/* END timeline container */}
+
+            {/* ── Quick action buttons below the timeline ──────────────────────
+                Two side-by-side buttons giving fast access to the two most
+                common actions after reviewing upcoming activity.
+                Button 1: Book a Space  → /study-spaces (orange, primary)
+                Button 2: View Inventory → /equipment   (outline, secondary)
+                borderTop → visual separator from the timeline above.
+            ── */}
+            <div
+              className="d-flex gap-2 mt-4 pt-3"
+              style={{ borderTop: '1px solid #e9ecef' }}
+            >
+              {/* Primary: Book a Space — brand orange
+                  bi-calendar2-check — Bootstrap Icon: calendar + checkmark */}
+              <button
+                onClick={() => navigate('/study-spaces')}
+                style={{
+                  flex: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#C0421A',
+                  color: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <i className="bi bi-calendar2-check" style={{ fontSize: '13px' }} />
+                + Book a Space
+              </button>
+
+              {/* Secondary: View Inventory — outline style
+                  bi-laptop — Bootstrap Icon: laptop outline */}
+              <button
+                onClick={() => navigate('/equipment')}
+                style={{
+                  flex: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #dee2e6',
+                  backgroundColor: '#fff',
+                  color: '#495057',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <i className="bi bi-laptop" style={{ fontSize: '13px' }} />
+                View Inventory
+              </button>
+            </div>
+          </div>
+          {/* END LEFT COLUMN */}
+
+
+          {/* ── RIGHT COLUMN: Stacked sidebar cards ──────────────────────────
+              Fixed 248px width. Two cards stacked vertically with 12px gap:
+                Card 1 — Notifications
+                Card 2 — LC Assistant (AI placeholder)
+              paddingTop: 52px → aligns card tops with the timeline start.
+          ── */}
+          <div style={{
+            width: '248px',
+            flexShrink: 0,
+            padding: '20px 14px',
+            paddingTop: '52px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            backgroundColor: '#f4f5f7',
+          }}>
+
+            {/* ── CARD 1: Notifications ──────────────────────────────────────
+                Shows first 2 unread notifications inline.
+                notifications state polled every 10s by fetchNotifications().
+                markAllRead() → POST /notifications/mark-read/, clears state.
+                "Reserve now" → markAllRead() + navigate('/study-spaces').
+                Empty state: bi-bell-slash icon.
+            ── */}
+            <div style={{
+              backgroundColor: '#fff',
+              border: '1px solid #e9ecef',
+              borderRadius: '10px',
+              padding: '14px',
+            }}>
+              <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a' }}>Notifications</div>
+                {/* Bootstrap Badge — danger red, only renders when unread count > 0 */}
+                {notifications.length > 0 && (
+                  <Badge bg="danger" style={{ fontSize: '10px' }}>{notifications.length}</Badge>
+                )}
+              </div>
+
+              {notifications.length > 0 ? (
+                <>
+                  {/* First 2 notifications only — full list via bell dropdown in navbar */}
+                  {notifications.slice(0, 2).map((n) => (
+                    <div
+                      key={n.id}
+                      style={{
+                        fontSize: '12px',
+                        color: '#495057',
+                        padding: '6px 0',
+                        borderBottom: '1px solid #f0f0f0',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {/* "New:" in brand orange draws attention to actionable items */}
+                      <span style={{ fontWeight: 600, color: '#C0421A', marginRight: '4px' }}>New:</span>
+                      {n.message}
+                    </div>
+                  ))}
+
+                  <div className="d-flex gap-2 mt-2">
+                    {/* Mark all read — POST /notifications/mark-read/ */}
+                    <Button
+                      variant="outline-secondary" size="sm"
+                      style={{ flex: 1, fontSize: '11px', borderRadius: '8px' }}
+                      onClick={markAllRead}
+                    >
+                      Mark all read
+                    </Button>
+                    {/* Reserve now — markAllRead + navigate to study spaces */}
+                    <Button
+                      size="sm"
+                      style={{
+                        flex: 1, fontSize: '11px', borderRadius: '8px',
+                        backgroundColor: '#C0421A', borderColor: '#C0421A',
+                      }}
+                      onClick={() => { markAllRead(); navigate('/study-spaces'); }}
+                    >
+                      Reserve now
                     </Button>
                   </div>
-                </Card.Body>
-              </Card>
-            </Col>
+                </>
+              ) : (
+                // Empty state — no unread notifications
+                <div className="text-center py-2">
+                  {/* bi-bell-slash — Bootstrap Icon: bell with slash, no notifications */}
+                  <i className="bi bi-bell-slash" style={{ fontSize: '1.4rem', color: '#dee2e6' }} />
+                  <p className="text-muted mt-2 mb-0" style={{ fontSize: '12px' }}>No new notifications.</p>
+                </div>
+              )}
+            </div>
+            {/* END CARD 1: Notifications */}
 
-          </Row>
-        </Container>
+
+            {/* ── CARD 2: LC Assistant — AI AGENT PLACEHOLDER ──────────────────
+                Intentionally non-functional — disabled button + "coming soon".
+                Purple (#534AB7) differentiates it from orange/green feature cards.
+                flex: 1 makes it grow to fill remaining vertical space in the column.
+
+                TODO: implement AI agent here when ready.
+                Shape of what goes inside:
+                  <textarea value={agentQuery} onChange={...} />
+                  <Button onClick={handleAskAgent}>Ask</Button>
+                  <div>{agentResponse}</div>
+            ── */}
+            <div style={{
+              backgroundColor: '#fff',
+              border: '1px solid #e9ecef',
+              borderRadius: '10px',
+              padding: '14px',
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              {/* AI avatar circle — purple-to-blue gradient, custom div (not Bootstrap) */}
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #534AB7 0%, #185FA5 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '8px',
+              }}>
+                {/* bi-cpu — Bootstrap Icon: circuit chip, represents AI/processing */}
+                <i className="bi bi-cpu" style={{ fontSize: '14px', color: '#fff' }} />
+              </div>
+
+              <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a', marginBottom: '4px' }}>
+                LC Assistant
+              </div>
+
+              <div style={{ fontSize: '11px', color: '#6c757d', lineHeight: 1.5, marginBottom: '10px' }}>
+                AI-powered help for reservations, availability, and library questions.
+              </div>
+
+              {/* Disabled placeholder button — marginTop: auto pushes to card bottom */}
+              <button
+                disabled
+                style={{
+                  width: '100%',
+                  marginTop: 'auto',
+                  padding: '7px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: '#534AB7',
+                  backgroundColor: 'transparent',
+                  border: '1px solid #534AB7',
+                  borderRadius: '8px',
+                  cursor: 'not-allowed',
+                  opacity: 0.55,
+                }}
+              >
+                {/* bi-stars — Bootstrap Icon: sparkle stars, represents AI feature */}
+                <i className="bi bi-stars me-1" style={{ fontSize: '12px' }} />
+                Ask LC Assistant
+              </button>
+
+              <div style={{ fontSize: '10px', color: '#adb5bd', textAlign: 'center', marginTop: '5px' }}>
+                — coming soon —
+              </div>
+            </div>
+            {/* END CARD 2: LC Assistant */}
+
+          </div>
+          {/* END RIGHT COLUMN */}
+
+        </div>
+
+        {/* END SECTION 3 — BODY ROW */}
+
+
+        
+
       </main>
-      <Footer/>
+      {/* END main */}
+
+      {/* Footer — existing Footer component, completely unchanged */}
+      <Footer />
+
     </div>
   );
 };
-
 export default Dashboard;
+
+
+
+
+
+
+
