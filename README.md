@@ -9,6 +9,7 @@ Library Central is a full-stack web application designed to streamline the stude
 * __Inventory Tracking:__ Searchable inventory for books, laptops, calculators, and other media equipment.
 * __Staff Admin Portal:__ A secure backend for library staff to manage inventory and overrides.
 * __Automated Notifications:__ SMS and email alerts for reservation confirmations and overdue items.
+* __AI-Powered LC Assistant:__ Chat-based assistant to book/cancel study spaces, manage equipment checkouts/returns, and join waitlists.
 
 ---
 
@@ -17,6 +18,7 @@ Library Central is a full-stack web application designed to streamline the stude
 * __Frontend:__ React (TypeScript) powered by Vite.
 * __Database:__ SQLite (Development) / PostgreSQL (Production).
 * __API Communication:__ Axios with environment based routing.
+* __AI Assistant RPC:__ OmniAgents (WebSocket JSON-RPC) + Python tool layer.
   
 ---
 
@@ -30,6 +32,8 @@ Library Central is a full-stack web application designed to streamline the stude
     git clone https://github.com/Alondra371/library.git
     cd library
 
+---
+
 ### __2. Backend Setup (Django)__
     cd backend
 
@@ -42,21 +46,53 @@ Library Central is a full-stack web application designed to streamline the stude
     pip install django-cors-headers
     # Or, once created: pip install -r requirements.txt
 
+    # Install new dependencies (2)
+    pip install apscheduler django-apscheduler
+    pip install django-jazzmin
+
     # Setup database
     python manage.py migrate
 
-    # Start server
+    # Update Database - if already created and need to simply update with new work
+    python manage.py makemigrations
+    python manage.py migrate
+    python manage.py seed
+    python manage.py seed_rooms_from_floormap
+
+    # Start server - and leave runnning in this terminal
     python manage.py runserver
 
-Backend API runs at: http://127.0.0.1:8000/
-
-*Note: 404 is normal for now as current empty path does not exist as no (/) route is defined.
-we can route to admin login if deemed good idea*
-
+Backend should be at `http://127.0.0.1:8000`.
+If running in codespace set port to 'public'.
 
 In new terminal with Backend still running...
 
-### __3. Frontend Setup (React + Vite)__
+---
+
+### 3. OmniAgent-powered LC Assistant
+Run the OmniAgents RPC server (separate terminal):
+
+    cd omniagent    
+
+    # macOS/Linux virtual machine
+    python -m venv venv
+    source venv/bin/activate 
+    # use 'source venv/Scripts/activate' for windows 
+
+    #install dependencies
+    pip install -r requirements.txt
+
+    #start server and leave running in the terminal
+    omniagents run --mode server --config agent.yml --host 127.0.0.1 --port 9000 --approvals skip
+
+That starts a WebSocket server at `ws://127.0.0.1:9000/ws`.
+If running in codespace set port to 'public'.
+
+In new terminal with backend, and omniagent still running...
+
+---
+
+### __4. Frontend Setup (React + Vite)__
     cd library/frontend
 
     # Install dependencies
@@ -78,6 +114,7 @@ In new terminal with Backend still running...
     npm run dev
 
 Frontend UI runs at: http://localhost:5173
+If running in codespace set port to 'public'.
 
 ---
 
@@ -85,22 +122,32 @@ Frontend UI runs at: http://localhost:5173
 
 *Note: Project file/folder heiarchy to be defined later*
 
-    library/
-    |-- backend/    # Django REST API (Data & Logic)
-    |-- frontend/   # React App (User Interface)
-    |----|--src/
-    |-------|--components/
-    |----------|--Header.tsx
-    |----------|--Header.css
-    |----------|--Footer.tsx
-    |----------|--Footer.css
-    |-------|--pages/
-    |----------|--Home.tsx
-    |----------|--Home.css
-    |----------|--SignUp.tsx
-    |----------|--SignUp.css
-    |----------|--Login.tsx
-    |----------|--Login.css
-    |__ README.md
-
-
+ ```text
+library-1/
+|-- backend/    # Django REST API (Data & Logic)
+|----|-- config/
+|-------|-- settings.py
+|----|-- api/
+|-------|-- serializers.py
+|-------|-- views.py
+|
+|-- frontend/   # React App (User Interface)
+|----|-- package.json
+|----|-- src/
+|-------|-- omniagentRpc.ts
+|-------|-- components/
+|----------|-- Chatbot.tsx
+|----------|-- FloatingAssistant.tsx
+|----------|-- StudentHeader.tsx
+|-------|-- pages/
+|----------|-- Dashboard.tsx
+|----------|-- Login.tsx
+|
+|-- omniagent/  # OmniAgents RPC server config + tools
+|----|-- agent.yml
+|----|-- instructions.md
+|----|-- requirements.txt
+|----|-- tools/
+|-------|-- library_tools.py
+|
+|-- README.md

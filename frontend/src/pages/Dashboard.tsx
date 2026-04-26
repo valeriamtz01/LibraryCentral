@@ -1,9 +1,10 @@
 // this is the main dashboard page for students, it will show a summary of their activity (i.e. active reservations, equipment loans, etc.) and provide links to the different sections of the dashboard (i.e. room reservations, equipment loans, etc.)
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button, ListGroup, Badge } from 'react-bootstrap'; // list group will be used to show a list of upcoming reservations and loans, badge will be used to show the number of active reservations and loans
 import { useNavigate } from 'react-router-dom'; // we will use navigate to redirect users to the room reservation and equipment inventory pages when they click the buttons on the dashboard summary cards, this is a better user experience than just showing them a summary without a clear cta
 import StudentHeader from '../components/StudentHeader'; // importing the student header which has the navbar for the dashboard and related pages --> finishing this later, 
 import Footer from '../components/Footer';
+import Chatbot from '../components/Chatbot';
 import { api } from '../api';  // added to import centrailized axios instance for be calls
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import libraryBg from '../assets/background-image.jpg';
@@ -40,29 +41,20 @@ const Dashboard = () => {
   so when the user lands on dashboard, it will immediately request live data from the be
   where the be will calculate the real reservation and loans */
   // sends an authenticated GET request to the be
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const response = await api.get("/user/dashboard-summary/");
+      setDashboardData(response.data);
+      setUserName(response.data.user_name);
+    }
+    catch (error) {
+      console.error("Dashboard fetch failed: ", error);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        // using our axios instance : baseUrl is automatically applied
-        // GET request to be dashboard summary endpoint
-        const response = await api.get("/user/dashboard-summary/", {
-          withCredentials: true // already on settings (ensures the browser sends the session token so django knows which student is asking for data)
-        });
-
-        // response.data contains a JSON object with activerooms and so on
-        // set this as the new dashboard state
-        // updates the unified state with the full object from be
-        setDashboardData(response.data);
-
-        setUserName(response.data.user_name);
-      }
-      catch (error) {
-        console.error("Dashboard fetch failed: ", error);
-      }
-    };
-
-    fetchDashboard(); // calls the async function
-  }, []); // empty array makes sure we only hit the server once on mount
+    fetchDashboard();
+  }, [fetchDashboard]);
 
   type DashNotification = {
     id: number;
@@ -132,9 +124,7 @@ const Dashboard = () => {
 
   try {
     // call the be to delete
-    await api.delete(`/reservations/${reservationId}/`, {
-      withCredentials: true
-    });
+    await api.delete(`/reservations/${reservationId}/`);
 
     // update local state to remove the deleted item
     setDashboardData(prev => ({
@@ -853,7 +843,7 @@ return (
               paddingTop: 52px → aligns card tops with the timeline start.
           ── */}
           <div style={{
-            width: '248px',
+            width: '360px',
             flexShrink: 0,
             padding: '20px 14px',
             paddingTop: '52px',
@@ -937,18 +927,6 @@ return (
             </div>
             {/* END CARD 1: Notifications */}
 
-
-            {/* ── CARD 2: LC Assistant — AI AGENT PLACEHOLDER ──────────────────
-                Intentionally non-functional — disabled button + "coming soon".
-                Purple (#534AB7) differentiates it from orange/green feature cards.
-                flex: 1 makes it grow to fill remaining vertical space in the column.
-
-                TODO: implement AI agent here when ready.
-                Shape of what goes inside:
-                  <textarea value={agentQuery} onChange={...} />
-                  <Button onClick={handleAskAgent}>Ask</Button>
-                  <div>{agentResponse}</div>
-            ── */}
             <div style={{
               backgroundColor: '#fff',
               border: '1px solid #e9ecef',
@@ -958,7 +936,6 @@ return (
               display: 'flex',
               flexDirection: 'column',
             }}>
-              {/* AI avatar circle — purple-to-blue gradient, custom div (not Bootstrap) */}
               <div style={{
                 width: '32px',
                 height: '32px',
@@ -969,7 +946,6 @@ return (
                 justifyContent: 'center',
                 marginBottom: '8px',
               }}>
-                {/* bi-cpu — Bootstrap Icon: circuit chip, represents AI/processing */}
                 <i className="bi bi-cpu" style={{ fontSize: '14px', color: '#fff' }} />
               </div>
 
@@ -978,36 +954,14 @@ return (
               </div>
 
               <div style={{ fontSize: '11px', color: '#6c757d', lineHeight: 1.5, marginBottom: '10px' }}>
-                AI-powered help for reservations, availability, and library questions.
+                Ask to book/cancel study rooms or checkout/return equipment.
               </div>
 
-              {/* Disabled placeholder button — marginTop: auto pushes to card bottom */}
-              <button
-                disabled
-                style={{
-                  width: '100%',
-                  marginTop: 'auto',
-                  padding: '7px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: '#534AB7',
-                  backgroundColor: 'transparent',
-                  border: '1px solid #534AB7',
-                  borderRadius: '8px',
-                  cursor: 'not-allowed',
-                  opacity: 0.55,
-                }}
-              >
-                {/* bi-stars — Bootstrap Icon: sparkle stars, represents AI feature */}
-                <i className="bi bi-stars me-1" style={{ fontSize: '12px' }} />
-                Ask LC Assistant
-              </button>
-
-              <div style={{ fontSize: '10px', color: '#adb5bd', textAlign: 'center', marginTop: '5px' }}>
-                — coming soon —
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <Chatbot onMutation={fetchDashboard} />
               </div>
             </div>
-            {/* END CARD 2: LC Assistant */}
+
 
           </div>
           {/* END RIGHT COLUMN */}
@@ -1029,10 +983,3 @@ return (
   );
 };
 export default Dashboard;
-
-
-
-
-
-
-

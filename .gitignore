@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.sqlite3
 *.log
@@ -7,6 +8,7 @@ __pycache__/
 # Virtual environments
 venv/
 virt/
+**/.venv/
 .env
 
 # Node
