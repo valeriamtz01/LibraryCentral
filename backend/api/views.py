@@ -258,15 +258,27 @@ class ReservationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         reservation = serializer.save(user=self.request.user)
 
-        #if this user had a notified waitlist entry for this room, mark it booked
-        entry = Waitlist.objects.filter(
+        # if this user was in the waitlist for this room, clear it so they don't get notified again
+        notified_entry = Waitlist.objects.filter(
             user=self.request.user,
             room=reservation.room,
-            status="notified"
+            status="notified",
         ).first()
-        if entry:
-            entry.status = "booked"
-            entry.save(update_fields = ["status"])
+        if notified_entry:
+            notified_entry.status = "booked"
+            notified_entry.save(update_fields=["status"])
+
+        Waitlist.objects.filter(
+            user=self.request.user,
+            room=reservation.room,
+            status="waiting",
+        ).delete()
+
+        Notification.objects.filter(
+            user=self.request.user,
+            room=reservation.room,
+            is_read=False,
+        ).update(is_read=True)
         
         #mark any waitlist hold reserved_for this user and room as inactive (Claimed)
         WaitlistHold.objects.filter(
@@ -553,21 +565,20 @@ def notify_next_user(room, cancelled_start=None, cancelled_end=None, cancelled_b
     ).order_by("created_at").first()
 
     # determine slot times for notification message
-    if next_entry and next_entry.room_start_time:
+    # if a reservation was cancelled, always notify using the freed window
+    # (waitlist entry times can drift or be missing and should not override reality)
+    if cancelled_start and cancelled_end:
+        slot_start = cancelled_start
+        slot_end = cancelled_end
+    elif next_entry and next_entry.room_start_time:
         slot_start = next_entry.room_start_time
-        # use the waitlist entry's own end time if stored, otherwise fall back to cancelled window
         if next_entry.room_end_time:
             slot_end = next_entry.room_end_time
-        elif cancelled_start and cancelled_end:
-            # proportional fallback: preserve the cancelled duration from the waitlist start
-            duration = cancelled_end - cancelled_start
-            slot_end = slot_start + duration
         else:
             slot_end = slot_start + timedelta(hours=1)
     else:
-        # no waitlist entry time — use the full cancelled window
-        slot_start = cancelled_start or now
-        slot_end = cancelled_end or (slot_start + timedelta(hours=1))
+        slot_start = now
+        slot_end = slot_start + timedelta(hours=1)
 
     # compute booking deadline
     deadline = slot_start - timedelta(minutes=ADVANCE_MINUTES)

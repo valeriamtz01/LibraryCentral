@@ -45,6 +45,15 @@ const Login = () => {
     setLoading(true);
     setError(null); // clear previous errors before new attempt
     localStorage.removeItem("token"); // clears any old tokens before attempting again
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (key.startsWith("omniagent_session_id_v1_") || key.startsWith("omniagent_widget_open_v1_")) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {}
     
     try {
       //send login request to backend API with email and password

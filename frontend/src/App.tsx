@@ -12,6 +12,10 @@ import FloatingAssistant from "./components/FloatingAssistant";
 
 function AppShell() {
   const location = useLocation();
+  const showFloatingAssistantOnPrefixes = ["/study-spaces", "/equipment"];
+  const shouldShowFloatingAssistant = showFloatingAssistantOnPrefixes.some(
+    (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`),
+  );
 
   return (
     <>
@@ -26,7 +30,7 @@ function AppShell() {
           <Route path="/equipment/:id" element={<EquipmentDetail />} />
         </Routes>
       </main>
-      {location.pathname !== "/dashboard" ? <FloatingAssistant /> : null}
+      {shouldShowFloatingAssistant ? <FloatingAssistant /> : null}
     </>
   );
 }
