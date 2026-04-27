@@ -33,11 +33,37 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    const url = String(config.url || "");
+    const isPublicAuthRoute =
+      url.includes("/auth/login/") ||
+      url.includes("/auth/register/") ||
+      url.includes("/health/");
+
+    if (token && !isPublicAuthRoute) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (resp) => resp,
+  (error) => {
+    const status = error?.response?.status;
+    const data = error?.response?.data;
+    const code = data?.code;
+    const detail = data?.detail;
+
+    if (status === 401 && (code === "token_not_valid" || detail === "Given token not valid for any token type")) {
+      try {
+        localStorage.removeItem("token");
+      } catch {
+        return Promise.reject(error);
+      }
+    }
+
+    return Promise.reject(error);
+  }
 );

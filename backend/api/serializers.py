@@ -273,7 +273,9 @@ class CheckoutSerializer(serializers.ModelSerializer):
         return obj.item.name
 
     def validate(self, attrs):
-        item_type = attrs["item"]  # this is the EquipmentItem
+        item_type = attrs.get("item")
+        if not item_type:
+            return attrs
 
         # check that at least one asset is available for this item type
         available_assets = EquipmentAsset.objects.filter(

@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate  # checks username/password against Django auth system
 
 from rest_framework.response import Response  # return JSON responses
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework import viewsets, status
 from rest_framework.permissions import (
     IsAuthenticated,
@@ -26,15 +26,19 @@ from django.utils.dateparse import parse_datetime
 from zoneinfo import ZoneInfo # for central time deadline display
 CENTRAL = ZoneInfo("America/Chicago") # UTRGV campus timezone
 
+
 # a room must be booked at least this many minutes before start
 ADVANCE_MINUTES = 30 
 
 @api_view(["GET"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def health(request):
     return Response({"status": "ok", "message": "Library Central API running"})
 
+
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def register(request):
     """
@@ -64,6 +68,7 @@ def register(request):
 
 
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def login(request):
     """
@@ -253,15 +258,27 @@ class ReservationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         reservation = serializer.save(user=self.request.user)
 
-        #if this user had a notified waitlist entry for this room, mark it booked
-        entry = Waitlist.objects.filter(
+        # if this user was in the waitlist for this room, clear it so they don't get notified again
+        notified_entry = Waitlist.objects.filter(
             user=self.request.user,
             room=reservation.room,
-            status="notified"
+            status="notified",
         ).first()
-        if entry:
-            entry.status = "booked"
-            entry.save(update_fields = ["status"])
+        if notified_entry:
+            notified_entry.status = "booked"
+            notified_entry.save(update_fields=["status"])
+
+        Waitlist.objects.filter(
+            user=self.request.user,
+            room=reservation.room,
+            status="waiting",
+        ).delete()
+
+        Notification.objects.filter(
+            user=self.request.user,
+            room=reservation.room,
+            is_read=False,
+        ).update(is_read=True)
         
         #mark any waitlist hold reserved_for this user and room as inactive (Claimed)
         WaitlistHold.objects.filter(
@@ -485,6 +502,31 @@ def join_waitlist(request):
 
     return Response({"message": "Added to waitlist"})
 
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_waitlist(request):
+    entries = (
+        Waitlist.objects.filter(user=request.user)
+        .select_related("room")
+        .order_by("-created_at")
+    )
+    data = [
+        {
+            "id": e.id,
+            "room_id": e.room.id if e.room else None,
+            "room_name": e.room.name if e.room else None,
+            "status": e.status,
+            "room_start_time": e.room_start_time.isoformat() if e.room_start_time else None,
+            "room_end_time": e.room_end_time.isoformat() if e.room_end_time else None,
+            "notification_time": e.notification_time.isoformat() if e.notification_time else None,
+            "notification_deadline": e.notification_deadline.isoformat() if e.notification_deadline else None,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in entries
+    ]
+    return Response({"waitlist": data})
+
 # an internal helper function, not an endpoint
 # gets called automatically when a rooom becomes free
 # notifies only the next person that is waiting by looking at the waitlist table, finding the oldest entry with status = waiting
@@ -523,21 +565,20 @@ def notify_next_user(room, cancelled_start=None, cancelled_end=None, cancelled_b
     ).order_by("created_at").first()
 
     # determine slot times for notification message
-    if next_entry and next_entry.room_start_time:
+    # if a reservation was cancelled, always notify using the freed window
+    # (waitlist entry times can drift or be missing and should not override reality)
+    if cancelled_start and cancelled_end:
+        slot_start = cancelled_start
+        slot_end = cancelled_end
+    elif next_entry and next_entry.room_start_time:
         slot_start = next_entry.room_start_time
-        # use the waitlist entry's own end time if stored, otherwise fall back to cancelled window
         if next_entry.room_end_time:
             slot_end = next_entry.room_end_time
-        elif cancelled_start and cancelled_end:
-            # proportional fallback: preserve the cancelled duration from the waitlist start
-            duration = cancelled_end - cancelled_start
-            slot_end = slot_start + duration
         else:
             slot_end = slot_start + timedelta(hours=1)
     else:
-        # no waitlist entry time — use the full cancelled window
-        slot_start = cancelled_start or now
-        slot_end = cancelled_end or (slot_start + timedelta(hours=1))
+        slot_start = now
+        slot_end = slot_start + timedelta(hours=1)
 
     # compute booking deadline
     deadline = slot_start - timedelta(minutes=ADVANCE_MINUTES)
@@ -727,6 +768,25 @@ def decline_waitlist(request):
     )
 
     return Response({"message": "You have been removed from the waitlist"})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def remove_waitlist(request):
+    entry_id = request.data.get("waitlist_id")
+    if not entry_id:
+        return Response({"error": "waitlist_id is required"}, status=400)
+
+    entry = Waitlist.objects.filter(id=entry_id, user=request.user).first()
+    if not entry:
+        return Response({"error": "Waitlist entry not found"}, status=404)
+
+    room = entry.room
+    entry.delete()
+    if room:
+        Notification.objects.filter(user=request.user, room=room, is_read=False).update(is_read=True)
+        WaitlistHold.objects.filter(room=room, reserved_for=request.user, is_active=True).update(is_active=False)
+    return Response({"message": "Removed from waitlist"})
 
 # added this new endpoint to be able to color the time slots (fe needs to know which specific time windows are already booked for the selected room and date)
 @api_view(["GET"])
