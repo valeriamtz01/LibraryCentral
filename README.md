@@ -72,6 +72,8 @@ In new terminal with Backend still running...
 ### 3. OmniAgent-powered LC Assistant
 Run the OmniAgents RPC server (separate terminal):
 
+Note: Prior to running the terminal, follow the instructions located in the *'frontend/.env.example'* and *'omniagent/.env.example'*  files.
+
     cd omniagent    
 
     # macOS/Linux virtual machine
