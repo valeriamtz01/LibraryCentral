@@ -10,7 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import StudentHeader from '../components/StudentHeader';
 import Footer from '../components/Footer';
 import './EquipmentDetail.css';
-import { api } from '../api'; // axios instance configured for the be calls
+import { api, resolveBackendOrigin } from '../api'; // axios instance configured for the be calls
 
 //represents a single checkout record for an equipment item, including the date it was checked out, the quantity, and optionally who checked it out.
 interface CheckoutRecord {
@@ -37,6 +37,7 @@ interface Equipment {
 const EquipmentDetail = () => {
   const navigate = useNavigate(); //used to programmatically navigate the user back to the equipment list page after viewing the details of a specific equipment item.
   const { id } = useParams<{ id: string }>(); //get equip id from url
+  const backendOrigin = resolveBackendOrigin();
   
   // state variables
   const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(null); // equipment data stored
@@ -358,7 +359,7 @@ const EquipmentDetail = () => {
                   // change - be returns the image path not the full url 
                   // so prepend the be base url so the browser knows where to request the image from.
                   // without this, fe would try to load image from fe server (commented out line)
-                  src={`http://localhost:8000${currentEquipment.photoUrl}`}
+                  src={`${backendOrigin}${currentEquipment.photoUrl}`}
                   alt={currentEquipment.name}
                   className="equipment-detail-image"
                 />

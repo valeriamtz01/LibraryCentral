@@ -135,9 +135,9 @@ const Login = () => {
 
 
             {/* admin login button - removed it and instead added it to the header */}
-            {/* <div className="text-center mt-3 pt-3 border-top">
-             <a 
-                href="http://localhost:8000/admin/" 
+             {/* <div className="text-center mt-3 pt-3 border-top">
+              <a 
+                href="/admin/" 
                 target="_blank"
                 rel="noreferrer"
                 className="text-muted small d-inline-flex align-items-center gap-1 border rounded px-3 py-1"
