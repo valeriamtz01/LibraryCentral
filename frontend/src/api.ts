@@ -24,6 +24,21 @@ function resolveBaseURL(): string {
   return "http://127.0.0.1:8000/api";
 }
 
+export function resolveBackendOrigin(): string {
+  const baseURL = resolveBaseURL();
+  try {
+    const url = new URL(baseURL);
+    const pathname = url.pathname.replace(/\/+$/, "");
+    if (pathname.endsWith("/api")) {
+      url.pathname = pathname.slice(0, -"/api".length) || "/";
+    }
+    url.pathname = url.pathname.replace(/\/+$/, "");
+    return url.origin + url.pathname;
+  } catch {
+    return String(baseURL).replace(/\/+$/, "").replace(/\/api$/, "");
+  }
+}
+
 export const api = axios.create({
   baseURL: resolveBaseURL(),
   timeout: 10000, // IMPORTANT: prevents infinite "Signing in..." hang
