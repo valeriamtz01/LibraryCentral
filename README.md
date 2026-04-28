@@ -125,7 +125,7 @@ If running in codespace set port to 'public'.
 *Note: Project file/folder heiarchy to be defined later*
 
  ```text
-library-1/
+library/
 |-- backend/    # Django REST API (Data & Logic)
 |----|-- config/
 |-------|-- settings.py
