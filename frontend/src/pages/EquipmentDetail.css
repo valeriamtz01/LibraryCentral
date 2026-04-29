@@ -3,6 +3,8 @@
   height: 400px;
   object-fit: contain; /* changed to show entire image instead of cropping */
   border-radius: 8px;
+  mix-blend-mode: multiply; /* removed white/light background from product images using css */
+  background: transparent;
 
 }
 

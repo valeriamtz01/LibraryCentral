@@ -24,6 +24,21 @@ function resolveBaseURL(): string {
   return "http://127.0.0.1:8000/api";
 }
 
+export function resolveBackendOrigin(): string {
+  const baseURL = resolveBaseURL();
+  try {
+    const url = new URL(baseURL);
+    const pathname = url.pathname.replace(/\/+$/, "");
+    if (pathname.endsWith("/api")) {
+      url.pathname = pathname.slice(0, -"/api".length) || "/";
+    }
+    url.pathname = url.pathname.replace(/\/+$/, "");
+    return url.origin + url.pathname;
+  } catch {
+    return String(baseURL).replace(/\/+$/, "").replace(/\/api$/, "");
+  }
+}
+
 export const api = axios.create({
   baseURL: resolveBaseURL(),
   timeout: 10000, // IMPORTANT: prevents infinite "Signing in..." hang
@@ -33,11 +48,37 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    const url = String(config.url || "");
+    const isPublicAuthRoute =
+      url.includes("/auth/login/") ||
+      url.includes("/auth/register/") ||
+      url.includes("/health/");
+
+    if (token && !isPublicAuthRoute) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (resp) => resp,
+  (error) => {
+    const status = error?.response?.status;
+    const data = error?.response?.data;
+    const code = data?.code;
+    const detail = data?.detail;
+
+    if (status === 401 && (code === "token_not_valid" || detail === "Given token not valid for any token type")) {
+      try {
+        localStorage.removeItem("token");
+      } catch {
+        return Promise.reject(error);
+      }
+    }
+
+    return Promise.reject(error);
+  }
 );

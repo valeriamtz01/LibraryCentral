@@ -1,8 +1,11 @@
 import {Container, Navbar, Nav} from 'react-bootstrap';
 import { NavLink } from "react-router-dom";
+import { resolveBackendOrigin } from "../api";
 import'./Header.css'; // importing custom CSS for header styling
 
 const Header = () => {
+  const backendOrigin = resolveBackendOrigin();
+
   return (
       <Navbar fixed="top" className="custom-navbar" bg="dark" data-bs-theme="dark">
         <Container>
@@ -19,7 +22,7 @@ const Header = () => {
                 prevents the new tab from accessing the opener window via window.opener.
                 bi-lock — Bootstrap Icon: padlock, signals restricted/admin access. */}
             <Nav.Link
-              href="http://localhost:8000/admin/"  // again, uses href instead of as{NavLink} to bc it's an external URL (django admin server) rather than a react route, navLink only works for clinet-side routes
+              href={`${backendOrigin}/admin/`}
               target="_blank"
               rel="noreferrer"
             >

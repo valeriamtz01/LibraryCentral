@@ -45,6 +45,15 @@ const Login = () => {
     setLoading(true);
     setError(null); // clear previous errors before new attempt
     localStorage.removeItem("token"); // clears any old tokens before attempting again
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (key.startsWith("omniagent_session_id_v1_") || key.startsWith("omniagent_widget_open_v1_")) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {}
     
     try {
       //send login request to backend API with email and password
@@ -126,9 +135,9 @@ const Login = () => {
 
 
             {/* admin login button - removed it and instead added it to the header */}
-            {/* <div className="text-center mt-3 pt-3 border-top">
-             <a 
-                href="http://localhost:8000/admin/" 
+             {/* <div className="text-center mt-3 pt-3 border-top">
+              <a 
+                href="/admin/" 
                 target="_blank"
                 rel="noreferrer"
                 className="text-muted small d-inline-flex align-items-center gap-1 border rounded px-3 py-1"

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from api.models import Room, EquipmentItem, EquipmentType, Campus, Reservation, EquipmentAsset
+from api.models import Room, EquipmentItem, EquipmentType, Campus, Reservation, EquipmentAsset, Checkout
 from datetime import date
 
 class Command(BaseCommand):
@@ -11,6 +11,7 @@ class Command(BaseCommand):
         # --- going to delete old data first (first seed script filled with fake data)---
         # can comment out if you don't want to delete or can use flush to delete everything 
         Reservation.objects.all().delete()
+        Checkout.objects.all().delete()
         EquipmentItem.objects.all().delete()
         EquipmentType.objects.all().delete()
 
@@ -106,7 +107,7 @@ class Command(BaseCommand):
             {"name": "HDMI Cable", "category": "Accessories", "description": "HDMI cables for video and audio connections",
              "use": "Connecting devices to projectors, TVs, and displays",
              "loan_period": "24 hours", "location": "Tech Center - Cables",
-             "total_quantity": 7,  "photo_url": "/media/equipment/hdmicable.jpg"},
+             "total_quantity": 7,  "photo_url": "/media/equipment/hdmicable.png"},
 
             {"name": "Mouse", "category": "Accessories", "description": "Computer mice for desktop and laptop use",
              "use": "Computer navigation and work",

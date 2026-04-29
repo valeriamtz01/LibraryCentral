@@ -1,3 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+.ss-page {
+  --terra:       #C0421A;
+  --terra-dk:    #8d3213;
+  --terra-mid:   #dc3f20;
+  --terra-lt:    #f8d3c8;
+  --sand:        #f4f5f7;
+  --sand-dk:     #e9ecef;
+  --cream:       #ffffff;
+  --on-terra:    rgba(255,255,255,.95);
+  --on-terra-dim:rgba(255,255,255,.7);
+  --border-warm: rgba(192,66,26,.16);
+  font-family: 'DM Sans', sans-serif;
+  background: #f4f5f7;
+  color: #1a1a1a;
+}
+.ss-serif { font-family: 'Playfair Display', Georgia, serif; }
+
+.ss-hero {
+  background: var(--terra);
+  padding: 32px 0 28px;
+  position: relative;
+  border-bottom: 1px solid rgba(255,255,255,.15);
+  color: var(--on-terra);
+}
+.ss-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(
+    -48deg, transparent, transparent 22px,
+    rgba(255,255,255,.08) 22px, rgba(255,255,255,.08) 24px
+  );
+  pointer-events: none;
+}
+.ss-hero-inner {
+  position: relative; z-index: 1;
+  display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 16px;
+}
+.ss-eyebrow {
+  font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,255,255,.85); margin-bottom: 5px;
+}
+.ss-hero-title {
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  font-weight: 700; color: #fff; line-height: 1.05; margin: 0;
+}
+.ss-hero-sub {
+  font-size: 0.95rem; color: rgba(255,255,255,.9);
+  margin-top: 6px; margin-bottom: 0; max-width: 560px;
+}
+.ss-avail-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #ffffff;
+  border: 1px solid rgba(192,66,26,.16);
+  border-radius: 999px; padding: 7px 18px;
+  font-size: 0.82rem; color: var(--terra);
+  margin-top: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+}
+.ss-hero-cta {
+  background: rgba(255,255,255,.16);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s ease, transform .18s ease;
+}
+.ss-hero-cta:hover {
+  background: rgba(255,255,255,.24);
+  transform: translateY(-1px);
+}
+
 .equipment-list-container {
   max-height: 700px;
   overflow-y: auto;

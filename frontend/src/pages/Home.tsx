@@ -1,10 +1,12 @@
 import { Container, Row, Col, Button } from 'react-bootstrap';
-//import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import './Home.css'; // <--- import styles!
 
 const Home = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="d-flex flex-column min-vh-100">
       <Header />
@@ -19,11 +21,11 @@ const Home = () => {
                   track equipment checkouts, and view your student dashboard.
                 </p>
                 <div className="d-flex gap-3 justify-content-center">
-                  <Button onClick={() => window.location.href = '/signup'} variant="primary" size="lg" 
+                  <Button onClick={() => navigate('/signup')} variant="primary" size="lg" 
                           style={{backgroundColor: '#f05023', borderColor: '#f05023'}}>
                     Sign Up
                   </Button>
-                  <Button onClick={() => window.location.href = '/login'} variant="outline-light" size="lg">
+                  <Button onClick={() => navigate('/login')} variant="outline-light" size="lg">
                     Log In
                   </Button>
                 </div>

@@ -10,7 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import StudentHeader from '../components/StudentHeader';
 import Footer from '../components/Footer';
 import './EquipmentDetail.css';
-import { api } from '../api'; // axios instance configured for the be calls
+import { api, resolveBackendOrigin } from '../api'; // axios instance configured for the be calls
 
 //represents a single checkout record for an equipment item, including the date it was checked out, the quantity, and optionally who checked it out.
 interface CheckoutRecord {
@@ -37,6 +37,7 @@ interface Equipment {
 const EquipmentDetail = () => {
   const navigate = useNavigate(); //used to programmatically navigate the user back to the equipment list page after viewing the details of a specific equipment item.
   const { id } = useParams<{ id: string }>(); //get equip id from url
+  const backendOrigin = resolveBackendOrigin();
   
   // state variables
   const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(null); // equipment data stored
@@ -255,7 +256,7 @@ const EquipmentDetail = () => {
   // show loading message while fetching data 
    if (loading) {
     return (
-      <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
+      <div className="d-flex flex-column min-vh-100" style={{ paddingTop: '56px', background: '#f5f0e8' }}>
         <StudentHeader />
         <main className="flex-grow-1">
           <Container className="py-5 text-center">
@@ -278,7 +279,7 @@ const EquipmentDetail = () => {
 //if equipment is not found, show a 'not found' page with a back button
   if (!currentEquipment) {
     return (
-      <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
+      <div className="d-flex flex-column min-vh-100" style={{ paddingTop: '56px', background: '#f5f0e8' }}>
         <StudentHeader />
         <main className="flex-grow-1">
           <Container className="py-5">
@@ -333,180 +334,521 @@ const EquipmentDetail = () => {
     }
   };
 
-  return (
-    <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
-      <StudentHeader />
+  // return (
+  //   <div className="d-flex flex-column min-vh-100 bg-light" style={{ paddingTop: '56px' }}>
+  //     <StudentHeader />
 
-      <main className="flex-grow-1">
-        <Container className="py-5">
-          {/* Back Button */}
-          <Button
-            variant="link"
-            className="mb-4 p-0"
-            onClick={() => navigate('/equipment')}
-          >
-            <i className="bi bi-chevron-left"></i> Back to Equipment
-          </Button>
+  //     <main className="flex-grow-1">
+  //       <Container className="py-5">
+  //         {/* Back Button */}
+  //         <Button
+  //           variant="link"
+  //           className="mb-4 p-0"
+  //           onClick={() => navigate('/equipment')}
+  //         >
+  //           <i className="bi bi-chevron-left"></i> Back to Equipment
+  //         </Button>
            
-          <Row className="mb-5">
-            {/* Product Image */}
-            <Col lg={6} className="mb-4">
-              <Card className="border-0 shadow-sm overflow-hidden">
-                <Card.Img
-                  variant="top"
-                  // src={currentEquipment.photoUrl}
-                  // change - be returns the image path not the full url 
-                  // so prepend the be base url so the browser knows where to request the image from.
-                  // without this, fe would try to load image from fe server (commented out line)
-                  src={`http://localhost:8000${currentEquipment.photoUrl}`}
-                  alt={currentEquipment.name}
-                  className="equipment-detail-image"
-                />
-              </Card>
-            </Col>
+  //         <Row className="mb-5">
+  //           {/* Product Image */}
+  //           <Col lg={6} className="mb-4">
+  //             {/* No Card wrapper — image sits directly on the page background.
+  //                 mix-blend-mode: multiply in the CSS removes the white bg from the photo. */}
+  //             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 400 }}>
+  //               <img
+  //                 src={`${backendOrigin}${currentEquipment.photoUrl}`}
+  //                 alt={currentEquipment.name}
+  //                 className="equipment-detail-image"
+  //               />
+  //             </div>
+  //           </Col>
 
-            {/* Product Details */}
-            <Col lg={6}>
-              <div className="equipment-details">
-                <h1 className="fw-bold mb-2">{currentEquipment.name.split(" - ")[0]}</h1>
-                <p className="text-muted mb-4">
-                  <span className="badge bg-light text-dark">{currentEquipment.category}</span>
-                </p>
+  //           {/* Product Details */}
+  //           <Col lg={6}>
+  //             <div className="equipment-details">
+  //               <h1 className="fw-bold mb-2">{currentEquipment.name.split(" - ")[0]}</h1>
+  //               <p className="text-muted mb-4">
+  //                 <span className="badge bg-light text-dark">{currentEquipment.category}</span>
+  //               </p>
 
-                {/* Availability Status */}
-                <div className="availability-box mb-4">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <p className="text-muted small mb-1">Availability</p>
-                      <h5 className="fw-bold mb-0">
-                        {currentEquipment?.availableQuantity && currentEquipment.availableQuantity > 0 ? (
-                          <span className="text-success">Available</span>
-                        ) : (
-                          <span className="text-danger">Unavailable</span>
-                        )}
-                      </h5>
+  //               {/* Availability Status */}
+  //               <div className="availability-box mb-4">
+  //                 <div className="d-flex justify-content-between align-items-center">
+  //                   <div>
+  //                     <p className="text-muted small mb-1">Availability</p>
+  //                     <h5 className="fw-bold mb-0">
+  //                       {currentEquipment?.availableQuantity && currentEquipment.availableQuantity > 0 ? (
+  //                         <span className="text-success">Available</span>
+  //                       ) : (
+  //                         <span className="text-danger">Unavailable</span>
+  //                       )}
+  //                     </h5>
+  //                   </div>
+  //                   <div className="text-center">
+  //                     <p className="text-muted small mb-1">In Stock</p>
+  //                     <h5 className="fw-bold mb-0">
+  //                       {currentEquipment?.availableQuantity}/{currentEquipment?.totalQuantity}
+  //                     </h5>
+  //                   </div>
+  //                 </div>
+  //               </div>
+
+  //               {/* Checkout Button  disable if unavailable */}
+  //               <Button
+  //                 variant="primary"
+  //                 size="lg"
+  //                 className="w-100 mb-4"
+  //                 onClick={handleCheckout}
+  //                 disabled={!(currentEquipment && currentEquipment.availableQuantity > 0)}
+  //               >
+  //                 {currentEquipment && currentEquipment.availableQuantity > 0 ? 'Checkout' : 'Out of Stock'}
+  //               </Button>
+
+  //               {/* Equipment Info */}
+  //               <div className="info-section">
+  //                 <div className="info-item mb-4">
+  //                   <h6 className="fw-semibold text-muted mb-2">DESCRIPTION</h6>
+  //                   <p className="mb-0">{currentEquipment.description}</p>
+  //                 </div>
+
+  //                 <div className="info-item mb-4">
+  //                   <h6 className="fw-semibold text-muted mb-2">USE</h6>
+  //                   <p className="mb-0">{currentEquipment.use}</p>
+  //                 </div>
+
+  //                 <div className="info-item mb-4">
+  //                   <h6 className="fw-semibold text-muted mb-2">LOAN PERIOD</h6>
+  //                   <p className="mb-0">{currentEquipment.loanPeriod}</p>
+  //                 </div>
+
+  //                 <div className="info-item">
+  //                   <h6 className="fw-semibold text-muted mb-2">LOCATION</h6>
+  //                   <p className="mb-0">{currentEquipment.location}</p>
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           </Col>
+  //         </Row>
+  //       </Container>
+  //     </main>
+
+  //     {/* Guidelines Confirmation Modal */}
+  //     <Modal show={showConfirmation} onHide={() => setShowConfirmation(false)} centered>
+  //       <Modal.Header closeButton>
+  //         <Modal.Title>Equipment Checkout Guidelines</Modal.Title>
+  //       </Modal.Header>
+  //       <Modal.Body>
+  //         {/* summary of selected equipment */}
+  //         <div className="mb-3">
+  //           <h5 className="fw-bold">{currentEquipment?.name.split(" - ")[0]}</h5>
+  //           <p className="mb-1"><strong>Loan period:</strong> {currentEquipment?.loanPeriod}</p>
+  //           <p className="mb-1"><strong>Location:</strong> {currentEquipment?.location}</p>
+  //           <p className="mb-0 text-muted">
+  //             ({currentEquipment?.availableQuantity}/{currentEquipment?.totalQuantity} available)
+  //           </p>
+  //         </div>
+
+  //         <p>Please read and agree to the following loan rules before checking out the equipment:</p>
+  //         <ul>
+  //           <li>All borrowers must present their current UTRGV photo identification at the time of pickup.</li>
+  //           <li>The borrower's library account must be active and clear of fines and overdue materials.</li>
+  //           <li>Borrowers are responsible for all materials, equipment, and accessories checked out on their library account.</li>
+  //           <li>To ensure proper handling of items please return all media materials and equipment in person, allowing at least one hour before the library closes.</li>
+  //           <li>Media materials and available equipment are limited and are loaned on a first-come, first-served basis.</li>
+  //           <li>All media and equipment must be returned before the end of the loan period. Failure to do so will result in: Late fees and a hold placed on the user's library account, preventing circulation of all library materials.</li>
+  //           <li>UTRGV credentials are required for login and use of laptops and tablets.</li>
+  //           <li>UTRGV Information Resources Acceptable Use and Security Policy</li>
+  //         </ul>
+  //         {/*agreement checkbox*/}
+  //         <Form.Check
+  //           type="checkbox"
+  //           id="accept-guidelines"
+  //           label="I have read and accept the equipment checkout guidelines"
+  //           checked={acceptedGuidelines}
+  //           onChange={(e) => setAcceptedGuidelines(e.target.checked)}
+  //         />
+  //       </Modal.Body>
+  //       <Modal.Footer>
+  //         <Button variant="secondary" onClick={() => setShowConfirmation(false)}>
+  //           Back
+  //         </Button>
+  //         <Button
+  //           variant="primary"
+  //           disabled={!acceptedGuidelines}
+  //           onClick={handleConfirmCheckout} // before-logic exists in handleConfirmCheckout function
+  //         >
+  //           Accept & Checkout
+  //         </Button>
+  //       </Modal.Footer>
+  //     </Modal>
+
+  //     <Footer />
+
+  //     {/* Success Modal */}
+  //     <Modal show={showSuccess} onHide={() => setShowSuccess(false)} centered>
+  //       <Modal.Header closeButton>
+  //         <Modal.Title>Checked Out</Modal.Title>
+  //       </Modal.Header>
+  //       <Modal.Body>
+  //         <p>
+  //           <strong>{currentEquipment?.name.split(" - ")[0]}</strong> has been successfully checked out.
+  //         </p>
+  //         <p className="text-muted small">
+  //           Please return it by {currentEquipment?.loanPeriod} and handle it responsibly.
+  //         </p>
+  //       </Modal.Body>
+  //       <Modal.Footer>
+  //         <Button variant="primary" onClick={() => setShowSuccess(false)}>
+  //           Close
+  //         </Button>
+  //       </Modal.Footer>
+  //     </Modal>
+  //   </div>
+  // );
+
+
+// NEW UI:
+ return (
+    <>
+      {/* ── Scoped styles for this page ── */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap');
+
+        .eq-page {
+          font-family: 'DM Sans', sans-serif;
+          background: #ffffff;
+          min-height: 100vh;
+        }
+
+        /* ── Image panel — warm sand bg, no card box ── */
+        .eq-image-panel {
+          background: #fffff;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 420px;
+          padding: 32px;
+          position: relative;
+          overflow: hidden;
+        }
+        .eq-product-img {
+          position: relative; z-index: 1;
+          width: 100%; max-height: 340px;
+          object-fit: contain;
+          transition: transform .3s ease;
+          isolation: isolate;
+        }
+        .eq-product-img:hover { transform: scale(1.03); }
+
+        /* ── Category pill ── */
+        .eq-category-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: rgba(180,83,9,.08);
+          border: 1px solid rgba(180,83,9,.2);
+          border-radius: 999px;
+          padding: 4px 14px;
+          font-size: 0.75rem; font-weight: 600;
+          letter-spacing: 0.06em; text-transform: uppercase;
+          color: #92400e;
+        }
+
+        /* ── Availability band ── */
+        .eq-avail-band {
+          display: flex; align-items: center; justify-content: space-between;
+          background: #fff;
+          border: 1px solid rgba(180,83,9,.15);
+          border-radius: 12px;
+          padding: 16px 20px;
+          margin-bottom: 16px;
+        }
+        .eq-avail-label {
+          font-size: 0.7rem; font-weight: 700;
+          letter-spacing: 0.09em; text-transform: uppercase;
+          color: #94a3b8; margin-bottom: 4px;
+        }
+        .eq-avail-status {
+          font-size: 1.05rem; font-weight: 700;
+        }
+        .eq-stock-badge {
+          background: #f8f9fa;
+          border-radius: 10px;
+          padding: 8px 16px;
+          text-align: center;
+        }
+        .eq-stock-num {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.5rem; font-weight: 700; line-height: 1;
+          color: #1e293b;
+        }
+        .eq-stock-lbl {
+          font-size: 0.68rem; font-weight: 600;
+          letter-spacing: 0.07em; text-transform: uppercase;
+          color: #94a3b8; margin-top: 2px;
+        }
+
+        /* ── Checkout button ── */
+        .eq-checkout-btn {
+          width: 100%;
+          background: #92400e;
+          color: #fff8ee;
+          border: none;
+          border-radius: 10px;
+          padding: 14px;
+          font-size: 1rem; font-weight: 600;
+          letter-spacing: 0.02em;
+          cursor: pointer;
+          transition: background .18s, transform .18s;
+          margin-bottom: 28px;
+        }
+        .eq-checkout-btn:hover:not(:disabled) {
+          background: #431d07;
+          transform: translateY(-1px);
+        }
+        .eq-checkout-btn:disabled {
+          background: #94a3b8; cursor: not-allowed;
+        }
+
+        /* ── Info rows ── */
+        .eq-info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .eq-info-card {
+          background: #fff;
+          border: 1px solid rgba(180,83,9,.12);
+          border-radius: 10px;
+          padding: 14px 16px;
+        }
+        /* Description spans full width */
+        .eq-info-card.full { grid-column: 1 / -1; }
+        .eq-info-card-label {
+          font-size: 0.65rem; font-weight: 700;
+          letter-spacing: 0.1em; text-transform: uppercase;
+          color: #b45309; margin-bottom: 6px;
+          display: flex; align-items: center; gap: 6px;
+        }
+        .eq-info-card-label i { font-size: 0.75rem; }
+        .eq-info-card-value {
+          font-size: 0.875rem; color: #334155; line-height: 1.6;
+        }
+
+        /* ── Back link ── */
+        .eq-back {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 0.85rem; font-weight: 500;
+          color: #92400e; text-decoration: none;
+          background: none; border: none; cursor: pointer;
+          padding: 0; margin-bottom: 28px;
+          transition: color .15s;
+        }
+        .eq-back:hover { color: #431d07; }
+      `}</style>
+
+      <div className="eq-page" style={{ paddingTop: '56px' }}>
+        <StudentHeader />
+
+        <main style={{ flexGrow: 1 }}>
+          <Container className="py-5" style={{ maxWidth: 1100 }}>
+
+            {/* Back link */}
+            <button className="eq-back" onClick={() => navigate('/equipment')}>
+              <i className="bi bi-chevron-left" />
+              Back to Equipment
+            </button>
+
+            <Row className="g-5">
+
+              {/* ── LEFT: Product image ── */}
+              <Col lg={5}>
+                {/* Sticky so image stays visible while scrolling the details */}
+                <div style={{ position: 'sticky', top: 80 }}>
+                  <div className="eq-image-panel">
+                    <img
+                      src={`${backendOrigin}${currentEquipment.photoUrl}`}
+                      alt={currentEquipment.name}
+                      className="eq-product-img"
+                    />
+                  </div>
+                </div>
+              </Col>
+
+              {/* ── RIGHT: Details ── */}
+              <Col lg={7}>
+
+                {/* Category pill */}
+                <div className="eq-category-pill mb-3">
+                  <i className="bi bi-tag" />
+                  {currentEquipment.category}
+                </div>
+
+                {/* Title */}
+                <h1 style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+                  fontWeight: 700, color: '#1e293b',
+                  lineHeight: 1.15, marginBottom: 24,
+                }}>
+                  {currentEquipment.name.split(' - ')[0]}
+                </h1>
+
+                {/* Availability band */}
+                <div className="eq-avail-band">
+                  <div>
+                    <div className="eq-avail-label">Availability</div>
+                    <div className="eq-avail-status">
+                      {currentEquipment.availableQuantity > 0
+                        ? <span style={{ color: '#059669' }}>
+                            <i className="bi bi-check-circle-fill me-2" style={{ fontSize: '0.9rem' }} />
+                            Available
+                          </span>
+                        : <span style={{ color: '#dc2626' }}>
+                            <i className="bi bi-x-circle-fill me-2" style={{ fontSize: '0.9rem' }} />
+                            Out of Stock
+                          </span>
+                      }
                     </div>
-                    <div className="text-center">
-                      <p className="text-muted small mb-1">In Stock</p>
-                      <h5 className="fw-bold mb-0">
-                        {currentEquipment?.availableQuantity}/{currentEquipment?.totalQuantity}
-                      </h5>
+                  </div>
+                  <div className="eq-stock-badge">
+                    <div className="eq-stock-num">
+                      {currentEquipment.availableQuantity}
+                      <span style={{ fontSize: '1rem', color: '#94a3b8', fontFamily: 'DM Sans' }}>
+                        /{currentEquipment.totalQuantity}
+                      </span>
                     </div>
+                    <div className="eq-stock-lbl">In Stock</div>
                   </div>
                 </div>
 
-                {/* Checkout Button  disable if unavailable */}
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-100 mb-4"
+                {/* Checkout button */}
+                <button
+                  className="eq-checkout-btn"
                   onClick={handleCheckout}
-                  disabled={!(currentEquipment && currentEquipment.availableQuantity > 0)}
+                  disabled={!(currentEquipment.availableQuantity > 0)}
                 >
-                  {currentEquipment && currentEquipment.availableQuantity > 0 ? 'Checkout' : 'Out of Stock'}
-                </Button>
+                  {currentEquipment.availableQuantity > 0
+                    ? <><i className="bi bi-bag-plus me-2" />Checkout</>
+                    : 'Out of Stock — Check Back Later'
+                  }
+                </button>
 
-                {/* Equipment Info */}
-                <div className="info-section">
-                  <div className="info-item mb-4">
-                    <h6 className="fw-semibold text-muted mb-2">DESCRIPTION</h6>
-                    <p className="mb-0">{currentEquipment.description}</p>
+                {/* Info cards grid */}
+                <div className="eq-info-grid">
+
+                  {/* Description — full width */}
+                  <div className="eq-info-card full">
+                    <div className="eq-info-card-label">
+                      <i className="bi bi-file-text" /> Description
+                    </div>
+                    <div className="eq-info-card-value">{currentEquipment.description}</div>
                   </div>
 
-                  <div className="info-item mb-4">
-                    <h6 className="fw-semibold text-muted mb-2">USE</h6>
-                    <p className="mb-0">{currentEquipment.use}</p>
+                  {/* Use */}
+                  <div className="eq-info-card full">
+                    <div className="eq-info-card-label">
+                      <i className="bi bi-lightbulb" /> Use
+                    </div>
+                    <div className="eq-info-card-value">{currentEquipment.use}</div>
                   </div>
 
-                  <div className="info-item mb-4">
-                    <h6 className="fw-semibold text-muted mb-2">LOAN PERIOD</h6>
-                    <p className="mb-0">{currentEquipment.loanPeriod}</p>
+                  {/* Loan period */}
+                  <div className="eq-info-card">
+                    <div className="eq-info-card-label">
+                      <i className="bi bi-clock" /> Loan Period
+                    </div>
+                    <div className="eq-info-card-value" style={{ fontWeight: 600, color: '#92400e' }}>
+                      {currentEquipment.loanPeriod}
+                    </div>
                   </div>
 
-                  <div className="info-item">
-                    <h6 className="fw-semibold text-muted mb-2">LOCATION</h6>
-                    <p className="mb-0">{currentEquipment.location}</p>
+                  {/* Location */}
+                  <div className="eq-info-card">
+                    <div className="eq-info-card-label">
+                      <i className="bi bi-geo-alt" /> Location
+                    </div>
+                    <div className="eq-info-card-value">{currentEquipment.location}</div>
                   </div>
+
                 </div>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </main>
+              </Col>
+            </Row>
+          </Container>
+        </main>
 
-      {/* Guidelines Confirmation Modal */}
-      <Modal show={showConfirmation} onHide={() => setShowConfirmation(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Equipment Checkout Guidelines</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {/* summary of selected equipment */}
-          <div className="mb-3">
-            <h5 className="fw-bold">{currentEquipment?.name.split(" - ")[0]}</h5>
-            <p className="mb-1"><strong>Loan period:</strong> {currentEquipment?.loanPeriod}</p>
-            <p className="mb-1"><strong>Location:</strong> {currentEquipment?.location}</p>
-            <p className="mb-0 text-muted">
-              ({currentEquipment?.availableQuantity}/{currentEquipment?.totalQuantity} available)
+        {/* ── Checkout Guidelines Modal (unchanged logic) ── */}
+        <Modal show={showConfirmation} onHide={() => setShowConfirmation(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Equipment Checkout Guidelines</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="mb-3 p-3 rounded-3" style={{ background: '#f5f0e8', border: '1px solid rgba(180,83,9,.15)' }}>
+              <h5 className="fw-bold mb-1">{currentEquipment?.name.split(' - ')[0]}</h5>
+              <p className="mb-1 small"><strong>Loan period:</strong> {currentEquipment?.loanPeriod}</p>
+              <p className="mb-1 small"><strong>Location:</strong> {currentEquipment?.location}</p>
+              <p className="mb-0 small text-muted">
+                {currentEquipment?.availableQuantity}/{currentEquipment?.totalQuantity} available
+              </p>
+            </div>
+            <p className="small">Please read and agree to the following loan rules before checking out:</p>
+            <ul className="small">
+              <li>All borrowers must present their current UTRGV photo identification at the time of pickup.</li>
+              <li>The borrower's library account must be active and clear of fines and overdue materials.</li>
+              <li>Borrowers are responsible for all materials, equipment, and accessories checked out on their library account.</li>
+              <li>Return all media materials and equipment in person, allowing at least one hour before the library closes.</li>
+              <li>Media materials and available equipment are limited and are loaned on a first-come, first-served basis.</li>
+              <li>All media and equipment must be returned before the end of the loan period. Failure to do so will result in late fees and a hold on your library account.</li>
+              <li>UTRGV credentials are required for login and use of laptops and tablets.</li>
+              <li>UTRGV Information Resources Acceptable Use and Security Policy applies.</li>
+            </ul>
+            <Form.Check
+              type="checkbox"
+              id="accept-guidelines"
+              label="I have read and accept the equipment checkout guidelines"
+              checked={acceptedGuidelines}
+              onChange={(e) => setAcceptedGuidelines(e.target.checked)}
+            />
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowConfirmation(false)}>Back</Button>
+            <Button
+              disabled={!acceptedGuidelines}
+              onClick={handleConfirmCheckout}
+              style={{ background: '#92400e', border: 'none' }}
+            >
+              Accept &amp; Checkout
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* ── Success Modal (unchanged logic) ── */}
+        <Modal show={showSuccess} onHide={() => setShowSuccess(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              <i className="bi bi-check-circle-fill text-success me-2" />
+              Checked Out
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p>
+              <strong>{currentEquipment?.name.split(' - ')[0]}</strong> has been successfully checked out.
             </p>
-          </div>
+            <p className="text-muted small">
+              Please return it within <strong>{currentEquipment?.loanPeriod}</strong> and handle it responsibly.
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button style={{ background: '#92400e', border: 'none' }} onClick={() => setShowSuccess(false)}>
+              Close
+            </Button>
+          </Modal.Footer>
+        </Modal>
 
-          <p>Please read and agree to the following loan rules before checking out the equipment:</p>
-          <ul>
-            <li>All borrowers must present their current UTRGV photo identification at the time of pickup.</li>
-            <li>The borrower's library account must be active and clear of fines and overdue materials.</li>
-            <li>Borrowers are responsible for all materials, equipment, and accessories checked out on their library account.</li>
-            <li>To ensure proper handling of items please return all media materials and equipment in person, allowing at least one hour before the library closes.</li>
-            <li>Media materials and available equipment are limited and are loaned on a first-come, first-served basis.</li>
-            <li>All media and equipment must be returned before the end of the loan period. Failure to do so will result in: Late fees and a hold placed on the user's library account, preventing circulation of all library materials.</li>
-            <li>UTRGV credentials are required for login and use of laptops and tablets.</li>
-            <li>UTRGV Information Resources Acceptable Use and Security Policy</li>
-          </ul>
-          {/*agreement checkbox*/}
-          <Form.Check
-            type="checkbox"
-            id="accept-guidelines"
-            label="I have read and accept the equipment checkout guidelines"
-            checked={acceptedGuidelines}
-            onChange={(e) => setAcceptedGuidelines(e.target.checked)}
-          />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowConfirmation(false)}>
-            Back
-          </Button>
-          <Button
-            variant="primary"
-            disabled={!acceptedGuidelines}
-            onClick={handleConfirmCheckout} // before-logic exists in handleConfirmCheckout function
-          >
-            Accept & Checkout
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      <Footer />
-
-      {/* Success Modal */}
-      <Modal show={showSuccess} onHide={() => setShowSuccess(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Checked Out</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>
-            <strong>{currentEquipment?.name.split(" - ")[0]}</strong> has been successfully checked out.
-          </p>
-          <p className="text-muted small">
-            Please return it by {currentEquipment?.loanPeriod} and handle it responsibly.
-          </p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="primary" onClick={() => setShowSuccess(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+        <Footer />
+      </div>
+    </>
   );
+
 };
 
 export default EquipmentDetail;

@@ -73,7 +73,10 @@ class Command(BaseCommand):
 
         # Specifically look for: handleRoomClick("Room ...")
         # Example match: handleRoomClick("Room 3.126D")
-        pattern = r'handleRoomClick\("([^"]+)"\)'
+        # CCTB — matches handleRoomClick("Room 2.111", "room") and handleRoomClick("Computer 2.1", "computer")
+        # [^"]+ matches the room/computer name
+        # ,\s*"[^"]*" optionally matches the second argument like , "room" or , "computer"
+        pattern = r'handleRoomClick\("([^"]+)",\s*"(?:room|computer)"\)'
         room_names = re.findall(pattern, tsx_text)
 
         # De-duplicate while preserving order
@@ -105,12 +108,20 @@ class Command(BaseCommand):
 
         # Room model has unique_together = ("campus", "name")
         for room_name in unique_room_names:
+            # UPDATED — set meaningful defaults per room type
+            is_computer = room_name.startswith("Computer")
+
             obj, was_created = Room.objects.update_or_create(
                 campus=campus,
                 name=room_name,
                 defaults={
-                    "capacity": default_capacity,
-                    "is_active": True,
+                    "capacity":      1 if is_computer else default_capacity,
+                    "location_text": "Floor 2 Computer Lab" if is_computer else "",
+                    "has_monitor":   is_computer,       # computers have monitors, rooms don't by default
+                    "has_whiteboard":not is_computer,   # study rooms have whiteboards, computers don't
+                    "has_power":     True,              # everything has power
+                    "accessible":    False,             # update manually in admin for specific rooms
+                    "is_active":     True,
                 },
             )
 
@@ -119,8 +130,12 @@ class Command(BaseCommand):
             else:
                 updated += 1
 
+     
+
         self.stdout.write(self.style.SUCCESS(" Seed complete."))
         self.stdout.write(f"Campus: {campus.code} ({campus.name})")
         self.stdout.write(f"Rooms extracted from TSX: {len(unique_room_names)}")
         self.stdout.write(f"Created: {created}")
         self.stdout.write(f"Updated: {updated}")
+
+       
