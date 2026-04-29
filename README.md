@@ -43,6 +43,7 @@ Library Central is a full-stack web application designed to streamline the stude
 
     # Install dependencies
     pip install django djangorestframework 
+    pip install djangorestframework-simplejwt 
     pip install django-cors-headers
     # Or, once created: pip install -r requirements.txt
 
@@ -52,7 +53,7 @@ Library Central is a full-stack web application designed to streamline the stude
 
     # Setup database
     python manage.py migrate
-
+    
     # Update Database - if already created and need to simply update with new work
     python manage.py makemigrations
     python manage.py migrate
