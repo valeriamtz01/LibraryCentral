@@ -66,7 +66,6 @@ const Dashboard = () => {
   };
 
   const [notifications, setNotifications] = useState<DashNotification[]>([]);
-  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -81,7 +80,6 @@ const Dashboard = () => {
     try {
       await api.post("/notifications/mark-read/", {});
       setNotifications([]);
-      setShowNotifDropdown(false);
     } catch (err) {
       console.error("Failed to mark notifications read", err);
     }
@@ -196,127 +194,6 @@ return (
     >
       {/* StudentHeader — fixed navbar with LC Portal branding + nav links */}
       <StudentHeader />
-
-      {/* ── Dashboard-only notification bell — fixed to top-right of viewport ──────
-      This only renders on the Dashboard page since it lives inside Dashboard.tsx.
-      position: fixed + top: 10px + right: 16px → sits inside the navbar bar area
-      (navbar is 56px tall, so top: 10px centers it vertically in the bar).
-      zIndex: 1050 → above Bootstrap's navbar (zIndex 1030) so it renders on top.
-      This is the same bell logic as the hero banner bell — same state, same dropdown.
-      ── */}
-      <div style={{
-        position: 'fixed',
-        top: '19px',
-        right: '16px',
-        zIndex: 1050,   // above Bootstrap navbar z-index of 1030
-      }}>
-        <button
-          onClick={() => setShowNotifDropdown((prev) => !prev)}
-          style={{
-            background: 'rgba(255,255,255,0.15)',
-            border: '1px solid rgba(255,255,255,0.3)',
-            borderRadius: '8px',
-            color: '#fff',
-            padding: '6px 10px',
-            cursor: 'pointer',
-            position: 'relative',
-            fontSize: '14px',
-          }}
-        >
-          {/* bi-bell-fill — Bootstrap Icon: filled bell, represents notifications */}
-          <i className="bi bi-bell-fill" />
-
-          {/* Red badge — shows unread count, only renders when notifications.length > 0
-              Same notifications state as the rest of the dashboard — no extra fetch needed */}
-          {notifications.length > 0 && (
-            <span
-              className="position-absolute top-0 start-100 translate-middle badge rounded-pill"
-              style={{
-                backgroundColor: '#dc3545',
-                color: '#fff',
-                fontSize: '0.6rem',
-                fontWeight: 700,
-              }}
-            >
-              {notifications.length}
-            </span>
-          )}
-        </button>
-
-        {/* ── Notification dropdown — same dropdown as the hero bell ──────────────
-            Reuses the exact same showNotifDropdown state, notifications array,
-            markAllRead() handler, and waitlist decline logic as the hero banner bell.
-            end-0 is not available here since we're not in a Bootstrap flex context,
-            so use right: 0 on the dropdown div directly.
-        ── */}
-        {showNotifDropdown && (
-          <div
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: '42px',
-              width: '360px',
-              zIndex: 999,
-              backgroundColor: '#fff',
-              border: '1px solid #e9ecef',
-              borderRadius: '10px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            }}
-          >
-            {/* Dropdown header */}
-            <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
-              <strong className="small">Notifications</strong>
-              {notifications.length > 0 && (
-                <Button variant="link" size="sm" className="p-0 text-muted small" onClick={markAllRead}>
-                  Mark all read
-                </Button>
-              )}
-            </div>
-
-            {/* Empty state */}
-            {notifications.length === 0 && (
-              <div className="text-center py-3 text-muted small">No new notifications.</div>
-            )}
-
-            {/* Notification items */}
-            {notifications.map((n) => (
-              <div key={n.id} className="p-3 border-bottom">
-                <p className="mb-2 small text-dark">{n.message}</p>
-                <div className="d-flex gap-2">
-                  <Button
-                    variant="success" size="sm" className="flex-grow-1"
-                    onClick={() => { markAllRead(); navigate('/study-spaces'); }}
-                  >
-                    Reserve
-                  </Button>
-                  <Button
-                    variant="outline-secondary" size="sm" className="flex-grow-1"
-                    onClick={async () => {
-                      try {
-                        if (!n.room_id) {
-                          setNotifications((prev) => prev.filter((notif) => notif.id !== n.id));
-                          return;
-                        }
-                        await api.post('/waitlist/decline/', { room_id: n.room_id });
-                        setNotifications((prev) => {
-                          const updated = prev.filter((notif) => notif.id !== n.id);
-                          if (updated.length === 0) setShowNotifDropdown(false);
-                          return updated;
-                        });
-                      } catch (err) {
-                        console.error('Failed to decline waitlist', err);
-                      }
-                    }}
-                  >
-                    Decline
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
 
       {/* ── Main scrollable content  */}
       <main className="flex-grow-1">

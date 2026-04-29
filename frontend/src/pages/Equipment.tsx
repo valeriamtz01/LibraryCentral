@@ -377,7 +377,7 @@ return (
   // paddingTop → clears the fixed StudentHeader navbar (56px tall)
   // backgroundColor → matches dashboard page background (#f4f5f7 light gray)
   <div
-    className="d-flex flex-column min-vh-100"
+    className="d-flex flex-column min-vh-100 ss-page"
     style={{ paddingTop: '56px', backgroundColor: '#f4f5f7' }}
   >
     {/* StudentHeader — fixed navbar, identical to dashboard */}
@@ -396,106 +396,31 @@ return (
             - filteredEquipment.length → how many results are currently showing
           All three update reactively as the user searches/filters.
       ══════════════════════════════════════════════════════════════════════ */}
-      <div style={{
-        backgroundColor: '#f4f5f7',
-        padding: '22px 28px 16px',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-
-          {/* LEFT: label → title → subtitle → stat strip */}
-          <div>
-
-            {/* All-caps micro label — same pattern as dashboard hero "STUDENT DASHBOARD · LC PORTAL" */}
-            {/* <div style={{ 
-              fontSize: '10px', 
-              color: '#6c757d', 
-              textTransform: 'uppercase',
-              letterSpacing: '.09em',
-              marginBottom: '4px',
-            }}>
-              LC Portal · Equipment
-            </div> */}
-
-            {/* Page title */}
-            <div style={{ fontSize: '30px', fontWeight: 600, color: '#1a1a1a', marginBottom: '2px' }}>
-              Equipment Inventory
-            </div>
-
-            {/* Subtitle — tells the user what to do on this page */}
-            <div style={{ fontSize: '15px', color: '#6c757d', marginBottom: '18px' }}>
-              Browse, search, and check out library equipment.
-            </div>
-
-            {/* ── Live stat strip ─────────────────────────────────────────────
-                Same divider + number pattern as the dashboard hero stat strip.
-                All three numbers update live as equipment state changes.
-            ── */}
-            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-
-              {/* Stat 1: total distinct equipment types (rows returned by /equipment/ BE endpoint) */}
-              <div style={{ paddingRight: '20px' }}>
-                <div style={{ fontSize: '13px', color: '#6c757d', marginBottom: '2px' }}>
-                  Item types
-                </div>
-                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#1a1a1a', lineHeight: 1 }}>
-                  {/* loading guard prevents NaN flash before fetchEquipment() resolves */}
-                  {loading ? '—' : equipment.length}
-                </div>
-              </div>
-
-              {/* Divider — thin white separator, same as dashboard hero */}
-              <div style={{ width: '1px', backgroundColor: '#dee2e6', alignSelf: 'stretch', marginRight: '20px' }} />
-
-              {/* Stat 2: sum of availableQuantity across all equipment items
-                  reduce() accumulates the availableQuantity field from every
-                  item in the equipment state array (mapped from BE serializer) */}
-              <div style={{ paddingRight: '20px' }}>
-                <div style={{ fontSize: '13px', color: '#6c757d', marginBottom: '2px' }}>
-                  Units available
-                </div>
-                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#1a1a1a', lineHeight: 1 }}>
-                  {loading ? '—' : equipment.reduce((sum, item) => sum + item.availableQuantity, 0)}
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div style={{ width: '1px', backgroundColor: '#dee2e6', alignSelf: 'stretch', marginRight: '20px' }} />
-
-              {/* Stat 3: filteredEquipment.length — updates live as user types/filters
-                  filteredEquipment is the useMemo result defined above return() */}
-              <div>
-                <div style={{ fontSize: '13px', color: '#6c757d', marginBottom: '2px' }}>
-                  Showing
-                </div>
-                  <div style={{ fontSize: '28px', fontWeight: 500, color: '#1a1a1a', lineHeight: 1 }}>
-                  {loading ? '—' : filteredEquipment.length}
-                </div>
+      <div className="ss-hero">
+        <Container style={{ maxWidth: 1200 }}>
+          <div className="ss-hero-inner">
+            <div>
+              <h1 className="ss-serif ss-hero-title">Equipment Inventory</h1>
+              <p className="ss-hero-sub">
+                Browse available library equipment, reserve items, and view live availability.
+              </p>
+              <div className="ss-avail-pill">
+                UTRGV Library · Equipment Checkout
               </div>
             </div>
+
+            <button
+              type="button"
+              className="ss-hero-cta"
+              onClick={() => setShowGuidelinesModal(true)}
+            >
+              <i className="bi bi-shield-check me-2" />
+              Guidelines
+            </button>
           </div>
-
-          <button
-            onClick={() => setShowGuidelinesModal(true)}
-            style={{
-              background: '#C0421A',
-              border: 'none',
-              borderRadius: '10px',
-              color: '#fff',
-              padding: '8px 14px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <i className="bi bi-shield-check" style={{ fontSize: '13px' }} />
-            Guidelines
-          </button>
-        </div>
+        </Container>
       </div>
-      {/* END SECTION 1 — HEADER BANNER */}
+      {/* END SECTION 1 — HERO BANNER */}
 
 
       {/* ══════════════════════════════════════════════════════════════════════

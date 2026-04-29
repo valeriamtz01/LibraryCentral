@@ -1396,36 +1396,36 @@ return (
 
         /* ── Theme tokens ── */
         .ss-page {
-          --terra:       #92400e;
-          --terra-dk:    #431d07;
-          --terra-mid:   #b45309;
-          --terra-lt:    #d97706;
-          --sand:        #fdf6ee;
-          --sand-dk:     #f5ead8;
-          --cream:       #fff8f0;
-          --on-terra:    rgba(255,237,200,.9);
-          --on-terra-dim:rgba(255,237,200,.5);
-          --border-warm: rgba(180,83,9,.18);
+          --terra:       #C0421A;
+          --terra-dk:    #8d3213;
+          --terra-mid:   #dc3f20;
+          --terra-lt:    #f8d3c8;
+          --sand:        #f4f5f7;
+          --sand-dk:     #e9ecef;
+          --cream:       #ffffff;
+          --on-terra:    rgba(255,255,255,.95);
+          --on-terra-dim:rgba(255,255,255,.7);
+          --border-warm: rgba(192,66,26,.16);
           font-family: 'DM Sans', sans-serif;
-          background: #ffffff;
-          color: #ffffff;
+          background: #f4f5f7;
+          color: #1a1a1a;
         }
         .ss-serif { font-family: 'Playfair Display', Georgia, serif; }
 
         /* ── Hero strip ── */
         .ss-hero {
-          background: #e4e4e419;
+          background: var(--terra);
           padding: 32px 0 28px;
           position: relative;
-          border-bottom: 1px solid #e9ecef;
+          border-bottom: 1px solid rgba(255,255,255,.15);
+          color: var(--on-terra);
         }
-        /* Subtle diagonal line texture — depth without noise */
         .ss-hero::before {
           content: '';
           position: absolute; inset: 0;
           background-image: repeating-linear-gradient(
             -48deg, transparent, transparent 22px,
-            rgba(255,255,255,.03) 22px, rgba(255,255,255,.03) 23px
+            rgba(255,255,255,.08) 22px, rgba(255,255,255,.08) 24px
           );
           pointer-events: none;
         }
@@ -1437,33 +1437,25 @@ return (
         .ss-eyebrow {
           font-size: 0.68rem; font-weight: 600;
           letter-spacing: 0.14em; text-transform: uppercase;
-          color: #b45309; margin-bottom: 5px;
+          color: rgba(255,255,255,.85); margin-bottom: 5px;
         }
         .ss-hero-title {
           font-size: clamp(1.9rem, 4vw, 2.8rem);
-          font-weight: 700; color: #1e293b; line-height: 1.05; margin: 0;
+          font-weight: 700; color: #fff; line-height: 1.05; margin: 0;
         }
         .ss-hero-sub {
-          font-size: 0.85rem; color: #64748b;
+          font-size: 0.95rem; color: rgba(255,255,255,.9);
           margin-top: 6px; margin-bottom: 0;
         }
 
-        /* Pulsing live dot */
-        .ss-live-dot {
-          width: 7px; height: 7px; border-radius: 50%;
-          animation: ssPulse 2.2s ease-in-out infinite;
-        }
-        @keyframes ssPulse {
-          0%,100% { opacity:1; transform:scale(1); }
-          50%      { opacity:.55; transform:scale(.75); }
-        }
         .ss-avail-pill {
           display: inline-flex; align-items: center; gap: 8px;
-          background: rgba(180,83,9,.08);
-          border: 1px solid rgba(180,83,9,.2);
-          border-radius: 999px; padding: 5px 15px;
-          font-size: 0.78rem; color: #92400e;
+          background: #fff;
+          border: 1px solid rgba(255,255,255,.45);
+          border-radius: 999px; padding: 7px 18px;
+          font-size: 0.82rem; color: var(--terra);
           margin-top: 12px;
+          box-shadow: 0 8px 20px rgba(0,0,0,.08);
         }
 
         /* ── Floor toggle ── */
@@ -1490,52 +1482,54 @@ return (
           background: #e2e8f0; color: #334155;
         }
 
-        /* ── Map section — sits directly on the sand bg, no white card ── */
+        /* ── Map section — card-style white surface like dashboard panels ── */
         .ss-map-section {
-          background: var(--sand);
-          background: #ffffff;
-          padding: 20px 0 0;
+          background: #fff;
+          padding: 24px;
+          border-radius: 18px;
+          border: 1px solid rgba(145, 81, 30, .12);
+          box-shadow: 0 20px 60px rgba(0,0,0,.06);
         }
         .ss-map-label {
           display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: 10px;
-          font-size: 0.72rem; font-weight: 700;
+          margin-bottom: 18px;
+          font-size: 0.75rem; font-weight: 700;
           letter-spacing: 0.08em; text-transform: uppercase;
-          color: var(--terra-mid);
+          color: #6c757d;
         }
         .ss-map-label span:last-child {
-          font-weight: 400; color: var(--terra-lt); letter-spacing: 0.03em;
+          font-weight: 400; color: #adb5bd; letter-spacing: 0.03em;
         }
-        /* Thin warm border around the map image area itself */
         .ss-map-wrap {
-          border: 1px solid var(--border-warm);
-          border-radius: 12px;
+          border: 1px solid rgba(145, 81, 30, .12);
+          border-radius: 16px;
           overflow: hidden;
+          background: #fff;
         }
 
         /* ── 4-col info cards row ── */
         .ss-info-row {
-          background: var(--sand);
-          background: #ffffff;
-          padding: 16px 0 28px;
+          background: transparent;
+          padding: 18px 0 36px;
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 14px;
+          gap: 16px;
         }
         .ss-info-card {
-          background: var(--sand);
-          border: 0.5px solid var(--border-warm);
-          border-radius: 10px;
+          background: #fff;
+          border: 1px solid rgba(145, 81, 30, .10);
+          border-radius: 16px;
           overflow: hidden;
+          box-shadow: 0 20px 55px rgba(0,0,0,.05);
         }
         .ss-info-card-head {
-          background: var(--terra);
-          padding: 9px 14px;
-          font-size: 0.68rem; font-weight: 700;
-          letter-spacing: 0.1em; text-transform: uppercase;
-          color: var(--on-terra-dim);
+          background: #f8f9fa;
+          padding: 12px 16px;
+          font-size: 0.72rem; font-weight: 700;
+          letter-spacing: 0.08em; text-transform: uppercase;
+          color: #495057;
         }
-        .ss-info-card-body { padding: 13px 14px; }
+        .ss-info-card-body { padding: 16px 16px; }
 
         /* Legend dots */
         .ss-dot {
@@ -1618,78 +1612,76 @@ return (
           border-radius: 0;   /* single-sided border → no radius */
         }
 
-        /* Primary button (terracotta) */
+        /* Primary button — dashboard-friendly accent */
         .ss-btn-terra {
           background: var(--terra);
-          color: #fff8ee !important;   /* ADD !important */
+          color: #fff !important;
           border: none;
-          border-radius: 8px; padding: 11px 24px;
-          font-size: 0.87rem; font-weight: 600; cursor: pointer;
+          border-radius: 10px; padding: 12px 26px;
+          font-size: 0.9rem; font-weight: 700; cursor: pointer;
           transition: background .18s, transform .18s;
         }
         .ss-btn-terra:hover { background: var(--terra-dk); transform: translateY(-1px); }
 
         /* Ghost button */
         .ss-btn-ghost {
-          background: transparent;
-          border: 0.5px solid #e2e8f0;
-          color: #64748b; border-radius: 8px;
+          background: #fff;
+          border: 1px solid #ced4da;
+          color: #495057; border-radius: 10px;
           padding: 10px 18px;
-          font-size: 0.87rem; font-weight: 500; cursor: pointer;
+          font-size: 0.9rem; font-weight: 600; cursor: pointer;
           transition: all .15s;
         }
-        .ss-btn-ghost:hover { border-color: #94a3b8; color: #334155; }
+        .ss-btn-ghost:hover { border-color: #adb5bd; color: #212529; }
 
         /* ── Policies section ── */
         .ss-policy {
-          background: var(--sand);
-          border-radius: 16px;
-          border: 0.5px solid #e2e8f0;
+          background: #fff;
+          border-radius: 20px;
+          border: 1px solid rgba(145, 81, 30, .12);
           overflow: hidden;
+          box-shadow: 0 20px 50px rgba(0,0,0,.05);
         }
         .ss-policy-head {
-          background: var(--terra-dk);
-          padding: 30px 40px 26px;
+          background: var(--terra);
+          padding: 28px 34px 24px;
           position: relative; overflow: hidden;
         }
-        /* Large decorative § glyph */
         .ss-policy-head::after {
           content: '§';
-          position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
+          position: absolute; right: 32px; top: 52%; transform: translateY(-50%);
           font-family: 'Playfair Display', serif;
-          font-size: 6rem; color: rgba(255,255,255,.05);
+          font-size: 5.2rem; color: rgba(255,255,255,.08);
           line-height: 1; pointer-events: none;
         }
         .ss-policy-title {
           font-family: 'Playfair Display', serif;
-          font-size: 1.5rem; color: #fff8ee; margin: 0 0 5px;
+          font-size: 1.6rem; color: #fff; margin: 0 0 6px;
         }
-        .ss-policy-sub { font-size: 0.8rem; color: var(--on-terra-dim); margin: 0; }
+        .ss-policy-sub { font-size: 0.9rem; color: rgba(255,255,255,.8); margin: 0; }
 
-        /* Tab bar */
         .ss-tab-bar {
-          display: flex; gap: 2px; flex-wrap: wrap;
+          display: flex; gap: 4px; flex-wrap: wrap;
           padding: 10px 14px 0;
-          border-bottom: 2px solid #f1f5f9;
-          background: #fafbfc;
+          border-bottom: 1px solid #e9ecef;
+          background: #fff;
         }
         .ss-tab {
           background: transparent; border: none;
-          color: #64748b; padding: 9px 17px;
-          font-size: 0.79rem; font-weight: 600;
-          letter-spacing: 0.03em; cursor: pointer;
+          color: #6c757d; padding: 11px 18px;
+          font-size: 0.88rem; font-weight: 700;
+          letter-spacing: 0.02em; cursor: pointer;
           border-radius: 8px 8px 0 0;
-          border-bottom: 2px solid transparent;
+          border-bottom: 3px solid transparent;
           margin-bottom: -2px;
-          transition: all .14s;
+          transition: all .15s;
         }
         .ss-tab.active { color: var(--terra); border-bottom-color: var(--terra); background: #fff; }
-        .ss-tab:hover:not(.active) { color: #334155; background: var(--sand-dk); }
+        .ss-tab:hover:not(.active) { color: #343a40; background: #f8f9fa; }
 
-        /* Policy body prose */
         .ss-policy-body {
-          padding: 30px 40px;
-          font-size: 0.875rem; line-height: 1.78; color: #334155;
+          padding: 28px 34px 32px;
+          font-size: 0.94rem; line-height: 1.78; color: #495057;
         }
         .ss-policy-body h6 {
           font-family: 'Playfair Display', serif;
@@ -1723,11 +1715,6 @@ return (
                 <h1 className="ss-serif ss-hero-title">Study Spaces</h1>
                 <p className="ss-hero-sub">
                   Click any hotspot on the map to view room details and reserve your space.
-                  {loadingStatuses && (
-                    <span style={{ marginLeft: 10, fontSize: "0.75rem", color: "#94a3b8" }}>
-                      ↻ Refreshing…
-                    </span>
-                  )}
                 </p>
 
                 <div className="ss-avail-pill">
@@ -1768,7 +1755,14 @@ return (
                 are no competing white edges. A thin warm border frames it. */}
             <div className="ss-map-section ss-fade">
               <div className="ss-map-label">
-                <span>Floor {selectedFloor} · Interactive Map</span>
+                <span>
+                  Floor {selectedFloor} · Interactive Map
+                  {loadingStatuses && (
+                    <span style={{ marginLeft: 8, fontSize: "0.75rem", color: "#94a3b8" }}>
+                      ↻ Refreshing…
+                    </span>
+                  )}
+                </span>
                 <span>Click a hotspot to book</span>
               </div>
               <div className="ss-map-wrap">
@@ -2016,7 +2010,7 @@ return (
             <div
               className="ss-detail-head"
               style={{
-                background: "#92400e",
+                background: "#c0421a",
                 padding: "22px 28px 18px",
                 margin: "-1px -1px 0",
                 borderRadius: "8px 8px 0 0",
@@ -2120,7 +2114,7 @@ return (
                 <button
                   style={{
                     flex: 1,
-                    background: "#92400e",
+                    background: "#2e68dc",
                     color: "#fff8ee",           /* inline — beats everything */
                     border: "none",
                     borderRadius: 8,
@@ -2269,7 +2263,7 @@ return (
           </Modal.Body>
           <Modal.Footer style={{ borderTop: "1px solid #e2e8f0" }}>
             <Button variant="outline-secondary" onClick={() => { setShowComputerModal(false); setBookingError(null); }} disabled={bookingLoading}>Cancel</Button>
-            <Button style={{ background: "#92400e", border: "none" }} onClick={confirmComputerBooking} disabled={bookingLoading}>
+            <Button style={{ background: "#2e68dc", border: "none" }} onClick={confirmComputerBooking} disabled={bookingLoading}>
               {bookingLoading ? "Booking…" : "Confirm Booking"}
             </Button>
           </Modal.Footer>
@@ -2429,7 +2423,7 @@ return (
               Cancel
             </Button>
             {/* Terracotta confirm button matches the page theme */}
-            <Button style={{ background: "#92400e", border: "none" }} onClick={confirmBooking} disabled={bookingLoading}>
+            <Button style={{ background: "#2e68dc", border: "none" }} onClick={confirmBooking} disabled={bookingLoading}>
               {bookingLoading ? "Booking…" : "Confirm Booking"}
             </Button>
           </Modal.Footer>
