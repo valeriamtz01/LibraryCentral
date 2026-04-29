@@ -125,13 +125,7 @@ const Dashboard = () => {
     // call the be to delete
     await api.delete(`/reservations/${reservationId}/`);
 
-    // update local state to remove the deleted item
-    setDashboardData(prev => ({
-      ...prev,
-      reservations: prev.reservations.filter((res: any) => res.id !== reservationId),
-      // this is optional to decrement the count if our fe relies on it
-      activeRooms: prev.activeRooms - 1 
-    }));
+    await fetchDashboard();
     
     alert("Reservation cancelled successfully.");
   } catch (error) {
@@ -925,25 +919,26 @@ return (
               display: 'flex',
               flexDirection: 'column',
             }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #534AB7 0%, #185FA5 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '8px',
-              }}>
-                <i className="bi bi-cpu" style={{ fontSize: '14px', color: '#fff' }} />
-              </div>
-
-              <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a', marginBottom: '4px' }}>
-                LC Assistant
+              <div className="d-flex align-items-center" style={{ gap: '10px', marginBottom: '8px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #534AB7 0%, #185FA5 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: '0 0 auto',
+                }}>
+                  <i className="bi bi-chat-dots-fill" style={{ fontSize: '14px', color: '#fff' }} />
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a' }}>
+                  LC Assistant
+                </div>
               </div>
 
               <div style={{ fontSize: '11px', color: '#6c757d', lineHeight: 1.5, marginBottom: '10px' }}>
-                Ask to book/cancel study rooms or checkout/return equipment.
+                AI-powered help for room/computer bookings and equipment checkouts.
               </div>
 
               <div style={{ flex: 1, minHeight: 0 }}>

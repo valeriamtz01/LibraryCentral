@@ -33,15 +33,21 @@ export default function FloatingAssistant({ onMutation }: { onMutation?: () => v
 
   if (!token) return null;
 
-  const description = "AI-powered help for room bookings and equipment checkouts.";
+  const description = "AI-powered help for room/computer bookings and equipment checkouts.";
 
   return (
     <div style={{ position: "fixed", right: 18, bottom: 18, zIndex: 1050 }}>
       {!open ? (
         <Button
-          variant="primary"
           className="d-flex align-items-center"
-          style={{ borderRadius: 999, padding: "10px 14px", gap: 10, boxShadow: "0 8px 20px rgba(0,0,0,0.15)" }}
+          style={{
+            borderRadius: 999,
+            padding: "10px 14px",
+            gap: 10,
+            boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+            background: "linear-gradient(135deg, #534AB7 0%, #185FA5 100%)",
+            borderColor: "transparent",
+          }}
           onClick={() => setOpen(true)}
         >
           <span
@@ -55,7 +61,7 @@ export default function FloatingAssistant({ onMutation }: { onMutation?: () => v
               flex: "0 0 auto",
             }}
           >
-            <i className="bi bi-cpu" style={{ fontSize: 12, lineHeight: "12px" }} />
+            <i className="bi bi-chat-dots-fill" style={{ fontSize: 12, lineHeight: "12px" }} />
           </span>
           <span style={{ fontSize: 13, fontWeight: 600 }}>LC Assistant</span>
         </Button>
@@ -79,7 +85,7 @@ export default function FloatingAssistant({ onMutation }: { onMutation?: () => v
                   flex: "0 0 auto",
                 }}
               >
-                <i className="bi bi-cpu" style={{ fontSize: 14, lineHeight: "14px" }} />
+                <i className="bi bi-chat-dots-fill" style={{ fontSize: 14, lineHeight: "14px" }} />
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, lineHeight: "16px" }}>LC Assistant</div>

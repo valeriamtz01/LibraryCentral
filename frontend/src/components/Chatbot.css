@@ -1,0 +1,121 @@
+.lc-chat {
+  --terra: #c0421a;
+  --terra-dk: #8d3213;
+  --sand: #f4f5f7;
+  --sand-dk: #e9ecef;
+  --cream: #ffffff;
+  --text: #1a1a1a;
+  --muted: #6c757d;
+  font-family: 'DM Sans', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+}
+
+.lc-chat-list {
+  overflow: auto;
+  background: var(--sand);
+  border: 1px solid var(--sand-dk);
+  border-radius: 10px;
+}
+
+.lc-chat-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lc-chat-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.lc-chat-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.lc-chat-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.lc-chat-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lc-chat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+}
+
+.lc-chat-clear {
+  color: var(--muted);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.lc-chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.lc-chat-example {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cream);
+  border: 1px solid rgba(192, 66, 26, 0.16);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--terra);
+  text-decoration: none;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.lc-chat-example:hover {
+  transform: translateY(-1px);
+  background: rgba(192, 66, 26, 0.06);
+}
+
+.lc-chat-bubble {
+  padding: 10px 10px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.lc-chat-bubble-user {
+  background: var(--terra);
+  color: #fff;
+}
+
+.lc-chat-bubble-assistant {
+  background: #ffffff;
+  border: 1px solid var(--sand-dk);
+  color: var(--text);
+}
+
+.lc-chat-input {
+  border-radius: 10px;
+}
+
+.lc-chat-send {
+  background-color: var(--terra);
+  border-color: var(--terra);
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.lc-chat-send:hover,
+.lc-chat-send:focus {
+  background-color: var(--terra-dk);
+  border-color: var(--terra-dk);
+}

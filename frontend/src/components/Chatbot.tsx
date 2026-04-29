@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Spinner } from "react-bootstrap";
 import { api } from "../api";
 import { OmniAgentRpcClient } from "../omniagentRpc";
+import "./Chatbot.css";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -258,22 +259,22 @@ export default function Chatbot({
 
   const examples = [
     "Reserve room 2.100C today 3pm–4pm",
+    "Reserve Computer 2.1 today 3pm–4pm",
     "What rooms do I have booked?",
+    "What computers do I have booked?",
     "What equipment do I have checked out?",
   ];
 
   return (
-    <div className="d-flex flex-column" style={{ gap: 10, minHeight: 0, flex: 1 }}>
+    <div className="lc-chat">
       <div
         ref={listRef}
-        className="rounded p-2"
-        style={{ overflow: "auto", background: "#f8f9fa", border: "1px solid #e9ecef", height: listHeight }}
+        className="lc-chat-list p-2"
+        style={{ height: listHeight }}
       >
-        <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: 8 }}>
+        <div className="lc-chat-status">
           <div className="d-flex align-items-center" style={{ gap: 8 }}>
-            <span
-              style={{ width: 8, height: 8, borderRadius: 99, background: busy ? "#ffc107" : "#198754" }}
-            />
+            <span className="lc-chat-dot" style={{ background: busy ? "#ffc107" : "#198754" }} />
             <div className="text-muted" style={{ fontSize: 11 }}>
               {busy ? "Thinking…" : "Ready"}
             </div>
@@ -281,8 +282,7 @@ export default function Chatbot({
           {messages.length > 0 ? (
             <a
               role="button"
-              className="text-muted"
-              style={{ fontSize: 11, textDecoration: "none" }}
+              className="lc-chat-clear"
               onClick={(e) => {
                 e.preventDefault();
                 setMessages([]);
@@ -294,7 +294,7 @@ export default function Chatbot({
         </div>
 
         {messages.length === 0 ? (
-          <div className="d-flex flex-column align-items-center justify-content-center" style={{ height: 260 }}>
+          <div className="lc-chat-empty" style={{ height: 260 }}>
             <div className="text-muted" style={{ fontSize: 12, marginBottom: 6 }}>
               Try an example:
             </div>
@@ -303,8 +303,7 @@ export default function Chatbot({
                 <a
                   key={ex}
                   role="button"
-                  className="text-primary"
-                  style={{ fontSize: 12, textDecoration: "none" }}
+                  className="lc-chat-example"
                   onClick={(e) => {
                     e.preventDefault();
                     setDraft(ex);
@@ -323,8 +322,7 @@ export default function Chatbot({
               <div key={idx} className={`d-flex ${isUser ? "justify-content-end" : "justify-content-start"}`}>
                 <div style={{ maxWidth: "90%" }}>
                   <div
-                    className={`px-2 py-2 rounded-3 ${isUser ? "bg-primary text-white" : "bg-body-tertiary"}`}
-                    style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: "18px" }}
+                    className={`lc-chat-bubble ${isUser ? "lc-chat-bubble-user" : "lc-chat-bubble-assistant"}`}
                   >
                     {m.content}
                   </div>
@@ -353,9 +351,9 @@ export default function Chatbot({
       <div className="d-flex" style={{ gap: 6 }}>
         <input
           ref={inputRef}
-          className="form-control"
+          className="form-control lc-chat-input"
           value={draft}
-          placeholder="Type a request"
+          placeholder="Ask to reserve/cancel a room or computer"
           disabled={busy}
           onChange={(e) => {
             setDraft(e.target.value);
@@ -372,6 +370,7 @@ export default function Chatbot({
         <Button
           variant="primary"
           disabled={busy || !draft.trim()}
+          className="lc-chat-send"
           onClick={() => {
             const text = draft;
             setDraft("");
