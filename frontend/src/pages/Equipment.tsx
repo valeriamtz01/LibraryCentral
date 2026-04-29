@@ -74,6 +74,9 @@ const EquipmentPage = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('all'); // applied availiability filter
   const [showFilterModal, setShowFilterModal] = useState(false); // show or hide filter modal
   
+  // states for the guidelines modal 
+  const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
+  
   //temporary filter states used inside modal before the user clicks apply
   const [tempCategory, setTempCategory] = useState<string>('all');
   const [tempStatus, setTempStatus] = useState<string>('all');
@@ -471,12 +474,9 @@ return (
             </div>
           </div>
 
-          {/* RIGHT: cross-navigation shortcut to study spaces booking
-              Same frosted-glass pill style as the dashboard hero bell button.
-              navigate() from react-router-dom (imported at top of file). */}
           <button
-            onClick={() => navigate('/study-spaces')}
-             style={{
+            onClick={() => setShowGuidelinesModal(true)}
+            style={{
               background: '#C0421A',
               border: 'none',
               borderRadius: '10px',
@@ -490,9 +490,8 @@ return (
               gap: '6px',
             }}
           >
-            {/* bi-calendar2-check — Bootstrap Icon: calendar + checkmark, links to room booking */}
-            <i className="bi bi-calendar2-check" style={{ fontSize: '13px' }} />
-            Book a space
+            <i className="bi bi-shield-check" style={{ fontSize: '13px' }} />
+            Guidelines
           </button>
         </div>
       </div>
@@ -917,6 +916,150 @@ return (
       {/* END SECTION 3 — EQUIPMENT LIST */}
 
     </main>
+
+
+    {/* ── EQUIPMENT GUIDELINES MODAL ─────────────────────────────────── */}
+    <Modal show={showGuidelinesModal} onHide={() => setShowGuidelinesModal(false)} centered size="lg">
+      <Modal.Header closeButton style={{ borderBottom: '1px solid #e9ecef' }}>
+        <Modal.Title style={{ fontSize: '16px', fontWeight: 600, color: '#1a1a1a' }}>
+          <i className="bi bi-shield-check me-2" style={{ color: '#C0421A' }} />
+          Equipment Checkout Guidelines
+        </Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body style={{ padding: '24px 28px', maxHeight: '70vh', overflowY: 'auto' }}>
+
+        {/* Eligibility */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{
+            fontSize: '10px', fontWeight: 700, letterSpacing: '.09em',
+            textTransform: 'uppercase', color: '#C0421A', marginBottom: 8,
+          }}>
+            Eligibility
+          </div>
+          <p style={{ fontSize: '13px', color: '#495057', lineHeight: 1.7, margin: 0 }}>
+            Currently enrolled students and currently employed faculty and staff are eligible
+            to borrow media materials and equipment. A valid <strong>UTRGV photo ID</strong> is
+            required at the time of checkout and your library account must be active and clear
+            of fines and overdue materials.
+          </p>
+        </div>
+
+        {/* Loan Rules */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{
+            fontSize: '10px', fontWeight: 700, letterSpacing: '.09em',
+            textTransform: 'uppercase', color: '#C0421A', marginBottom: 8,
+          }}>
+            Loan Rules
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              { icon: 'bi-person-badge', text: 'Present your current UTRGV photo ID at the time of checkout.' },
+              { icon: 'bi-arrow-return-left', text: 'Return all items in person, allowing at least one hour before the library closes.' },
+              { icon: 'bi-people', text: 'Equipment is loaned on a first-come, first-served basis.' },
+              { icon: 'bi-clock', text: 'All items must be returned before the end of the loan period.' },
+              { icon: 'bi-shield-lock', text: 'UTRGV credentials are required for login and use of laptops and tablets.' },
+              { icon: 'bi-bag-check', text: 'Borrowers are responsible for all materials and accessories checked out on their account.' },
+            ].map(({ icon, text }) => (
+              <div key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  backgroundColor: '#fff4f1', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <i className={`bi ${icon}`} style={{ fontSize: '13px', color: '#C0421A' }} />
+                </div>
+                <span style={{ fontSize: '13px', color: '#495057', lineHeight: 1.6, paddingTop: 4 }}>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Late Fees */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{
+            fontSize: '10px', fontWeight: 700, letterSpacing: '.09em',
+            textTransform: 'uppercase', color: '#C0421A', marginBottom: 8,
+          }}>
+            Late Fees & Consequences
+          </div>
+          <div style={{
+            backgroundColor: '#fff4f1',
+            border: '1px solid #f5c4b3',
+            borderLeft: '3px solid #C0421A',
+            borderRadius: 8, padding: '12px 14px',
+            fontSize: '13px', color: '#495057', lineHeight: 1.7,
+          }}>
+            <strong style={{ color: '#C0421A' }}>There is no grace period.</strong> Overdue fines are
+            charged immediately for any portion of an hour overdue — <strong>$1.00 per day</strong>,
+            up to a maximum of <strong>$25.00</strong>. A hold will be placed on your library account
+            preventing circulation of all library materials. Lost or damaged equipment may result in
+            replacement fees up to <strong>$1,000 for laptops/tablets</strong> or
+            <strong> $2,000 for projectors</strong>.
+          </div>
+        </div>
+
+        {/* Loan Periods Table */}
+        <div>
+          <div style={{
+            fontSize: '10px', fontWeight: 700, letterSpacing: '.09em',
+            textTransform: 'uppercase', color: '#C0421A', marginBottom: 8,
+          }}>
+            Loan Periods by Item
+          </div>
+          <div style={{ border: '1px solid #e9ecef', borderRadius: 8, overflow: 'hidden' }}>
+            {[
+              { item: 'Digital Camcorder',                          period: 'Length of Semester' },
+              { item: 'Digital Camera',                             period: 'Length of Semester' },
+              { item: 'Laptops (MacBook and PC)',                   period: '24 hours (renewable)' },
+              { item: 'Mobile Phone Charger',                       period: '24 hours' },
+              { item: 'Projector',                                  period: '1 day' },
+              { item: 'Graphing Calculator (TI-84 CE Plus)',        period: 'Length of Semester' },
+              { item: 'Scientific Calculator (models vary)',        period: 'Semester' },
+              { item: 'iPad',                                       period: '24 hours (renewable)' },
+              { item: 'Headphones',                                 period: '24 hours' },
+              { item: 'HDMI Cable',                                 period: '24 hours' },
+              { item: 'Mouse',                                      period: '24 hours' },
+              { item: 'Screenflex Portable Display Panels',         period: '3 days' },
+              { item: 'DVDs / CDs',                                 period: '7 days' },
+            ].map(({ item, period }, i) => (
+              <div key={item} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '9px 14px',
+                backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa',
+                borderBottom: i < 12 ? '1px solid #f0f0f0' : 'none',
+                fontSize: '13px',
+              }}>
+                <span style={{ color: '#1a1a1a' }}>{item}</span>
+                <span style={{
+                  color: '#C0421A', fontWeight: 500,
+                  backgroundColor: '#fff4f1',
+                  padding: '2px 10px', borderRadius: 20, fontSize: '12px',
+                }}>{period}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </Modal.Body>
+
+      <Modal.Footer style={{ borderTop: '1px solid #e9ecef', padding: '12px 28px' }}>
+        <button
+          onClick={() => setShowGuidelinesModal(false)}
+          style={{
+            backgroundColor: '#C0421A', border: 'none', borderRadius: 8,
+            color: '#fff', padding: '8px 20px', fontSize: '13px',
+            fontWeight: 500, cursor: 'pointer',
+          }}
+        >
+          Got it
+        </button>
+      </Modal.Footer>
+    </Modal>
+
+
+
 
     {/* ══════════════════════════════════════════════════════════════════════
         FILTER MODAL — react-bootstrap Modal, logic completely unchanged.

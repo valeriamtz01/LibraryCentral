@@ -184,12 +184,47 @@ def dashboard_summary(request):
         for c in equipment_loans_qs
     ]
 
+
+    # add waitlist entries for this user
+    waitlist_entries = Waitlist.objects.filter(
+        user=user,
+        status__in=["waiting", "notified"]
+    ).select_related("room").order_by("created_at")
+
+    # calculate position for each entry
+    waitlist_data = []
+    for entry in waitlist_entries:
+        # count how many people are ahead of this user in the queue for this room
+        position = Waitlist.objects.filter(
+            room=entry.room,
+            status__in=["waiting", "notified"],
+            created_at__lt=entry.created_at  # joined before this user
+        ).count() + 1  # +1 because position is 1-indexed
+
+        # total people waiting for this room
+        total = Waitlist.objects.filter(
+            room=entry.room,
+            status__in=["waiting", "notified"]
+        ).count()
+
+        waitlist_data.append({
+            "id": entry.id,
+            "room_id": entry.room.id if entry.room else None,
+            "room_name": entry.room.name if entry.room else None,
+            "status": entry.status,
+            "position": position,
+            "total": total,
+            "room_start_time": entry.room_start_time.isoformat() if entry.room_start_time else None,
+            "room_end_time": entry.room_end_time.isoformat() if entry.room_end_time else None,
+        })
+
     return Response({
         "activeRooms": activeRooms,
         "activeComputers": activeComputers,
         "equipmentLoans": equipmentLoans,
         "reservations": reservations,
         "equipment": equipment,
+        "waitlist": waitlist_data,
         "user_name": user.get_full_name() or user.username # added this line to be able to fetch username
     })
 
@@ -436,7 +471,19 @@ def studyspaces_statuses(request):
         statuses[res.room.name] = "occupied"
 
     # activeRooms: give FE both id + room_name so it can POST reservations by id later
-    activeRooms = [{"id": room.id, "room_name": room.name} for room in rooms_qs]
+    activeRooms = [
+    {
+        "id":            room.id,
+        "room_name":     room.name,
+        "capacity":      room.capacity,
+        "accessible":    room.accessible,
+        "has_whiteboard":room.has_whiteboard,
+        "has_monitor":   room.has_monitor,
+        "has_power":     room.has_power,
+        "location_text": room.location_text,
+    }
+    for room in rooms_qs
+]
     
 
 

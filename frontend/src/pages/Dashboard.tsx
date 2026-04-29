@@ -28,7 +28,8 @@ const Dashboard = () => {
     activeComputers: 0, // number of computers reserved
     equipmentLoans: 0, // number of equipment items checkout
     reservations: [], // list of upcoming reservations (later, need to display them with the listgroup)
-    equipment: [] // list of equipment the user has checkout out
+    equipment: [], // list of equipment the user has checkout out
+    waitlist: [] // added waitlist to the intital state
   });
 
   // show in the console the array
@@ -494,31 +495,18 @@ return (
                     }}>
                       <div className="d-flex justify-content-between align-items-start">
 
-                        {/* LEFT: room name + trash icon inline, then time below */}
+                        {/* Room name row — name and trash icon sit side by side on the same line
+                            gap: 6px keeps the icon close to the name without crowding it */}
                         <div style={{ flex: 1 }}>
 
-                          {/* Room name row — name and trash icon sit side by side on the same line
-                              gap: 6px keeps the icon close to the name without crowding it */}
+                          {/* Room name + trash icon on the same row */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-
-                            {/* Room name text */}
                             <div style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a' }}>
                               {res.room_name}
                             </div>
-
-                            {/* ── Inline cancel confirm — lives next to the room name ──────
-                                When trash is clicked → confirmDeleteId is set to res.id.
-                                This swaps the trash icon for the "Cancel? Yes / No" mini-form.
-                                "Yes" → handleDeleteReservation(res.id) fires the axios DELETE
-                                        to /reservations/{id}/ and removes it from local state.
-                                "No"  → resets confirmDeleteId to null, hides warning banner.
-                                deletingId disables the Yes button while the request is in flight.
-                            ── */}
                             {confirmDeleteId === res.id ? (
                               <div className="d-flex align-items-center gap-1">
                                 <small className="text-danger fw-bold" style={{ fontSize: '11px' }}>Cancel?</small>
-
-                                {/* Yes — fires DELETE, hides warning banner */}
                                 <Button
                                   variant="danger" size="sm"
                                   className="py-0 px-2"
@@ -531,8 +519,6 @@ return (
                                 >
                                   {deletingId === res.id ? '…' : 'Yes'}
                                 </Button>
-
-                                {/* No — resets confirm state, hides warning banner */}
                                 <Button
                                   variant="outline-secondary" size="sm"
                                   className="py-0 px-2"
@@ -543,9 +529,6 @@ return (
                                 </Button>
                               </div>
                             ) : (
-                              /* Trash icon button — clicking it sets confirmDeleteId = res.id
-                                 which triggers the Cancel? Yes/No form above.
-                                 bi-trash3-fill — Bootstrap Icon: solid filled trash can */
                               <Button
                                 variant="link"
                                 className="text-danger p-0"
@@ -554,23 +537,63 @@ return (
                                 style={{ lineHeight: 1, fontSize: '12px' }}
                                 disabled={deletingId === res.id}
                               >
-                                {/* bi-trash3-fill — Bootstrap Icon: filled trash can, destructive action */}
                                 <i className="bi bi-trash3-fill" />
                               </Button>
                             )}
                           </div>
 
-                          {/* Time range — sits below the room name + trash icon row
-                              formatDateTime() converts Django ISO UTC → readable CST (America/Chicago) */}
-                          <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                            {formatDateTime(res.start_time)} –{' '}
-                            {new Date(res.end_time).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              timeZone: 'America/Chicago',
-                              hour12: true,
-                            })}
+                          {/* Type label — between name and date, same format as Equipment Loan */}
+                          <div style={{
+                            fontSize: '11px', color: '#94a3b8', marginBottom: '3px',
+                            textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600,
+                          }}>
+                            {res.room_name?.startsWith('Computer') ? 'Computer Reservation' : 'Room Reservation'}
                           </div>
+
+                          {/* Time range */}
+                          <div style={{ fontSize: '12px', color: '#6c757d', display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <i className="bi bi-clock" style={{ color: '#92400e', fontSize: '11px' }} />
+                            <span>
+                              <strong style={{ color: '#1a1a1a' }}>
+                                {new Date(res.start_time).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric',
+                                  timeZone: 'America/Chicago',
+                                })}
+                                {' · '}
+                                {new Date(res.start_time).toLocaleTimeString('en-US', {
+                                  hour: '2-digit', minute: '2-digit',
+                                  timeZone: 'America/Chicago', hour12: true,
+                                })}
+                                {' – '}
+                                {new Date(res.end_time).toLocaleTimeString('en-US', {
+                                  hour: '2-digit', minute: '2-digit',
+                                  timeZone: 'America/Chicago', hour12: true,
+                                })}
+                              </strong>
+                            </span>
+                          </div>
+                          
+                          {/* Appears when showCancelWarning is true (trash icon clicked).
+                           Resets to false when user clicks Yes or No.
+                           borderLeft: 4px amber → standard warning stripe pattern. */}
+                           {/* Inline warning — only shows on the card whose trash was clicked */}
+                          {confirmDeleteId === res.id && (
+                            <div
+                              className="d-flex align-items-center gap-2 px-2 py-1 mt-2"
+                              style={{
+                                backgroundColor: '#fff9f0',
+                                border: '1px solid #ffcc80',
+                                borderLeft: '3px solid #f59e0b',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                color: '#8a6d3b',
+                              }}
+                            >
+                              <i className="bi bi-exclamation-triangle-fill" style={{ color: '#f59e0b', fontSize: '11px', flexShrink: 0 }} />
+                              <span>Cancellations cannot be undone — you must rebook if needed.</span>
+                            </div>
+                          )}
+
                         </div>
 
                         {/* RIGHT: Time-away badge — shows how soon the reservation is
@@ -632,15 +655,33 @@ return (
                               bg = 'success';
                             }
 
+                            {/* swapped bootstrap <badge> for the tinted pill style matching the equipment badges 
+                                but blue for tommorrow
+                                - red for now/overdue
+                                - amber for today */}
                             return (
-                              // Bootstrap Badge — color and label both dynamic based on time calculation above
-                              <Badge
-                                bg={bg}
-                                text={bg === 'warning' ? 'dark' : undefined}
-                                style={{ fontSize: '11px' }}
-                              >
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                padding: '3px 10px',
+                                borderRadius: 20,
+                                flexShrink: 0,
+                                backgroundColor:
+                                  bg === 'danger' ? '#fdecea' :
+                                  bg === 'warning' ? '#fff7ed' :
+                                  '#eff6ff',  
+                                color:
+                                  bg === 'danger' ? '#991b1b' :
+                                  bg === 'warning' ? '#92400e' :
+                                  '#1d4ed8',
+                                border: `1px solid ${
+                                  bg === 'danger' ? '#fca5a5' :
+                                  bg === 'warning' ? '#fed7aa' :
+                                  '#bfdbfe'  
+                                }`,
+                              }}>
                                 {label}
-                              </Badge>
+                              </span>
                             );
                           })()}
                         </div>
@@ -664,7 +705,7 @@ return (
                 >
                   <i className="bi bi-calendar2-x" style={{ fontSize: '2rem', color: '#dee2e6' }} />
                   <p className="text-muted mt-2 mb-0" style={{ fontSize: '13px' }}>
-                    You have no upcoming reservations.
+                    You have no upcoming room reservations.
                   </p>
                 </div>
               )}
@@ -704,30 +745,122 @@ return (
                     alignItems: 'center',
                   }}>
                     <div>
-                      <div style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a', marginBottom: '2px' }}>
-                        {item.item_name} · Return due
+                      {/* Item name — clean, no suffix */}
+                      <div style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a', marginBottom: '3px' }}>
+                        {item.item_name}
                       </div>
-                      {/* due_at comes directly from BE Checkout.due_at — authoritative value
-                          toLocaleDateString with America/Chicago keeps displayed date campus-accurate */}
-                      <div style={{ fontSize: '12px', color: '#dc3545' }}>
-                        {new Date(item.due_at).toLocaleDateString('en-US', {
-                          month: 'short', day: 'numeric', year: 'numeric',
-                          timeZone: 'America/Chicago'
-                        })} · Equipment loan
+
+                      {/* Type label */}
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                        Equipment Loan
+                      </div>
+
+                      {/* Due date — clearly labeled */}
+                      <div style={{ fontSize: '12px', color: '#6c757d', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <i className="bi bi-calendar-x" style={{ color: '#dc3545', fontSize: '11px' }} />
+                        <span>Return by{' '}
+                          <strong style={{ color: '#dc3545' }}>
+                            {new Date(item.due_at).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', year: 'numeric',
+                              timeZone: 'America/Chicago'
+                            })}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+                      
+                    {/* bage now uses colored text on a light tinted background
+                        - red tint for overdue 
+                        - amber for due today
+                        - green for due soon */}
+                    {(() => {
+                      const now = new Date();
+                      const due = new Date(item.due_at);
+                      const isOverdue = due < now;
+                      const isDueToday = due.toDateString() === now.toDateString();
+                      return (
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '3px 10px',
+                          borderRadius: 20,
+                          flexShrink: 0,
+                          backgroundColor: isOverdue ? '#fdecea' : isDueToday ? '#fff7ed' : '#f0fdf4',
+                          color: isOverdue ? '#991b1b' : isDueToday ? '#92400e' : '#166534',
+                          border: `1px solid ${isOverdue ? '#fca5a5' : isDueToday ? '#fed7aa' : '#bbf7d0'}`,
+                        }}>
+                          {isOverdue ? '⚠ Overdue' : isDueToday ? 'Due today' : 'Due soon'}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              ))}
+
+              {/* ── WAITLIST ITEMS ─────────────────────────────────────────────
+                  Renders each active waitlist entry as a timeline item.
+                  Purple dot differentiates from orange (room) and amber (equipment).
+              ── */}
+              {(dashboardData as any).waitlist?.map((entry: any) => (
+                <div key={`waitlist-${entry.id}`} style={{ position: 'relative', marginBottom: '14px' }}>
+
+                  {/* Purple dot — distinct from room (orange) and equipment (amber) */}
+                  <div style={{
+                    position: 'absolute',
+                    left: '-24px',
+                    top: '8px',
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    backgroundColor: '#7c3aed',
+                    border: '2px solid #f4f5f7',
+                  }} />
+
+                  {/* Waitlist card */}
+                  <div style={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '10px',
+                    padding: '11px 14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                    <div>
+                      {/* Room name + waitlist label */}
+                      <div style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a', marginBottom: '2px' }}>
+                        {entry.room_name} · Waitlisted
+                      </div>
+
+                      {/* Time slot if available */}
+                      {entry.room_start_time && (
+                        <div style={{ fontSize: '12px', color: '#6c757d' }}>
+                          {formatDateTime(entry.room_start_time)}
+                          {entry.room_end_time && (
+                            <> – {new Date(entry.room_end_time).toLocaleTimeString('en-US', {
+                              hour: '2-digit', minute: '2-digit',
+                              timeZone: 'America/Chicago', hour12: true,
+                            })}</>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Position in queue */}
+                      <div style={{ fontSize: '11px', color: '#7c3aed', marginTop: '3px', fontWeight: 500 }}>
+                        Position {entry.position} of {entry.total} in queue
                       </div>
                     </div>
 
-                    {/* Bootstrap Badge — danger/warning based on due_at vs today */}
+                    {/* Status badge */}
                     <Badge
-                      bg={new Date(item.due_at) < new Date() ? 'danger' : 'warning'}
-                      text="dark"
-                      style={{ fontSize: '11px', flexShrink: 0 }}
+                      style={{
+                        backgroundColor: entry.status === 'notified' ? '#7c3aed' : '#6c757d',
+                        color: '#fff',
+                        fontSize: '11px',
+                        flexShrink: 0,
+                      }}
                     >
-                      {new Date(item.due_at) < new Date()
-                        ? 'Overdue'
-                        : new Date(item.due_at).toDateString() === new Date().toDateString()
-                        ? 'Due today'
-                        : 'Due soon'}
+                      {entry.status === 'notified' ? 'Notified — Book Now' : 'Waitlisted'}
                     </Badge>
                   </div>
                 </div>
@@ -747,37 +880,16 @@ return (
                   backgroundColor: '#dee2e6',
                   border: '2px solid #f4f5f7',
                 }} />
-                <div style={{ fontSize: '12px', color: '#adb5bd', fontStyle: 'italic', paddingLeft: '2px' }}>
-                  Nothing else scheduled
+                 <div style={{ fontSize: '12px', color: '#adb5bd', fontStyle: 'italic', paddingLeft: '2px' }}>
+                    Nothing else scheduled
+                  </div>
                 </div>
-              </div>
+                {/* END timeline container */}
 
-              {/* ── Cancellation warning banner ──────────────────────────────────
-                  Appears when showCancelWarning is true (trash icon clicked).
-                  Resets to false when user clicks Yes or No.
-                  borderLeft: 4px amber → standard warning stripe pattern.
-              ── */}
-              {showCancelWarning && (
-                <div
-                  className="d-flex align-items-center gap-2 px-3 py-2 mt-3"
-                  style={{
-                    backgroundColor: '#fff9f0',
-                    border: '1px solid #ffcc80',
-                    borderLeft: '4px solid #ffcc80',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
-                    color: '#8a6d3b',
-                  }}
-                >
-                  {/* bi-exclamation-triangle-fill — Bootstrap Icon: warning triangle */}
-                  <i className="bi bi-exclamation-triangle-fill text-warning" />
-                  <span>
-                    <strong>Heads up:</strong> Cancellations cannot be undone — you must book again if needed.
-                  </span>
-                </div>
-              )}
-            </div>
-            {/* END timeline container */}
+              </div>
+              {/* END timeline paddingLeft wrapper */}
+
+              
 
             {/* ── Quick action buttons below the timeline ──────────────────────
                 Two side-by-side buttons giving fast access to the two most

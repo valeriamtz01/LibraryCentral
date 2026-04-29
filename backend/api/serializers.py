@@ -103,7 +103,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         overlap = qs.filter(start_time__lt=end, end_time__gt=start).exists()
         if overlap:
             raise serializers.ValidationError(
-                "This room is already reserved for that time range."
+                "This time slot is already reserved for that time range."
             )
 
 
@@ -181,7 +181,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
             if overlap:
                 raise serializers.ValidationError(
-                    "This room is already reserved for that time range."
+                    "This time slot is already reserved for that time range."
                 )
             
             # reminder_notification: 

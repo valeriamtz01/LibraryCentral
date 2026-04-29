@@ -4,10 +4,15 @@ import floor3Img from '../assets/floor3.png';
 
 interface FloorMapProps {
   floor: number;
-  onRoomSelect: (roomName: string) => void; // callback function to notify parent component when a room is selected
+
+  // CCTB: added the resourceType so studyspaces.tsx knows whether a room or computer was clicked
+  // lets the parent open a different modal depending on what was selected
+  onRoomSelect: (roomName: string, resourceType: "room" | "computer") => void; // callback function to notify parent component when a room is selected
 
   statuses: Record<string,string>; // to retrieve mock data representing the current "Live" status of the library, which will be used to dynamically update the appearance of the room hotspots on the map (e.g. green for available, red for occupied, etc.)
 }
+
+
 
 
 const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
@@ -37,7 +42,11 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
         }
     };
 
-    const handleRoomClick = (roomName: string) => {
+    // CCTB: updated handleRoomClick to accept and forware the type
+    // added resourceType parameter - passed from each hotspot's onClick
+    // forwarded directly to the parent via onRoomSelect so studyspaces 
+    // can decide which modal to open (either room or computer booking)
+    const handleRoomClick = (roomName: string, resourceType: "room" | "computer") => {
 
         //setSelectedRoom(roomName);
         // if (statuses[roomName] === "occupied") {
@@ -48,10 +57,10 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
         const status = statuses[roomName] || "available";
 
         if (status === "reserved" || status === "occupied") {
-            alert("This room is currently reserved, but you can reserve it for another time.");
+            alert(`This ${resourceType} is currently reserved, but you can reserve it for another time.`);
         }
 
-        onRoomSelect(roomName); // notify parent component of the selected room
+        onRoomSelect(roomName, resourceType); // notify parent component of the selected room, updated: forward resourceType to parent as well
     };
 
     return (
@@ -76,7 +85,8 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 2.111")} bg-opacity-25`}
                 style={{ top: '19%', left: '66.5%', width: '5.7%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 2.111")}
+                // updated: identifies this as a room
+                onClick={() => handleRoomClick("Room 2.111", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 2.111")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -84,7 +94,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 2.100A")} bg-opacity-25`}
                 style={{ top: '66%', left: '71.5%', width: '3.8%', height: '7.4%' }} 
-                onClick={() => handleRoomClick("Room 2.100A")}
+                onClick={() => handleRoomClick("Room 2.100A", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 2.100A")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -92,7 +102,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 2.100B")} bg-opacity-25`}
                 style={{ top: '66%', left: '75.6%', width: '3.8%', height: '7.4%' }} 
-                onClick={() => handleRoomClick("Room 2.100B")}
+                onClick={() => handleRoomClick("Room 2.100B", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 2.100B")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -100,7 +110,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 2.100C")} bg-opacity-25`}
                 style={{ top: '66%', left: '79.6%', width: '3.8%', height: '7.4%' }} 
-                onClick={() => handleRoomClick("Room 2.100C")}
+                onClick={() => handleRoomClick("Room 2.100C", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 2.100C")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -109,7 +119,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.1")} bg-opacity-25`}
                 style={{ top: '36%', left: '49.9%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.1")}
+                onClick={() => handleRoomClick("Computer 2.1", "computer")} // for every computer hostpot onclick - added "computer" as second arguemnt
                 onMouseEnter={() => setHoveredRoom("Computer 2.1")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -117,7 +127,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.2")} bg-opacity-25`}
                 style={{ top: '36%', left: '52.1%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.2")}
+                onClick={() => handleRoomClick("Computer 2.2", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.2")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -125,7 +135,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.3")} bg-opacity-25`}
                 style={{ top: '36%', left: '54.1%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.3")}
+                onClick={() => handleRoomClick("Computer 2.3", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.3")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -133,7 +143,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.4")} bg-opacity-25`}
                 style={{ top: '36%', left: '60%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.4")}
+                onClick={() => handleRoomClick("Computer 2.4", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.4")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -141,7 +151,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.5")} bg-opacity-25`}
                 style={{ top: '36%', left: '62.1%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.5")}
+                onClick={() => handleRoomClick("Computer 2.5", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.5")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -149,7 +159,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.6")} bg-opacity-25`}
                 style={{ top: '36%', left: '64.1%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.6")}
+                onClick={() => handleRoomClick("Computer 2.6", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.6")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -157,7 +167,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.7")} bg-opacity-25`}
                 style={{ top: '36%', left: '70.4%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.7")}
+                onClick={() => handleRoomClick("Computer 2.7", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.7")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -165,7 +175,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.8")} bg-opacity-25`}
                 style={{ top: '36%', left: '72.4%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.8")}
+                onClick={() => handleRoomClick("Computer 2.8", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.8")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -173,7 +183,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.9")} bg-opacity-25`}
                 style={{ top: '36%', left: '74.5%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.9")}
+                onClick={() => handleRoomClick("Computer 2.9", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.9")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -181,7 +191,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.10")} bg-opacity-25`}
                 style={{ top: '55%', left: '65.6%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.10")}
+                onClick={() => handleRoomClick("Computer 2.10", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.10")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -189,7 +199,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.11")} bg-opacity-25`}
                 style={{ top: '55%', left: '67.7%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.11")}
+                onClick={() => handleRoomClick("Computer 2.11", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.11")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -197,7 +207,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.12")} bg-opacity-25`}
                 style={{ top: '55%', left: '69.8%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.12")}
+                onClick={() => handleRoomClick("Computer 2.12", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.12")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -205,7 +215,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.13")} bg-opacity-25`}
                 style={{ top: '55%', left: '73.4%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.13")}
+                onClick={() => handleRoomClick("Computer 2.13", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.13")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -213,7 +223,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.14")} bg-opacity-25`}
                 style={{ top: '55%', left: '75.5%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.14")}
+                onClick={() => handleRoomClick("Computer 2.14", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.14")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -221,7 +231,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Computer 2.15")} bg-opacity-25`}
                 style={{ top: '55%', left: '77.5%', width: '1.3%', height: '3%' }} 
-                onClick={() => handleRoomClick("Computer 2.15")}
+                onClick={() => handleRoomClick("Computer 2.15", "computer")}
                 onMouseEnter={() => setHoveredRoom("Computer 2.15")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -234,7 +244,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.111A")} bg-opacity-25`}
                 style={{ top: '62%', left: '44.3%', width: '3.6%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.111A")}
+                onClick={() => handleRoomClick("Room 3.111A", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.111A")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -242,7 +252,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.111B")} bg-opacity-25`}
                 style={{ top: '71.7%', left: '45%', width: '3%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.111B")}
+                onClick={() => handleRoomClick("Room 3.111B", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.111B")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -250,7 +260,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.111C")} bg-opacity-25`}
                 style={{ top: '74.5%', left: '41.4%', width: '3.2%', height: '6.2%' }} 
-                onClick={() => handleRoomClick("Room 3.111C")}
+                onClick={() => handleRoomClick("Room 3.111C", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.111C")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -258,7 +268,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.111D")} bg-opacity-25`}
                 style={{ top: '71.7%', left: '37.7%', width: '3.5%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.111D")}
+                onClick={() => handleRoomClick("Room 3.111D", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.111D")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -266,7 +276,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.111E")} bg-opacity-25`}
                 style={{ top: '62%', left: '37.7%', width: '3.6%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.111E")}
+                onClick={() => handleRoomClick("Room 3.111E", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.111E")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -276,7 +286,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.125A")} bg-opacity-25`}
                 style={{ top: '27.8%', left: '55.4%', width: '4.2%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.125A")}
+                onClick={() => handleRoomClick("Room 3.125A", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.125A")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -284,7 +294,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.125B")} bg-opacity-25`}
                 style={{ top: '16%', left: '55.4%', width: '3.3%', height: '11%' }} 
-                onClick={() => handleRoomClick("Room 3.125B")}
+                onClick={() => handleRoomClick("Room 3.125B", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.125B")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -292,7 +302,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.125C")} bg-opacity-25`}
                 style={{ top: '16%', left: '59.1%', width: '3.3%', height: '7%' }} 
-                onClick={() => handleRoomClick("Room 3.125C")}
+                onClick={() => handleRoomClick("Room 3.125C", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.125C")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -300,7 +310,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.125D")} bg-opacity-25`}
                 style={{ top: '16%', left: '63%', width: '3.3%', height: '11%' }} 
-                onClick={() => handleRoomClick("Room 3.125D")}
+                onClick={() => handleRoomClick("Room 3.125D", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.125D")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -308,7 +318,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.125E")} bg-opacity-25`}
                 style={{ top: '27.8%', left: '62.5%', width: '3.8%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.125E")}
+                onClick={() => handleRoomClick("Room 3.125E", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.125E")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -318,7 +328,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.126A")} bg-opacity-25`}
                 style={{ top: '27.8%', left: '66.8%', width: '3.9%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.126A")}
+                onClick={() => handleRoomClick("Room 3.126A", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.126A")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -326,7 +336,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.126B")} bg-opacity-25`}
                 style={{ top: '16%', left: '66.8%', width: '3.3%', height: '11%' }} 
-                onClick={() => handleRoomClick("Room 3.126B")}
+                onClick={() => handleRoomClick("Room 3.126B", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.126B")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -334,7 +344,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.126C")} bg-opacity-25`}
                 style={{ top: '16%', left: '70.5%', width: '3.3%', height: '6.9%' }} 
-                onClick={() => handleRoomClick("Room 3.126C")}
+                onClick={() => handleRoomClick("Room 3.126C", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.126C")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -342,7 +352,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.126D")} bg-opacity-25`}
                 style={{ top: '16%', left: '74.2%', width: '3.7%', height: '11%' }} 
-                onClick={() => handleRoomClick("Room 3.126D")}
+                onClick={() => handleRoomClick("Room 3.126D", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.126D")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -350,7 +360,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.126E")} bg-opacity-25`}
                 style={{ top: '27.8%', left: '73.9%', width: '3.1%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.126E")}
+                onClick={() => handleRoomClick("Room 3.126E", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.126E")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -360,7 +370,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.127A")} bg-opacity-25`}
                 style={{ top: '27.8%', left: '77.2%', width: '2.9%', height: '9%' }} 
-                onClick={() => handleRoomClick("Room 3.127A")}
+                onClick={() => handleRoomClick("Room 3.127A", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.127A")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -368,7 +378,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.127B")} bg-opacity-25`}
                 style={{ top: '16%', left: '78.3%', width: '3.8%', height: '11%' }} 
-                onClick={() => handleRoomClick("Room 3.127B")}
+                onClick={() => handleRoomClick("Room 3.127B", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.127B")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
@@ -376,7 +386,7 @@ const FloorMap = ({ floor, onRoomSelect, statuses }: FloorMapProps) => {
                 <div 
                 className={`room-hotspot position-absolute border ${getRoomStyle("Room 3.127C")} bg-opacity-25`}
                 style={{ top: '16%', left: '82.4%', width: '4.6%', height: '11%' }} 
-                onClick={() => handleRoomClick("Room 3.127C")}
+                onClick={() => handleRoomClick("Room 3.127C", "room")}
                 onMouseEnter={() => setHoveredRoom("Room 3.127C")}
                 onMouseLeave={() => setHoveredRoom(null)}
                 ></div>
