@@ -203,43 +203,59 @@ return (
           backgroundImage: `linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.62)), url(${libraryBg})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center 45%',
-          padding: '22px 28px 24px',
+          //padding: '32px 0 28px',
+          padding: '0',
+          display: 'flex',
+          minHeight: '186px',
+          alignItems: 'center',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Container style={{ maxWidth: 1200 }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '24px',
+              flexWrap: 'wrap',
+            }}>
 
-            {/* LEFT side of hero: label → name → date → stat strip */}
-            <div style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
-              {/* Small all-caps label above the name */}
+              {/* LEFT side of hero: label → name → date */}
               <div style={{
-                fontSize: '10px',
-                color: 'rgba(255,255,255,0.55)',
-                textTransform: 'uppercase',
-                letterSpacing: '.09em',
-                marginBottom: '4px',
+                flex: '1 1 0',
+                minWidth: '260px',
+                textShadow: '0 1px 4px rgba(0,0,0,0.6)',
               }}>
-                Student Dashboard · LC Portal
+                <div style={{
+                  fontSize: '10px',
+                  color: 'rgba(255,255,255,0.55)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '.09em',
+                  marginBottom: '4px',
+                }}>
+                  Student Dashboard · LC Portal
+                </div>
+
+                <div style={{ fontSize: 'clamp(1.9rem, 4vw, 2.8rem)', fontWeight: 700, color: '#fff', marginBottom: '0px', lineHeight: 1.05 }}>
+                  Welcome back, {userName || 'Student'}!
+                </div>
+
+                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '0' }}>
+                  LibraryCentral · UTRGV ·{' '}
+                  {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </div>
               </div>
 
-              {/* Personalized greeting — userName comes from the fetchDashboard useEffect */}
-              <div style={{ fontSize: '22px', fontWeight: 600, color: '#fff', marginBottom: '2px' }}>
-                Welcome back, {userName || 'Student'}!
-              </div>
-
-              {/* Subtitle: branding + today's local date (browser locale, no timezone override needed) */}
-              <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '18px' }}>
-                LibraryCentral · UTRGV ·{' '}
-                {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </div>
-
-              {/* ── Stat strip (inside hero) ──────────────────────────────────
-                  Three live counts pulled from dashboardData state.
-                  Vertical dividers (1px rgba white) visually separate each stat.
-              ── */}
-              <div style={{ display: 'flex', gap: '0', alignItems: 'flex-start' }}>
-
-                {/* Stat 1: active study room reservations */}
+              {/* RIGHT side of hero: stat strip aligned on hero background */}
+              <div style={{
+                flex: '0 0 auto',
+                minWidth: '220px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '18px',
+                paddingTop: '1px',
+              }}>
                 <div style={{ paddingRight: '20px' }}>
-                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px' }}>
+                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '2px' }}>
                     Rooms active
                   </div>
                   <div style={{ fontSize: '28px', fontWeight: 500, color: '#fff', lineHeight: 1 }}>
@@ -247,12 +263,10 @@ return (
                   </div>
                 </div>
 
-                {/* Divider — thin white line between stats */}
-                <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'stretch', marginRight: '20px' }} />
+                <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'stretch' }} />
 
-                {/* Stat 2: active computer reservations */}
                 <div style={{ paddingRight: '20px' }}>
-                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px' }}>
+                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '2px' }}>
                     Computers
                   </div>
                   <div style={{ fontSize: '28px', fontWeight: 500, color: '#fff', lineHeight: 1 }}>
@@ -260,12 +274,10 @@ return (
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'stretch', marginRight: '20px' }} />
+                <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'stretch' }} />
 
-                {/* Stat 3: equipment items currently checked out */}
                 <div>
-                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px' }}>
+                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '2px' }}>
                     Equipment loans
                   </div>
                   <div style={{ fontSize: '28px', fontWeight: 500, color: '#fff', lineHeight: 1 }}>
@@ -274,9 +286,7 @@ return (
                 </div>
               </div>
             </div>
-
-            
-          </div>
+          </Container>
         </div>
         {/* END SECTION 1 — HERO BANNER */}
 
