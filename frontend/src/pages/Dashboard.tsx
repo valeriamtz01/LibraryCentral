@@ -639,7 +639,7 @@ return (
                       {/* Due date — clearly labeled */}
                       <div style={{ fontSize: '12px', color: '#6c757d', display: 'flex', alignItems: 'center', gap: 5 }}>
                         <i className="bi bi-calendar-x" style={{ color: '#dc3545', fontSize: '11px' }} />
-                        <span>Return by{' '}
+                        <span>Due by{' '}
                           <strong style={{ color: '#dc3545' }}>
                             {new Date(item.due_at).toLocaleDateString('en-US', {
                               month: 'short', day: 'numeric', year: 'numeric',
@@ -832,7 +832,7 @@ return (
           {/* ── RIGHT COLUMN: Stacked sidebar cards ──────────────────────────
               Fixed 248px width. Two cards stacked vertically with 12px gap:
                 Card 1 — Notifications
-                Card 2 — LC Assistant (AI placeholder)
+                 Card 2 — Library Clerk (AI placeholder)
               paddingTop: 52px → aligns card tops with the timeline start.
           ── */}
           <div style={{
@@ -860,7 +860,21 @@ return (
               padding: '14px',
             }}>
               <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a' }}>Notifications</div>
+                <div className="d-flex align-items-center" style={{ gap: 10, fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: '#C0421A',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: '0 0 auto',
+                  }}>
+                    <i className="bi bi-bell-fill" style={{ fontSize: 14, color: '#fff' }} />
+                  </div>
+                  Notifications
+                </div>
                 {/* Bootstrap Badge — danger red, only renders when unread count > 0 */}
                 {notifications.length > 0 && (
                   <Badge bg="danger" style={{ fontSize: '10px' }}>{notifications.length}</Badge>
@@ -942,13 +956,19 @@ return (
                 }}>
                   <i className="bi bi-chat-dots-fill" style={{ fontSize: '14px', color: '#fff' }} />
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a' }}>
-                  LC Assistant
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>
+                  Library Clerk
                 </div>
               </div>
 
-              <div style={{ fontSize: '11px', color: '#6c757d', lineHeight: 1.5, marginBottom: '10px' }}>
-                AI-powered help for room/computer bookings and equipment checkouts.
+              <div style={{
+                fontSize: '11px',
+                color: '#6c757d',
+                lineHeight: 1.45,
+                marginBottom: '12px',
+                overflowWrap: 'anywhere',
+              }}>
+                AI-powered help with bookings and equipment.
               </div>
 
               <div style={{ flex: 1, minHeight: 0 }}>

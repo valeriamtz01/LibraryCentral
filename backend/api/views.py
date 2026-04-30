@@ -522,6 +522,9 @@ def join_waitlist(request):
     except Room.DoesNotExist:
         return Response({"error": "Room not found"}, status=404)
 
+    if room.has_monitor:
+        return Response({"error": "Computers cannot be added to the waitlist."}, status=400)
+
     # allow user who cancelled to rejoin waitlist cleanly
     Waitlist.objects.filter(user=user, room=room, status__in=["cancelled", "expired"]).delete()
 

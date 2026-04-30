@@ -268,6 +268,70 @@ def list_my_equipment(*, token: Optional[str] = None, base_url: Optional[str] = 
 
 
 @function_tool
+def check_time_window(
+    *,
+    start_time_iso: str,
+    end_time_iso: str,
+    client_tz: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Validate a requested time window (without needing a specific room).
+
+    Returns:
+        { ok: bool, reason?: str, suggested_slots: [], window?: {start,end} }
+    """
+
+    now = datetime.now(tz=ZoneInfo("America/Chicago"))
+    try:
+        start = _to_chicago(_parse_dt(start_time_iso, default_tz=client_tz))
+        end = _to_chicago(_parse_dt(end_time_iso, default_tz=client_tz))
+    except Exception:
+        return {"ok": False, "reason": "I couldn't read that date/time.", "suggested_slots": []}
+
+    if start < now:
+        alt_start = _maybe_reinterpret_utc_as_local(start_time_iso, client_tz=client_tz, now_ct=now)
+        alt_end = _maybe_reinterpret_utc_as_local(end_time_iso, client_tz=client_tz, now_ct=now)
+        if alt_start and alt_end:
+            start, end = alt_start, alt_end
+
+    if end <= start:
+        return {"ok": False, "reason": "End time must be after the start time.", "suggested_slots": []}
+
+    today = now.date()
+    latest_sunday = today
+    while latest_sunday.weekday() != 6:
+        latest_sunday = latest_sunday.fromordinal(latest_sunday.toordinal() - 1)
+    window_start = latest_sunday
+    window_end = latest_sunday.fromordinal(latest_sunday.toordinal() + 6)
+    if start.date() < window_start or start.date() > window_end:
+        return {
+            "ok": False,
+            "reason": f"That day isn’t available to book yet. Pick a date between {window_start.isoformat()} and {window_end.isoformat()}.",
+            "suggested_slots": [],
+            "window": {"start": window_start.isoformat(), "end": window_end.isoformat()},
+        }
+
+    if start < now:
+        return {"ok": False, "reason": "That time is in the past.", "suggested_slots": []}
+    if start < now + _mins(30):
+        return {"ok": False, "reason": "Reservations must be made at least 30 minutes in advance.", "suggested_slots": []}
+
+    duration_minutes = int((end - start).total_seconds() // 60)
+    if duration_minutes < 30:
+        return {"ok": False, "reason": "Reservations must be at least 30 minutes.", "suggested_slots": []}
+    if duration_minutes > 180:
+        return {"ok": False, "reason": "Reservations can be at most 3 hours.", "suggested_slots": []}
+
+    open_dt, close_dt = _library_open_close(start)
+    last_end = close_dt - _mins(30)
+    if start < open_dt:
+        return {"ok": False, "reason": "That time is before the library opens.", "suggested_slots": []}
+    if end > last_end:
+        return {"ok": False, "reason": "That booking would go too close to closing time.", "suggested_slots": []}
+
+    return {"ok": True, "suggested_slots": []}
+
+
+@function_tool
 def check_item_availability(
     *,
     equipment_item_id: int,
@@ -290,6 +354,38 @@ def check_item_availability(
     if not item:
         return {"ok": False, "reason": "Item not found."}
 
+    category = item.get("category")
+    category_alternatives = [
+        i
+        for i in items
+        if i.get("category") == category
+        and int(i.get("availableQuantity") or 0) > 0
+        and int(i.get("id")) != int(equipment_item_id)
+    ]
+
+    if token:
+        try:
+            checkouts_url = f"{api}/api/checkouts/"
+            checkout_resp = requests.get(checkouts_url, headers=_auth_headers(token), timeout=20)
+            _raise_for_error(checkout_resp)
+            checkouts = checkout_resp.json() if isinstance(checkout_resp.json(), list) else []
+            already_has_one = any(
+                (c.get("returned_at") in (None, "") and int(c.get("item") or 0) == int(equipment_item_id))
+                for c in checkouts
+            )
+            if already_has_one:
+                return {
+                    "ok": False,
+                    "reason": "You can only check out 1 of that item at a time. If you have special circumstances, please ask at the library desk.",
+                    "available": int(item.get("availableQuantity") or 0),
+                    "item": item,
+                    "alternatives": category_alternatives[:5],
+                }
+        except RuntimeError:
+            raise
+        except Exception:
+            pass
+
     available = item.get("availableQuantity")
     try:
         available_int = int(available)
@@ -299,14 +395,7 @@ def check_item_availability(
     if available_int > 0:
         return {"ok": True, "available": available_int, "item": item, "alternatives": []}
 
-    category = item.get("category")
-    alternatives = [
-        i
-        for i in items
-        if i.get("category") == category
-        and int(i.get("availableQuantity") or 0) > 0
-        and int(i.get("id")) != int(equipment_item_id)
-    ]
+    alternatives = category_alternatives
     return {
         "ok": False,
         "available": available_int,
@@ -383,6 +472,20 @@ def check_reservation_feasibility(
         return {"ok": False, "reason": "That booking would go too close to closing time.", "can_waitlist": False, "suggested_slots": []}
 
     api = _normalize_api_base(base_url or _base_url())
+
+    room_is_computer = False
+    try:
+        rooms_url = f"{api}/api/rooms/"
+        rooms_resp = requests.get(rooms_url, headers=_auth_headers(token), timeout=20)
+        _raise_for_error(rooms_resp)
+        rooms = rooms_resp.json() if isinstance(rooms_resp.json(), list) else []
+        room = next((r for r in rooms if int(r.get("id") or 0) == int(room_id)), None)
+        room_is_computer = bool(room and room.get("has_monitor"))
+    except RuntimeError:
+        raise
+    except Exception:
+        room_is_computer = False
+
     schedule_url = f"{api}/api/studyspaces/{room_id}/schedule/?date={start.date().isoformat()}"
     resp = requests.get(schedule_url, headers=_auth_headers(token), timeout=20)
     _raise_for_error(resp)
@@ -407,7 +510,7 @@ def check_reservation_feasibility(
         return {
             "ok": False,
             "reason": "That room is already booked for that time.",
-            "can_waitlist": True,
+            "can_waitlist": (not room_is_computer),
             "suggested_slots": suggested,
         }
 
@@ -561,5 +664,29 @@ def return_equipment(
     if not returned_at_iso:
         returned_at_iso = datetime.now(tz=ZoneInfo("America/Chicago")).isoformat()
     resp = requests.patch(url, headers=_auth_headers(token), json={"returned_at": returned_at_iso}, timeout=20)
+    _raise_for_error(resp)
+    return {"checkout": resp.json()}
+
+
+@function_tool
+def cancel_equipment(
+    *,
+    checkout_id: int,
+    cancelled_at_iso: Optional[str] = None,
+    token: Optional[str] = None,
+    base_url: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Cancel an equipment checkout (student-facing wording).
+
+    Notes:
+        This uses the same API behavior as returning equipment.
+        In the UI/assistant wording, this represents cancelling an equipment checkout.
+    """
+
+    api = _normalize_api_base(base_url or _base_url())
+    url = f"{api}/api/checkouts/{checkout_id}/"
+    if not cancelled_at_iso:
+        cancelled_at_iso = datetime.now(tz=ZoneInfo("America/Chicago")).isoformat()
+    resp = requests.patch(url, headers=_auth_headers(token), json={"returned_at": cancelled_at_iso}, timeout=20)
     _raise_for_error(resp)
     return {"checkout": resp.json()}

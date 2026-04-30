@@ -834,7 +834,7 @@ const EquipmentDetail = () => {
               <strong>{currentEquipment?.name.split(' - ')[0]}</strong> has been successfully checked out.
             </p>
             <p className="text-muted small">
-              Please return it within <strong>{currentEquipment?.loanPeriod}</strong> and handle it responsibly.
+              Please return it in person within <strong>{currentEquipment?.loanPeriod}</strong> and handle it responsibly.
             </p>
           </Modal.Body>
           <Modal.Footer>

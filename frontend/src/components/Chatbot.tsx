@@ -103,7 +103,7 @@ export default function Chatbot({
   const [draft, setDraft] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const omni = useMemo(() => new OmniAgentRpcClient(), []);
   const omniSessionKey = useMemo(() => {
@@ -159,7 +159,7 @@ export default function Chatbot({
           const tool = String(n.params?.tool ?? "");
           if (
             tool === "create_equipment_checkout" ||
-            tool === "return_equipment" ||
+            tool === "cancel_equipment" ||
             tool === "create_room_reservation" ||
             tool === "cancel_reservation"
           ) {
@@ -183,7 +183,7 @@ export default function Chatbot({
           const tool = String(n.params?.tool ?? "");
           if (
             tool === "create_equipment_checkout" ||
-            tool === "return_equipment" ||
+            tool === "cancel_equipment" ||
             tool === "create_room_reservation" ||
             tool === "cancel_reservation"
           ) {
@@ -272,33 +272,35 @@ export default function Chatbot({
         className="lc-chat-list p-2"
         style={{ height: listHeight }}
       >
-        <div className="lc-chat-status">
-          <div className="d-flex align-items-center" style={{ gap: 8 }}>
-            <span className="lc-chat-dot" style={{ background: busy ? "#ffc107" : "#198754" }} />
-            <div className="text-muted" style={{ fontSize: 11 }}>
-              {busy ? "Thinking…" : "Ready"}
+        <div className="lc-chat-topbar">
+          <div className="lc-chat-status">
+            <div className="d-flex align-items-center" style={{ gap: 8 }}>
+              <span className="lc-chat-dot" style={{ background: busy ? "#ffc107" : "#198754" }} />
+              <div className="text-muted" style={{ fontSize: 11 }}>
+                {busy ? "Thinking…" : "Ready"}
+              </div>
             </div>
+            {messages.length > 0 ? (
+              <a
+                role="button"
+                className="lc-chat-clear"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMessages([]);
+                }}
+              >
+                Clear
+              </a>
+            ) : null}
           </div>
-          {messages.length > 0 ? (
-            <a
-              role="button"
-              className="lc-chat-clear"
-              onClick={(e) => {
-                e.preventDefault();
-                setMessages([]);
-              }}
-            >
-              Clear
-            </a>
-          ) : null}
         </div>
 
         {messages.length === 0 ? (
-          <div className="lc-chat-empty" style={{ height: 260 }}>
-            <div className="text-muted" style={{ fontSize: 12, marginBottom: 6 }}>
+          <div className="lc-chat-empty">
+            <div className="text-muted" style={{ fontSize: 12, marginBottom: 10 }}>
               Try an example:
             </div>
-            <div className="d-flex flex-column" style={{ gap: 6, width: "100%" }}>
+            <div className="d-flex flex-column" style={{ gap: 8, width: "100%" }}>
               {examples.map((ex) => (
                 <a
                   key={ex}
@@ -316,50 +318,50 @@ export default function Chatbot({
             </div>
           </div>
         ) : (
-          messages.map((m, idx) => {
-            const isUser = m.role === "user";
-            return (
-              <div key={idx} className={`d-flex ${isUser ? "justify-content-end" : "justify-content-start"}`}>
-                <div style={{ maxWidth: "90%" }}>
-                  <div
-                    className={`lc-chat-bubble ${isUser ? "lc-chat-bubble-user" : "lc-chat-bubble-assistant"}`}
-                  >
-                    {m.content}
+          <>
+            {messages.map((m, idx) => {
+              const isUser = m.role === "user";
+              return (
+                <div key={idx} className={`lc-chat-row ${isUser ? "lc-chat-row-user" : "lc-chat-row-assistant"}`}>
+                  <div style={{ maxWidth: "88%" }}>
+                    <div className={`lc-chat-bubble ${isUser ? "lc-chat-bubble-user" : "lc-chat-bubble-assistant"}`}>
+                      {m.content}
+                    </div>
+                    <div className={`text-muted ${isUser ? "text-end" : "text-start"} lc-chat-meta`}>
+                      {fmtTime(m.ts)}
+                    </div>
                   </div>
-                  <div
-                    className={`text-muted ${isUser ? "text-end" : "text-start"}`}
-                    style={{ fontSize: 10, marginTop: 2 }}
-                  >
-                    {fmtTime(m.ts)}
+                </div>
+              );
+            })}
+            {busy ? (
+              <div className="lc-chat-row lc-chat-row-assistant">
+                <div style={{ maxWidth: "88%" }}>
+                  <div className="lc-chat-bubble lc-chat-bubble-assistant">
+                    <span className="lc-chat-typing">
+                      <Spinner animation="border" size="sm" /> Thinking…
+                    </span>
                   </div>
                 </div>
               </div>
-            );
-          })
+            ) : null}
+          </>
         )}
       </div>
 
-      {busy ? (
-        <div className="d-flex align-items-center" style={{ gap: 8 }}>
-          <Spinner animation="border" size="sm" />
-          <div className="text-muted" style={{ fontSize: 12 }}>
-            Thinking…
-          </div>
-        </div>
-      ) : null}
-
-      <div className="d-flex" style={{ gap: 6 }}>
-        <input
+      <div className="lc-chat-composer">
+        <textarea
           ref={inputRef}
           className="form-control lc-chat-input"
           value={draft}
-          placeholder="Ask to reserve/cancel a room or computer"
+          placeholder="How can I help you?"
           disabled={busy}
+          rows={1}
           onChange={(e) => {
             setDraft(e.target.value);
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               const text = draft;
               setDraft("");
@@ -377,7 +379,9 @@ export default function Chatbot({
             void send(text);
           }}
         >
-          Send
+          <span className="d-inline-flex align-items-center" style={{ gap: 8 }}>
+            Send <i className="bi bi-send-fill" />
+          </span>
         </Button>
       </div>
     </div>

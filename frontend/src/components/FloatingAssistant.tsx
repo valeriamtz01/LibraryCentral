@@ -33,7 +33,7 @@ export default function FloatingAssistant({ onMutation }: { onMutation?: () => v
 
   if (!token) return null;
 
-  const description = "AI-powered help for room/computer bookings and equipment checkouts.";
+  const description = "AI-powered help with bookings and equipment.";
 
   return (
     <div style={{ position: "fixed", right: 18, bottom: 18, zIndex: 1050 }}>
@@ -63,7 +63,7 @@ export default function FloatingAssistant({ onMutation }: { onMutation?: () => v
           >
             <i className="bi bi-chat-dots-fill" style={{ fontSize: 12, lineHeight: "12px" }} />
           </span>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>LC Assistant</span>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>Library Clerk</span>
         </Button>
       ) : (
         <div
@@ -88,7 +88,7 @@ export default function FloatingAssistant({ onMutation }: { onMutation?: () => v
                 <i className="bi bi-chat-dots-fill" style={{ fontSize: 14, lineHeight: "14px" }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, lineHeight: "16px" }}>LC Assistant</div>
+                <div style={{ fontSize: 14, fontWeight: 700, lineHeight: "16px" }}>Library Clerk</div>
                 <div className="text-muted" style={{ fontSize: 11, lineHeight: "14px" }}>
                   {description}
                 </div>

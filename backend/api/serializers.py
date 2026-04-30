@@ -279,6 +279,13 @@ class CheckoutSerializer(serializers.ModelSerializer):
         if not item_type:
             return attrs
 
+        request = self.context.get("request")
+        current_user = request.user if request else None
+        if current_user and Checkout.objects.filter(user=current_user, item=item_type, returned_at__isnull=True).exists():
+            raise serializers.ValidationError(
+                "You can only check out 1 of that item at a time. If you have special circumstances, please ask at the library desk."
+            )
+
         # check that at least one asset is available for this item type
         available_assets = EquipmentAsset.objects.filter(
             equipment_item=item_type,
