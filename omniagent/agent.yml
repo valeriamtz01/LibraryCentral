@@ -1,11 +1,13 @@
 name: Library Assistant
 model: gpt-5.2
-welcome_text: "Hi! I can reserve/cancel study spaces and checkout/return equipment."
+welcome_text: "Hi! I can reserve/cancel rooms or computers, and checkout/return equipment."
 instructions_file: instructions.md
 tools:
   - library_login
   - list_rooms
+  - list_study_spaces
   - list_my_reservations
+  - list_my_computer_reservations
   - list_my_equipment
   - check_item_availability
   - check_reservation_feasibility

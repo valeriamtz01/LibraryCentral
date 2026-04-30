@@ -42,6 +42,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
     #added - read only fiels so fe gets the room name string with the room id without a second api call
     room_name = serializers.CharField(source = "room.name", read_only = True)
+    room_has_monitor = serializers.BooleanField(source="room.has_monitor", read_only=True)
 
     class Meta:
         model = Reservation
@@ -50,6 +51,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             "user",
             "room",
             "room_name",   # read-only, comes from source="room.name"
+            "room_has_monitor",
             "start_time",
             "end_time",
             "status",

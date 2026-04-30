@@ -1718,7 +1718,7 @@ return (
                 </p>
 
                 <div className="ss-avail-pill">
-                  UTRGV Library · Edinburg Campus
+                  UTRGV Library · Study Spaces
                 </div>
 
               

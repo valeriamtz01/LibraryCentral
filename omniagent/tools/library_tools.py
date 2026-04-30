@@ -188,20 +188,61 @@ def list_my_reservations(*, token: Optional[str] = None, base_url: Optional[str]
 
     api = _normalize_api_base(base_url or _base_url())
 
-    feasibility = check_reservation_feasibility(
-        room_id=room_id,
-        start_time_iso=start_time_iso,
-        end_time_iso=end_time_iso,
-        token=token,
-        base_url=api,
-    )
-    if not feasibility.get("ok"):
-        raise RuntimeError(str(feasibility.get("reason") or "That time can’t be booked."))
-
     url = f"{api}/api/reservations/"
     resp = requests.get(url, headers=_auth_headers(token), timeout=20)
     _raise_for_error(resp)
     return {"reservations": resp.json()}
+
+
+@function_tool
+def list_study_spaces(
+    *,
+    kind: Optional[str] = None,
+    token: Optional[str] = None,
+    base_url: Optional[str] = None,
+) -> Dict[str, Any]:
+    """List study spaces (rooms and computers).
+
+    Notes:
+        In this system, a “computer” is stored as a Room with has_monitor=true.
+
+    Args:
+        kind: Optional filter: "rooms" (no monitor) or "computers" (has monitor).
+        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        base_url: API base URL (optional).
+    """
+
+    api = _normalize_api_base(base_url or _base_url())
+    url = f"{api}/api/rooms/"
+    resp = requests.get(url, headers=_auth_headers(token), timeout=20)
+    _raise_for_error(resp)
+    rooms = resp.json() if isinstance(resp.json(), list) else []
+
+    normalized = (kind or "").strip().lower()
+    if normalized in {"room", "rooms"}:
+        rooms = [r for r in rooms if not bool(r.get("has_monitor"))]
+    elif normalized in {"computer", "computers", "pcs", "workstations"}:
+        rooms = [r for r in rooms if bool(r.get("has_monitor"))]
+
+    return {"rooms": rooms}
+
+
+@function_tool
+def list_my_computer_reservations(*, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
+    """List the current user's reservations that are computers.
+
+    Notes:
+        A “computer” is stored as a room with has_monitor=true.
+    """
+
+    api = _normalize_api_base(base_url or _base_url())
+    url = f"{api}/api/reservations/"
+    resp = requests.get(url, headers=_auth_headers(token), timeout=20)
+    _raise_for_error(resp)
+    reservations = resp.json() if isinstance(resp.json(), list) else []
+
+    computers = [r for r in reservations if bool(r.get("room_has_monitor"))]
+    return {"reservations": computers}
 
 
 @function_tool
