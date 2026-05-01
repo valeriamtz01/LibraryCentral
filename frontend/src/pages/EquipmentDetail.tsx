@@ -46,6 +46,8 @@ const EquipmentDetail = () => {
   const [acceptedGuidelines, setAcceptedGuidelines] = useState(false); // checkbox for agreeing to rules
   const [showSuccess, setShowSuccess] = useState(false); // shows successful modal after checkout
 
+  // added an error state for the new rule : 1 per-equipment-type
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   // IMPO - these data has been added to the seed file so it can be added to the database, can delete once reviewed
   /*  Equipment data - hard-coded subject to change(?)
@@ -328,9 +330,14 @@ const EquipmentDetail = () => {
       setShowConfirmation(false);
       setShowSuccess(true);
       setAcceptedGuidelines(false);
+    // updated: for 1-per-equipment-tuype
     } catch (error: any) {
       console.error('Checkout failed:', error.response?.data || error.message);
-      alert(`Checkout failed: ${JSON.stringify(error.response?.data || 'Server error')}`);
+      const msg =
+        error.response?.data?.non_field_errors?.[0] ||
+        error.response?.data?.detail ||
+        'Checkout failed. Please try again.';
+      setCheckoutError(msg);
     }
   };
 
@@ -777,7 +784,8 @@ const EquipmentDetail = () => {
         </main>
 
         {/* ── Checkout Guidelines Modal (unchanged logic) ── */}
-        <Modal show={showConfirmation} onHide={() => setShowConfirmation(false)} centered>
+        {/* added setCheckoutError to clear the error when the modal closes for 1-per-equipment-type */}
+        <Modal show={showConfirmation} onHide={() => { setShowConfirmation(false); setCheckoutError(null); }} centered>
           <Modal.Header closeButton>
             <Modal.Title>Equipment Checkout Guidelines</Modal.Title>
           </Modal.Header>
@@ -801,6 +809,28 @@ const EquipmentDetail = () => {
               <li>UTRGV credentials are required for login and use of laptops and tablets.</li>
               <li>UTRGV Information Resources Acceptable Use and Security Policy applies.</li>
             </ul>
+            
+            {/* added to show the error inside the confirmation modal above the checkbow for the 1-per-equipment-type */}
+            {checkoutError && (
+              <div style={{
+                backgroundColor: '#fdecea',
+                border: '1px solid #f5c6cb',
+                borderLeft: '3px solid #dc2626',
+                borderRadius: '8px',
+                padding: '12px 14px',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                fontSize: '13px',
+                color: '#7f1d1d',
+              }}>
+                <i className="bi bi-exclamation-circle-fill" style={{ color: '#dc2626', flexShrink: 0, marginTop: '1px' }} />
+                {checkoutError}
+              </div>
+            )}
+
+
             <Form.Check
               type="checkbox"
               id="accept-guidelines"
@@ -810,7 +840,8 @@ const EquipmentDetail = () => {
             />
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowConfirmation(false)}>Back</Button>
+            {/* added the back button for the 1-per-equipment-type */}
+            <Button variant="secondary" onClick={() => { setShowConfirmation(false); setCheckoutError(null); }}>Back</Button>
             <Button
               disabled={!acceptedGuidelines}
               onClick={handleConfirmCheckout}

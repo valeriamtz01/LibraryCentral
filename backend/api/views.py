@@ -1,5 +1,5 @@
 from django.contrib.auth import authenticate  # checks username/password against Django auth system
-
+from django.db import models # need to import since acitivty_history function uses models.Q for the OR filter
 from rest_framework.response import Response  # return JSON responses
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework import viewsets, status
@@ -937,4 +937,270 @@ def room_schedule(request, room_id):
         "booked": booked,
         "held": held,
         "waitlisted": waitlisted,
+    })
+
+
+#copy and pasted dashboard summar for profile summary
+#return what dashboard expects
+#aggregates active study space reservations (rooms & computers) and equipment loans for the logged in user
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def profile_summary(request):
+    """
+    {
+        "activeRooms": int,        # active room reservations
+        "activeComputers": int,    # active computer reservations
+        "equipmentLoans": int,     # currently checked out items
+        "reservations": [...],     # optional: upcoming reservations
+        "equipment": [...]         # optional: currently checked out equipment
+    }
+
+    what happens: 
+        1. this is the "Data Aggregator." It pulls from three different tables (Reservation, Room, Checkout) and merges them into one JSON response.
+        2. reduces network "waterfalling" (react making 5 separate calls).
+
+    """
+
+
+    user = request.user
+    now = timezone.now()
+
+     # active room reservations => fetching future-active reservations
+    upcoming_reservations = Reservation.objects.filter(
+        user=user,
+        status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
+        end_time__gte=timezone.now()  # still future or ongoing
+    ).select_related("room") # optimizing: joins the room table to prevent n+1 queries
+
+    # segmenting spaces => so our logic defines computer as a room with a room montior
+    activeRooms = upcoming_reservations.filter(room__has_monitor=False).count()
+    activeComputers = upcoming_reservations.filter(room__has_monitor=True).count()
+
+    # equipment loans 
+    # active loans: => only items where 'returned_at' is null
+    equipment_loans_qs = Checkout.objects.filter(user=user, returned_at__isnull = True)
+    equipmentLoans = equipment_loans_qs.count()
+
+    # added: uses the serializer here instead of the manual list
+    # will use the get_item_name() logic automatically
+    equipment_data = CheckoutSerializer(equipment_loans_qs, many=True).data
+
+    #including details for the lists groups
+    #manually building the lists to ensure the keys ('room_name' and 'item_name) match what dashboard.tsx expects for easy rendering
+    reservations = [
+        {
+            "id": r.id,
+            "room": r.room.id,
+            "room_name": r.room.name,
+            "start_time": r.start_time,
+            "end_time": r.end_time,
+            "status": r.status,
+        }
+        for r in upcoming_reservations
+    ]
+
+    equipment = [
+        {
+            "id": c.id,
+            "asset_tag": c.assigned_asset.asset_tag,
+            "loan_period": c.item.loan_period, 
+            # notes contain text, so extract a clean name else use the type name
+            #.split('\n')[0]: grabs the first line (just in case there are multiple lines of notes).
+            # .split('-')[0]: splits that line into a list based on the dash and grabs the first part (e.g., "DVDs").
+            # .strip(): cleans up any leftover accidental spaces around the word.
+            "item_name": c.item.name,          
+            "checked_out_at": c.checked_out_at,
+            "due_at": c.due_at,
+            "status": c.assigned_asset.status
+        }
+        for c in equipment_loans_qs
+    ]
+
+
+   
+
+    return Response({
+        "activeRooms": activeRooms,
+        "activeComputers": activeComputers,
+        "equipmentLoans": equipmentLoans,
+        "reservations": reservations,
+        "equipment": equipment,
+        "user_name": user.get_full_name() or user.username, # added this line to be able to fetch username
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+    })
+
+#plus these three new API endpoint functions to save when a student clicks edit
+#and either types a new name or changes their password
+
+#update_profile: lets a logged in student update their own name and email address
+#patch = partially updating something that already exists 
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated]) 
+def update_profile(request):
+ 
+    user = request.user
+ 
+    first_name = request.data.get("first_name")
+    last_name  = request.data.get("last_name")
+    email      = request.data.get("email")
+ 
+    # onkly update the fields that were actually provided 
+
+    if first_name is not None:
+        user.first_name = first_name
+        # This changes the value on the Python object in memory.
+        # The database has NOT been updated yet — that happens with user.save()
+ 
+    if last_name is not None:
+        user.last_name = last_name
+ 
+    if email is not None:
+        user.email    = email
+        user.username = email
+
+ 
+    user.save()
+
+    return Response({"message": "Profile updated successfully"}, status=status.HTTP_200_OK)
+
+ 
+#change_password: endpoint that lets a logged in student securely change their own password
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+ 
+    user = request.user
+ 
+    #read the two passwords the frontend sent 
+    # Profile.tsx's savePw() function sends:
+    #   { "current_password": "oldpass123", "new_password": "newpass456" }
+    # need both: the current one to verify identity, the new one to set.
+ 
+    current_password = request.data.get("current_password")
+    new_password     = request.data.get("new_password")
+ 
+    if not current_password or not new_password:
+        # if  either field is missing or empty, we stop immediately
+        return Response(
+            {"error": "current_password and new_password are required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+ 
+    # verify the current password is actually correct 
+    if not user.check_password(current_password):
+        # check_password() is a built-in Django method on every User object, works by hashing the string you give it using the
+        # exact same algorithm and salt that was used when the password was
+        # originally set, then comparing the two hashes
+        
+        # if the check fails (student mistyped their current password):
+        return Response(
+            {"error": "Current password is incorrect"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+ 
+    # set the new one if current password correct
+    user.set_password(new_password)
+    # set_password() is another built-in Django method
+
+    # set_password() does several things automatically:
+    #   1. Generates a new random salt (makes every stored hash unique)
+    #   2. Hashes the new password securely using Django's algorithm
+    #   3. Stores the hash (not the raw password) on user.password
+    #
+  
+    user.save()
+
+    # writes the new hashed password permanently to the database.
+    return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
+
+#activity_history: the api endpoint that returns the full history of a user's past activity (room + computer reservation and equipment)
+ 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def activity_history(request):
+ 
+    user = request.user
+    now  = timezone.now()
+ 
+    # 1.) the past room reservations 
+    # in here, "past" means the reservation end_time has already passed OR the
+    # reservation was cancelled
+    # select_related("room") does a SQL JOIN so we get room.name and
+    # room.has_monitor without firing extra queries per row
+    past_reservations = Reservation.objects.filter(
+        user=user,
+    ).filter(
+        # either the time slot is over, or it was  cancelled
+        models.Q(end_time__lt=now) | models.Q(status=Reservation.STATUS_CANCELLED)
+    ).select_related("room").order_by("-start_time")
+    # order_by("-start_time") = newest first (the minus sign means descending)
+ 
+    # now build the list by tagging each entry with a "type" field so the fe
+    # knows which icon and color to use when rendering the activity feed
+    room_history = []
+    for r in past_reservations:
+        # determine whether this room is a study room or a computer station
+        # remember: data model uses has_monitor=True to flag computer stations
+        if r.room.has_monitor:
+            activity_type = "computer"
+            label         = "Computer Reservation"
+        else:
+            activity_type = "room"
+            label         = "Room Reservation"
+ 
+        # map the raw status value to a human-readable display string
+        if r.status == Reservation.STATUS_CANCELLED:
+            display_status = "Cancelled"
+        elif r.end_time < now:
+            display_status = "Completed"
+        else:
+            display_status = r.status.capitalize()
+ 
+        room_history.append({
+            "type":         activity_type,  # "room" or "computer" — used for icon on FE
+            "label":        label,
+            "description":  r.room.name,    # ex "Study Room 2.100A"
+            "date":         r.start_time.isoformat(),   # ISO string, FE formats it
+            "end_date":     r.end_time.isoformat(),
+            "status":       display_status, # "Completed" or "Cancelled"
+        })
+ 
+    # 2,) Returned equipment checkouts 
+    # "returned" means returned_at is not null (which i guess would mean the staff marked it back in)
+    # active loans (returned_at is null) already show in the profile summary
+    # section, and only want the ones that are done.
+ 
+    returned_checkouts = Checkout.objects.filter(
+        user=user,
+        returned_at__isnull=False,  # only items that have been returned
+    ).select_related("item", "assigned_asset").order_by("-returned_at")
+    # select_related("item") joins the EquipmentItem table so we get item.name
+    # select_related("assigned_asset") joins EquipmentAsset for the asset tag
+ 
+    checkout_history = []
+    for c in returned_checkouts:
+        checkout_history.append({
+            "type":        "equipment",         # used for icon on FE
+            "label":       "Equipment Checkout",
+            "description": c.item.name,         # ex " Camera"
+            "date":        c.checked_out_at.isoformat(),  # when they borrowed it
+            "end_date":    c.returned_at.isoformat(),     # when they returned it
+            "status":      "Returned",
+        })
+ 
+    # 3.) merge and sort everything together 
+    # combines both lists into one unified activity feed
+    all_activity = room_history + checkout_history
+ 
+    # sort the combined list by date descending (newest activity at the top)
+    # also sort on "date" which is the ISO string of when the activity started
+    all_activity.sort(key=lambda x: x["date"], reverse=True)
+ 
+    return Response({
+        "history": all_activity,
+        "total":   len(all_activity),  # handy for the FE to show a count badge
     })

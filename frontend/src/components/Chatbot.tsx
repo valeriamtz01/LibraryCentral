@@ -269,7 +269,7 @@ export default function Chatbot({
     <div className="lc-chat">
       <div
         ref={listRef}
-        className="lc-chat-list p-2"
+        className="lc-chat-list" // removed p2 so theres no padding for 'ready'
         style={{ height: listHeight }}
       >
         <div className="lc-chat-topbar">

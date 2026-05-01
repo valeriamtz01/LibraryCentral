@@ -44,7 +44,8 @@ const StudentHeader = () => {
 
   return (
     <Navbar fixed="top" expand="lg" className="student-navbar shadow-sm">
-      <Container>
+      {/* added the same style to container that studyspaces and equipment use so that 'LC Portal' begins aligns with the content */} 
+      <Container style={{ maxWidth: 1200}}>
         <Navbar.Brand as={Link} to="/dashboard" className="fw-bold">
           LC <span style={{ opacity: 0.8 }}>Portal</span>
         </Navbar.Brand>

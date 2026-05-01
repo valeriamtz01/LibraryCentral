@@ -149,14 +149,20 @@ function buildTimeOptionsForDate(
 ): { startTimes: string[]; endTimes: string[] } {
   if (!dateYYYYMMDD) return { startTimes: [], endTimes: [] };
 
+  // new: if the selected date is fully in the past, return no times at all
+  // -> compare calendar dates only (strip time) so yesertday retuns emprt regardless of what time it currently is
+  const todayStr = todayInTimeZone(UTRGV_TIME_ZONE);
+  if (dateYYYYMMDD < todayStr) {
+    return { startTimes: [], endTimes: [] };
+  }
+
   const dow = new Date(`${dateYYYYMMDD}T00:00:00`).getDay();
   const hours = HOURS_BY_DOW[dow];
   const openM = hhmmToMinutes(hours.open);
   const closeM = hhmmToMinutes(hours.close);
 
   // check if selected date is today in Central Time
-  const todayStr = todayInTimeZone(UTRGV_TIME_ZONE);
-  const isToday = dateYYYYMMDD === todayStr;
+  const isToday = dateYYYYMMDD === todayStr; 
 
   // if today, calculate the minimum start time (now + 30 mins) in Central Time minutes
   let minStartM = openM;
@@ -1700,8 +1706,9 @@ return (
         @keyframes ssFade { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
-      <div className="ss-page" style={{ paddingTop: "56px", minHeight: "100vh" }}>
-        <StudentHeader />
+    <div style={{ paddingTop: "56px", minHeight: "100vh" }}>
+      <StudentHeader />
+        <div className="ss-page"> {/* moved he position of ss-page so that now it wraps everything except the studentheader and footer , making the header equal to the other pages */}
 
         {/* ═══════════════════════════════════════════════════════════════
             HERO — Terracotta strip with title + live pill + floor toggle
@@ -1712,14 +1719,15 @@ return (
 
               {/* Title block */}
               <div>
-                <h1 className="ss-serif ss-hero-title">Study Spaces</h1>
+                {/* added the style thing from the dashboard to make it have the same text font */}
+                <h1 className="ss-hero-title" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Study Spaces</h1> {/* same class as dashboard header text */}
                 <p className="ss-hero-sub">
                   Click any hotspot on the map to view room details and reserve your space.
                 </p>
 
-                <div className="ss-avail-pill">
+                {/* <div className="ss-avail-pill">
                   UTRGV Library · Study Spaces
-                </div>
+                </div> */}
 
               
                 
@@ -2481,7 +2489,8 @@ return (
             </div>
           </div>
         </Modal>
-
+        
+        </div>
         <Footer />
       </div>
     </>
