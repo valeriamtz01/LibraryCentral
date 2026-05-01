@@ -244,11 +244,9 @@ class ReservationViewSet(viewsets.ModelViewSet):
     #updated
     def get_queryset(self):
         user = self.request.user
-        print(f"DEBUG: user={user.email}, user.id={user.id}, is_staff={user.is_staff}")  # ADD
         if user.is_staff:
             return Reservation.objects.all()
         qs = Reservation.objects.filter(user=user)
-        print(f"DEBUG: queryset ids={list(qs.values_list('id', flat=True))}")  # ADD
         return qs
     
     #added for waitlist queue

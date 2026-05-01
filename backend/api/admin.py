@@ -16,9 +16,8 @@ class CampusAdmin(admin.ModelAdmin):
     search_fields = ("code", "name") #search by in the admin search bar
 
     def get_queryset(self, request):
-        # names match exactly what seed.py stores: "Edinburg Campus" and "Brownsville Campus"
         return super().get_queryset(request).filter(
-            name__in=["Edinburg Campus", "Brownsville Campus"]
+            name__in=["Edinburg Campus"]
         )
     
 #room admin
@@ -154,5 +153,4 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ["id", "user", "room", "message", "is_read", "created_at"]
     list_filter = ["is_read"]
     search_fields = ["user__email", "message"]
-
 

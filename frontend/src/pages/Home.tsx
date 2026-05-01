@@ -17,7 +17,7 @@ const Home = () => {
               <Col md={10} lg={8}>
                 <h1 className="display-3 fw-bold mb-3">Library Central</h1>
                 <p className="lead mb-5 px-md-5">
-                  The unified hub for your campus life. Manage study room reservations, 
+                  For the UTRGV Main Campus Library (Edinburg). Manage study room reservations,
                   track equipment checkouts, and view your student dashboard.
                 </p>
                 <div className="d-flex gap-3 justify-content-center">
