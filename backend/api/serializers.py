@@ -333,15 +333,17 @@ class CheckoutSerializer(serializers.ModelSerializer):
 
             # now, check if the student already has any active checkout (returned_at is null)
             # where the checked-out item belongs to the same category
-            already_has_category = Checkout.objects.filter(
+            # update: actually we will now check only if user has already 1 of that item checked out, not just the category, to allow more flexible checkouts
+            
+            already_has_item = Checkout.objects.filter(
                 user=current_user,
                 returned_at__isnull=True,                          # still out on loan
-                item__equipment_type__category=requested_category  # same category
+                item=item_type  # same item
             ).exists()
-            if already_has_category:
+            if already_has_item:
                 raise serializers.ValidationError(
-                    f"You already have a '{requested_category}' item checked out. "
-                    f"Please return it before checking out another item in the same category."
+                    f"You already have a '{item_type.name}' item checked out. "
+                    f"Please return it before checking out another item."
                 )
             
         # check that at least one asset is available for this item type
