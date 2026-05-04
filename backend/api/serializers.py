@@ -342,8 +342,8 @@ class CheckoutSerializer(serializers.ModelSerializer):
             ).exists()
             if already_has_item:
                 raise serializers.ValidationError(
-                    f"You already have a '{item_type.name}' item checked out. "
-                    f"Please return it before checking out another item."
+                "You already have this item checked out. "
+                "Please return it before checking out another of the same item."
                 )
             
         # check that at least one asset is available for this item type

@@ -247,7 +247,19 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 CSRF_TRUSTED_ORIGINS = [
     "https://*.app.github.dev",
+    "https://localhost:8000",
+    "https://127.0.0.1:8000",
 ]
+
+# Codespaces uses an HTTPS reverse proxy in front of the Django server.
+# Without these settings, Django may treat requests as insecure and reject
+# admin logins with CSRF/Forbidden errors.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
+if os.getenv("CODESPACES") == "true":
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
 # Add this import + settings right here (below CSRF_TRUSTED_ORIGINS)
 from corsheaders.defaults import default_headers, default_methods
 
