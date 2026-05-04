@@ -9,7 +9,7 @@ Library Central is a full-stack web application designed to streamline the stude
 * __Inventory Tracking:__ Searchable inventory for books, laptops, calculators, and other media equipment.
 * __Staff Admin Portal:__ A secure backend for library staff to manage inventory and overrides.
 * __Automated Notifications:__ SMS and email alerts for reservation confirmations and overdue items.
-* __AI-Powered LC Assistant:__ Chat-based assistant to book/cancel study spaces, manage equipment checkouts/returns, and join waitlists.
+* __AI-Powered Library Clerk:__ Chat-based assistant to book/cancel study spaces, manage equipment checkouts/cancellations (physical returns are in-person), and join waitlists.
 
 ---
 
@@ -70,7 +70,7 @@ In new terminal with Backend still running...
 
 ---
 
-### 3. OmniAgent-powered LC Assistant
+### 3. OmniAgent-powered Library Clerk
 Run the OmniAgents RPC server (separate terminal):
 
 Note: Prior to running the terminal, follow the instructions located in the *'frontend/.env.example'* and *'omniagent/.env.example'*  files.
@@ -84,6 +84,9 @@ Note: Prior to running the terminal, follow the instructions located in the *'fr
 
     #install dependencies
     pip install -r requirements.txt
+
+    # If you see "workspace_root is required" errors in Codespaces,
+    # ensure you're using the pinned OmniAgents version from requirements.txt.
 
     #start server and leave running in the terminal
     omniagents run --mode server --config agent.yml --host 127.0.0.1 --port 9000 --approvals skip

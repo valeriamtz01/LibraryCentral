@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Container, Row, Col, Button, ButtonGroup, Card } from "react-bootstrap";
+import { Container, Row, Col, Button } from "react-bootstrap";
 import StudentHeader from "../components/StudentHeader";
 import Footer from "../components/Footer";
 import FloorMap from "../components/FloorMap";
@@ -35,13 +35,6 @@ type StatusesResponse = {
   }>;
   statuses: Record<string, string>; // { "Room 2.111": "occupied" | "available" }
 };
-
- // added this type for improved ui
- type RoomDetail = ActiveRoom & {
-   capacity?: number; accessible?: boolean; has_whiteboard?: boolean;
-   has_monitor?: boolean; has_power?: boolean; location_text?: string;
- };
-
 
 // ===== UTRGV Library slot rules (Spring 2026) =====
 const UTRGV_TIME_ZONE = "America/Chicago"; // Central Time
@@ -97,23 +90,6 @@ function todayInTimeZone(timeZone: string): string {
 }
 
 /**
- * Build N date options starting from today (in Central Time).
- */
-function buildDateOptions(daysAhead: number, timeZone: string): string[] {
-  const start = new Date(`${todayInTimeZone(timeZone)}T00:00:00`);
-  const out: string[] = [];
-  for (let i = 0; i < daysAhead; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    out.push(`${y}-${m}-${day}`);
-  }
-  return out;
-}
-
-/**
  * Build start & end time options for a given date string (YYYY-MM-DD),
  * respecting UTRGV hours for that day-of-week.
  *
@@ -149,14 +125,20 @@ function buildTimeOptionsForDate(
 ): { startTimes: string[]; endTimes: string[] } {
   if (!dateYYYYMMDD) return { startTimes: [], endTimes: [] };
 
+  // new: if the selected date is fully in the past, return no times at all
+  // -> compare calendar dates only (strip time) so yesertday retuns emprt regardless of what time it currently is
+  const todayStr = todayInTimeZone(UTRGV_TIME_ZONE);
+  if (dateYYYYMMDD < todayStr) {
+    return { startTimes: [], endTimes: [] };
+  }
+
   const dow = new Date(`${dateYYYYMMDD}T00:00:00`).getDay();
   const hours = HOURS_BY_DOW[dow];
   const openM = hhmmToMinutes(hours.open);
   const closeM = hhmmToMinutes(hours.close);
 
   // check if selected date is today in Central Time
-  const todayStr = todayInTimeZone(UTRGV_TIME_ZONE);
-  const isToday = dateYYYYMMDD === todayStr;
+  const isToday = dateYYYYMMDD === todayStr; 
 
   // if today, calculate the minimum start time (now + 30 mins) in Central Time minutes
   let minStartM = openM;
@@ -1441,6 +1423,7 @@ return (
         }
         .ss-hero-title {
           font-size: clamp(1.9rem, 4vw, 2.8rem);
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
           font-weight: 700; color: #fff; line-height: 1.05; margin: 0;
         }
         .ss-hero-sub {
@@ -1460,26 +1443,30 @@ return (
 
         /* ── Floor toggle ── */
         .ss-floor-toggle {
-          display: flex;
-          background: #f1f5f9;
-          border-radius: 9px; padding: 3px;
-          border: 1px solid #e2e8f0;
+          display: inline-flex;
+          background: rgba(255,255,255,.14);
+          border: 1px solid rgba(255,255,255,.26);
+          border-radius: 999px;
+          padding: 6px;
+          gap: 6px;
           flex-shrink: 0;
+          box-shadow: 0 10px 24px rgba(0,0,0,.10);
         }
         .ss-floor-btn {
           background: transparent; border: none;
-          color: #64748b;
-          padding: 8px 20px; border-radius: 7px;
+          color: rgba(255,255,255,.82);
+          padding: 10px 16px; border-radius: 999px;
           font-size: 0.82rem; font-weight: 600;
           letter-spacing: 0.03em; cursor: pointer;
           transition: all .18s ease;
         }
         .ss-floor-btn.active {
-          background: #92400e; color: #fff8ee;
-          box-shadow: 0 2px 8px rgba(0,0,0,.12);
+          background: rgba(255,255,255,.92);
+          color: var(--terra);
         }
         .ss-floor-btn:hover:not(.active) {
-          background: #e2e8f0; color: #334155;
+          background: rgba(255,255,255,.18);
+          color: #fff;
         }
 
         /* ── Map section — card-style white surface like dashboard panels ── */
@@ -1698,10 +1685,26 @@ return (
         /* Fade-in */
         .ss-fade { animation: ssFade .3s ease both; }
         @keyframes ssFade { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+        @media (max-width: 991px) {
+          .ss-map-section { padding: 18px; border-radius: 16px; }
+          .ss-info-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 575px) {
+          .ss-hero { padding: 26px 0 22px; }
+          .ss-floor-btn { padding: 10px 14px; }
+          .ss-map-label { font-size: 0.7rem; }
+          .ss-info-row { grid-template-columns: 1fr; padding-bottom: 26px; }
+          .ss-policy-head { padding: 22px 18px 18px; }
+          .ss-policy-head::after { right: 16px; font-size: 4.2rem; }
+          .ss-policy-body { padding: 20px 18px 22px; }
+        }
       `}</style>
 
-      <div className="ss-page" style={{ paddingTop: "56px", minHeight: "100vh" }}>
-        <StudentHeader />
+    <div style={{ paddingTop: "56px", minHeight: "100vh" }}>
+      <StudentHeader />
+        <div className="ss-page"> {/* moved he position of ss-page so that now it wraps everything except the studentheader and footer , making the header equal to the other pages */}
 
         {/* ═══════════════════════════════════════════════════════════════
             HERO — Terracotta strip with title + live pill + floor toggle
@@ -1712,14 +1715,15 @@ return (
 
               {/* Title block */}
               <div>
-                <h1 className="ss-serif ss-hero-title">Study Spaces</h1>
+                {/* added the style thing from the dashboard to make it have the same text font */}
+                <h1 className="ss-hero-title">Study Spaces</h1> {/* same class as dashboard header text */}
                 <p className="ss-hero-sub">
                   Click any hotspot on the map to view room details and reserve your space.
                 </p>
 
-                <div className="ss-avail-pill">
+                {/* <div className="ss-avail-pill">
                   UTRGV Library · Study Spaces
-                </div>
+                </div> */}
 
               
                 
@@ -1927,7 +1931,7 @@ return (
                 {activePolicyTab === "bookings" && (
                   <div className="ss-fade">
                     <p>You must confirm your study room reservation by clicking the confirmation link sent to your <strong>UTRGV email account</strong>. Study rooms may be reserved:</p>
-                    <h6>In Edinburg</h6>
+						<h6>UTRGV Main Campus (Edinburg)</h6>
                     <ol>
                       <li>For individual study or group study. Please check room capacity — seating capacity cannot be exceeded.</li>
                       <li>In one (1) hour increments.</li>
@@ -1947,7 +1951,7 @@ return (
                   <ul className="ss-fade">
                     <li>Each study room is equipped with a whiteboard or glass board.</li>
                     <li>Do <strong>NOT USE</strong> outside markers on the boards.</li>
-                    <li>Markers and supplies are available for checkout at the Library and Research Services Desk in Brownsville and at the closest service desk in Edinburg. Be prepared to present your UTRGV ID.</li>
+						<li>Markers and supplies are available for checkout at the closest service desk. Be prepared to present your UTRGV ID.</li>
                     <li>If utilized, please erase the board before leaving.</li>
                   </ul>
                 )}
@@ -2481,7 +2485,8 @@ return (
             </div>
           </div>
         </Modal>
-
+        
+        </div>
         <Footer />
       </div>
     </>

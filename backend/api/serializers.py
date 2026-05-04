@@ -4,7 +4,7 @@ from rest_framework import serializers
 from .models import Campus, Room, Reservation, EquipmentItem, Checkout, EquipmentAsset, WaitlistHold
 from datetime import timedelta
 from api.notifications import maybe_send_reservation_reminder, maybe_send_checkout_reminder # new: for email notifications
-
+from zoneinfo import ZoneInfo # used in the error message formatting 
 ADVANCE_MINUTES = 30 # defined once at module level: this is for the room booking logic
 
 class CampusSerializer(serializers.ModelSerializer):
@@ -91,6 +91,47 @@ class ReservationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f"Rooms must be booked at least {ADVANCE_MINUTES} minutes in advance."
             )
+        
+        # new: 1-reservation-per-overlapping-time rule
+        # -> a student cannot hold any reservation (room/computer), that overlaps the requested time window
+        # this query checks all rooms, not jsut the one being booked
+        # logic: an overlap exists when exisitng.start < new.end AND exisiting.end > new.start
+        request = self.context.get("request")
+        current_user = request.user if request else None
+
+        if current_user:
+            user_overlap = Reservation.objects.filter(
+                user=current_user,                      # only this student's reservations
+                status__in=[
+                    Reservation.STATUS_PENDING,
+                    Reservation.STATUS_CONFIRMED,
+                ],                                      # ignore cancelled ones
+                start_time__lt=end,                     # existing starts before new ends
+                end_time__gt=start,                     # existing ends after new starts
+            )
+
+            # if updating an existing reservation, exclude itself so editing doesn't
+            # block itself (like changing end time of an existing booking)
+            if self.instance:
+                user_overlap = user_overlap.exclude(id=self.instance.id)
+
+            if user_overlap.exists():
+                conflicting = user_overlap.first()
+                # format the conflicting reservation's times for the error message
+                # convert UTC to Central Time for display
+                start_ct = conflicting.start_time.astimezone(ZoneInfo("America/Chicago"))
+                end_ct   = conflicting.end_time.astimezone(ZoneInfo("America/Chicago"))
+                time_str = (
+                    f"{start_ct.strftime('%B %d, %Y')} from "
+                    f"{start_ct.strftime('%I:%M %p')} to "
+                    f"{end_ct.strftime('%I:%M %p')} CT"
+                )
+                raise serializers.ValidationError(
+                    f"You already have a reservation for {time_str} "
+                    f"({conflicting.room.name}). "
+                    f"Please cancel that reservation or choose a different time."
+                )
+            
 
         # Overlap logic:
         # An overlap exists when:
@@ -107,6 +148,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "This time slot is already reserved for that time range."
             )
+        
 
 
         # waitlisthold blocks this window
@@ -279,6 +321,31 @@ class CheckoutSerializer(serializers.ModelSerializer):
         if not item_type:
             return attrs
 
+        request = self.context.get("request")
+        current_user = request.user if request else None
+        
+        if current_user: 
+            # new: 1-per-category rule:
+            # -> get the category of the item being requested 
+            # item_type.equipment_type is the equipmenttype foreign key
+            # .category is the charfield on the equipment tyoe like 'media'
+            requested_category = item_type.equipment_type.category
+
+            # now, check if the student already has any active checkout (returned_at is null)
+            # where the checked-out item belongs to the same category
+            # update: actually we will now check only if user has already 1 of that item checked out, not just the category, to allow more flexible checkouts
+            
+            already_has_item = Checkout.objects.filter(
+                user=current_user,
+                returned_at__isnull=True,                          # still out on loan
+                item=item_type  # same item
+            ).exists()
+            if already_has_item:
+                raise serializers.ValidationError(
+                "You already have this item checked out. "
+                "Please return it before checking out another of the same item."
+                )
+            
         # check that at least one asset is available for this item type
         available_assets = EquipmentAsset.objects.filter(
             equipment_item=item_type,

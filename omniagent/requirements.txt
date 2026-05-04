@@ -1,5 +1,6 @@
 --extra-index-url https://pypi.fury.io/ericmichael/
 
-omniagents[all]>=0.6.31
+omniagents[all]==0.6.44
 python-dotenv
 requests
+

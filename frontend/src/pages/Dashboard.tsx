@@ -8,7 +8,7 @@ import Chatbot from '../components/Chatbot';
 import { api } from '../api';  // added to import centrailized axios instance for be calls
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import libraryBg from '../assets/background-image.jpg';
-
+import './Dashboard.css';
 
 const Dashboard = () => {
   const navigate = useNavigate(); // react-router-dom hook for navigation to other pages using buttons from the dashboard  
@@ -50,7 +50,10 @@ const Dashboard = () => {
     }
     catch (error) {
       console.error("Dashboard fetch failed: ", error);
+    } finally {
+      setLoading(false);
     }
+
   }, []);
 
   useEffect(() => {
@@ -97,11 +100,15 @@ const Dashboard = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   
+
   // add a state to track the global warning - will control whether the bottom warning is visible 
   const [showCancelWarning, setShowCancelWarning] = useState(false);
 
   // add username to state
   const [userName, setUserName] = useState("");
+
+  // added loading state
+  const [loading, setLoading] = useState(true);
 
   // helper function for data formatting: 
   // be iso strings (2026-01-02T14:00:00Z) aren't user friendly
@@ -186,6 +193,14 @@ return (
       className="d-flex flex-column min-vh-100"
       style={{ paddingTop: '56px', backgroundColor: '#f4f5f7' }}
     >
+
+      {/* <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 0.4; }
+          50%       { opacity: 0.9; }
+        }
+      `}</style> */}
+
       {/* StudentHeader — fixed navbar with LC Portal branding + nav links */}
       <StudentHeader />
 
@@ -203,6 +218,7 @@ return (
           backgroundImage: `linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.62)), url(${libraryBg})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center 45%',
+          backgroundColor: '#1a1a1a',
           //padding: '32px 0 28px',
           padding: '0',
           display: 'flex',
@@ -210,50 +226,41 @@ return (
           alignItems: 'center',
         }}>
           <Container style={{ maxWidth: 1200 }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '24px',
-              flexWrap: 'wrap',
-            }}>
+            <div className="db-hero-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+
 
               {/* LEFT side of hero: label → name → date */}
-              <div style={{
-                flex: '1 1 0',
-                minWidth: '260px',
-                textShadow: '0 1px 4px rgba(0,0,0,0.6)',
-              }}>
-                <div style={{
-                  fontSize: '10px',
-                  color: 'rgba(255,255,255,0.55)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '.09em',
-                  marginBottom: '4px',
-                }}>
-                  Student Dashboard · LC Portal
-                </div>
+              <div className="db-hero-left" style={{ flex: '1 1 0', minWidth: '260px', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
 
-                <div style={{ fontSize: 'clamp(1.9rem, 4vw, 2.8rem)', fontWeight: 700, color: '#fff', marginBottom: '0px', lineHeight: 1.05 }}>
+                
+                {/* userName starts as an empty string: so react renders 'welcome back, student' then the fetchdashboard completes */}
+                {/* <div style={{ fontSize: 'clamp(1.9rem, 2.5vw, 2.8rem)', fontWeight: 700, color: '#fff', marginBottom: '8px', lineHeight: 1.05 }}>
                   Welcome back, {userName || 'Student'}!
+                </div> */}
+
+                {/* this code doesn't show the welcome line at all until theh name is ready, replacing the fallback above with a suble loading shimmer instead */}
+                {/* <div style={{ fontSize: 'clamp(1.9rem, 2.5vw, 2.8rem)', fontWeight: 700, color: '#fff', marginBottom: '6px', lineHeight: 1.05 }}>
+                  {userName ? (
+                    `Welcome back, ${userName}!`
+                  ) : (
+                    <span className="db-shimmer" />
+                  )}
+                </div> */}
+
+                {/* div stays empty and holds its height until data is ready then teh text appearly cleanly  */}
+                <div style={{ fontSize: 'clamp(1.9rem, 2.5vw, 2.8rem)', fontWeight: 700, color: '#fff', marginBottom: '6px', lineHeight: 1.05 }}>
+                  {loading ? <span style={{ opacity: 0 }}>W</span> : `Welcome back, ${userName}!`}
                 </div>
 
                 <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '0' }}>
-                  LibraryCentral · UTRGV ·{' '}
+                  LibraryCentral ·{' '}
                   {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </div>
               </div>
 
               {/* RIGHT side of hero: stat strip aligned on hero background */}
-              <div style={{
-                flex: '0 0 auto',
-                minWidth: '220px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: '18px',
-                paddingTop: '1px',
-              }}>
+              <div className="db-stat-strip" style={{ flex: '0 0 auto', minWidth: '220px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '18px', paddingTop: '1px' }}>
+
                 <div style={{ paddingRight: '20px' }}>
                   <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '2px' }}>
                     Rooms active
@@ -263,7 +270,8 @@ return (
                   </div>
                 </div>
 
-                <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'stretch' }} />
+                <div className="db-stat-divider" style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'stretch' }} />
+
 
                 <div style={{ paddingRight: '20px' }}>
                   <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '2px' }}>
@@ -274,7 +282,7 @@ return (
                   </div>
                 </div>
 
-                <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'stretch' }} />
+                <div className="db-stat-divider" style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.25)', alignSelf: 'stretch' }} />
 
                 <div>
                   <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '2px' }}>
@@ -296,14 +304,15 @@ return (
             LEFT:  flex 1.1  — takes most of the space — timeline of activity
             RIGHT: 248px fixed — stacked cards (notifications, AI agent)
         ════════════════════════════════════════════════════════════════════ */}
-        <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <div className="db-body-row" style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+
 
           {/* ── LEFT COLUMN: Upcoming Activity Timeline ─────────────────────
               Vertical timeline that lists reservations + equipment due dates
               in chronological order. Each item = a colored dot + a card.
               A continuous vertical line (2px, #e9ecef) connects all dots.
           ── */}
-          <div style={{
+          <div className="db-left-col" style={{
             flex: '1 1 0',
             minWidth: 0,
             padding: '20px 20px 20px 24px',
@@ -639,7 +648,7 @@ return (
                       {/* Due date — clearly labeled */}
                       <div style={{ fontSize: '12px', color: '#6c757d', display: 'flex', alignItems: 'center', gap: 5 }}>
                         <i className="bi bi-calendar-x" style={{ color: '#dc3545', fontSize: '11px' }} />
-                        <span>Return by{' '}
+                        <span>Due by{' '}
                           <strong style={{ color: '#dc3545' }}>
                             {new Date(item.due_at).toLocaleDateString('en-US', {
                               month: 'short', day: 'numeric', year: 'numeric',
@@ -710,7 +719,7 @@ return (
                     <div>
                       {/* Room name + waitlist label */}
                       <div style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a', marginBottom: '2px' }}>
-                        {entry.room_name} · Waitlisted
+                        {entry.room_name} 
                       </div>
 
                       {/* Time slot if available */}
@@ -832,10 +841,10 @@ return (
           {/* ── RIGHT COLUMN: Stacked sidebar cards ──────────────────────────
               Fixed 248px width. Two cards stacked vertically with 12px gap:
                 Card 1 — Notifications
-                Card 2 — LC Assistant (AI placeholder)
+                 Card 2 — Library Clerk (AI placeholder)
               paddingTop: 52px → aligns card tops with the timeline start.
           ── */}
-          <div style={{
+          <div className="db-right-col" style={{
             width: '360px',
             flexShrink: 0,
             padding: '20px 14px',
@@ -860,7 +869,21 @@ return (
               padding: '14px',
             }}>
               <div className="d-flex justify-content-between align-items-center" style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a' }}>Notifications</div>
+                <div className="d-flex align-items-center" style={{ gap: 10, fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: '#C0421A',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: '0 0 auto',
+                  }}>
+                    <i className="bi bi-bell-fill" style={{ fontSize: 14, color: '#fff' }} />
+                  </div>
+                  Notifications
+                </div>
                 {/* Bootstrap Badge — danger red, only renders when unread count > 0 */}
                 {notifications.length > 0 && (
                   <Badge bg="danger" style={{ fontSize: '10px' }}>{notifications.length}</Badge>
@@ -920,15 +943,9 @@ return (
             </div>
             {/* END CARD 1: Notifications */}
 
-            <div style={{
-              backgroundColor: '#fff',
-              border: '1px solid #e9ecef',
-              borderRadius: '10px',
-              padding: '14px',
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
+            {/* removed flex: 1 and replaced with height:420 to not make the ai box strecth to fill the raming space in css*/}
+            <div className="db-ai-card">
+
               <div className="d-flex align-items-center" style={{ gap: '10px', marginBottom: '8px' }}>
                 <div style={{
                   width: '32px',
@@ -942,13 +959,19 @@ return (
                 }}>
                   <i className="bi bi-chat-dots-fill" style={{ fontSize: '14px', color: '#fff' }} />
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a' }}>
-                  LC Assistant
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>
+                  Library Clerk
                 </div>
               </div>
 
-              <div style={{ fontSize: '11px', color: '#6c757d', lineHeight: 1.5, marginBottom: '10px' }}>
-                AI-powered help for room/computer bookings and equipment checkouts.
+              <div style={{
+                fontSize: '11px',
+                color: '#6c757d',
+                lineHeight: 1.45,
+                marginBottom: '0',
+                overflowWrap: 'anywhere',
+              }}>
+                AI-powered help with bookings and equipment.
               </div>
 
               <div style={{ flex: 1, minHeight: 0 }}>

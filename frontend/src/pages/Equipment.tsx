@@ -377,13 +377,13 @@ return (
   // paddingTop → clears the fixed StudentHeader navbar (56px tall)
   // backgroundColor → matches dashboard page background (#f4f5f7 light gray)
   <div
-    className="d-flex flex-column min-vh-100 ss-page"
+    className="d-flex flex-column min-vh-100" // removed 'ss-page' for equal header 
     style={{ paddingTop: '56px', backgroundColor: '#f4f5f7' }}
   >
     {/* StudentHeader — fixed navbar, identical to dashboard */}
     <StudentHeader />
 
-    <main className="flex-grow-1">
+    <main className="flex-grow-1 ss-page"> {/* moved 'ss-page' to the main tag instead for equal header */}
 
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 1 — PAGE HEADER BANNER
@@ -400,13 +400,14 @@ return (
         <Container style={{ maxWidth: 1200 }}>
           <div className="ss-hero-inner">
             <div>
-              <h1 className="ss-serif ss-hero-title">Equipment Inventory</h1>
+              {/* added the style thing from the dashboard to make it have the same text font */}
+              <h1 className="ss-hero-title" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Equipment Inventory</h1> {/* same class as dashboard header text*/}
               <p className="ss-hero-sub">
                 Browse available library equipment, reserve items, and view live availability.
               </p>
-              <div className="ss-avail-pill">
+              {/* <div className="ss-avail-pill">
                 UTRGV Library · Equipment Checkout
-              </div>
+              </div> */}
             </div>
 
             <button

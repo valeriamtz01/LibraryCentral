@@ -9,6 +9,7 @@ import StudySpaces from "./pages/StudySpaces"; // study spaces page for students
 import Equipment from "./pages/Equipment"; // equipment page for students to view inventory and checkout equipment
 import EquipmentDetail from "./pages/EquipmentDetail"; // equipment detail page for viewing specific equipment information
 import FloatingAssistant from "./components/FloatingAssistant";
+import Profile from "./pages/Profile"; // adding the /profile route
 
 function AppShell() {
   const location = useLocation();
@@ -28,6 +29,7 @@ function AppShell() {
           <Route path="/study-spaces" element={<StudySpaces />} />
           <Route path="/equipment" element={<Equipment />} />
           <Route path="/equipment/:id" element={<EquipmentDetail />} />
+          <Route path="/profile" element={<Profile />} /> 
         </Routes>
       </main>
       {shouldShowFloatingAssistant ? <FloatingAssistant /> : null}

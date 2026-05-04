@@ -1,0 +1,178 @@
+/* ***********************
+   Dashboard.css — mobile-responsive overrides 
+   
+   ddashboard uses inline styles for desktop layout
+   this file adds class-based hooks and media queries to override the inline styles at mobile breakpoints.
+   
+   these are the bootstrap 5 breakpoints:
+     ≤767px    =>  mobile:  single column, stacked layout
+    768–991px => tablet:  sidebar narrows to 260px
+     ≥992px    => desktop: original two-column layout (no overrides needed)
+***************************  */
+
+
+/*  PULSE ANIMATION (used by shimmer span in hero)  */
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.9; }
+}
+
+
+/*  HERO: left text block  */
+.db-hero-left {
+  flex: 1 1 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/*  HERO: shimmer bar  */
+.db-shimmer {
+  display: inline-block;
+  width: 280px;
+  height: 1em;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+/*  HERO: stat strip (right side of hero)  */
+.db-stat-strip {
+  flex: 0 0 auto;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  padding-top: 1px;
+}
+
+/*  HERO: vertical dividers between the three stat numbers  */
+.db-stat-divider {
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.25);
+  align-self: stretch;
+}
+
+/*  BODY: outer flex row holding timeline (left) + sidebar (right)  */
+.db-body-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/*  LEFT column: activity timeline  */
+.db-left-col {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 20px 20px 20px 24px;
+  border-right: 1px solid #e9ecef;
+  background-color: #f4f5f7;
+}
+
+/*  RIGHT column: notifications card + AI card  */
+.db-right-col {
+  width: 360px;
+  flex-shrink: 0;
+  padding: 20px 14px;
+  padding-top: 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #f4f5f7;
+}
+
+/*  AI card: fixed height desktop, auto on mobile  */
+.db-ai-card {
+  background-color: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 14px;
+  height: 505px;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* 
+   TABLET (768px–991px)
+   keep two-column layout but shrink the sidebar so the timeline gets more room
+ */
+@media (min-width: 768px) and (max-width: 991px) {
+  .db-right-col {
+    width: 260px;
+    padding-top: 20px;
+  }
+}
+
+
+/* 
+   MOBILE (≤767px)
+   collapsce to single column, timeline on top, sidebar cards below
+ */
+@media (max-width: 767px) {
+
+  /*  Hero inner row: stack name block above stat strip  */
+  .db-hero-inner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0 !important;
+  }
+
+  /*  Hero left block: stretch to full width  */
+  .db-hero-left {
+    width: 100%;
+    min-width: unset;
+  }
+
+  /*  Shimmer: max 60% of screen width, prevents overflow  */
+  .db-shimmer {
+    width: 60vw;
+    max-width: 240px;
+  }
+
+  /*  Stat strip: full-width row below the welcome text  */
+  .db-stat-strip {
+    width: 100%;
+    min-width: unset;
+    justify-content: space-between;
+    gap: 0;
+    padding-top: 14px;
+    margin-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  /*  Each stat block: centered, equal thirds  */
+  .db-stat-strip > div {
+    flex: 1;
+    text-align: center;
+    padding-right: 0 !important;
+  }
+
+  /*  Dividers between stats: hidden on mobile (too cramped)  */
+  .db-stat-divider {
+    display: none;
+  }
+
+  /*  Body row: stack columns vertically  */
+  .db-body-row {
+    flex-direction: column;
+  }
+
+  /*  Left column: no right border when sidebar is below, not beside  */
+  .db-left-col {
+    border-right: none;
+    padding: 16px 14px 16px 16px;
+  }
+
+  /*  Right column: full width, remove fixed width + top padding  */
+  .db-right-col {
+    width: 100%;
+    flex-shrink: 1;
+    padding: 0 14px 24px;
+  }
+
+  /*  AI card: drop fixed height so it doesn't overflow on small screens  */
+  .db-ai-card {
+    height: auto !important;
+    min-height: 380px;
+  }
+}

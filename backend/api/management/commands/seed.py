@@ -24,9 +24,6 @@ class Command(BaseCommand):
         edinburg, _ = Campus.objects.get_or_create(code="E-UTRGV", defaults={"name": "Edinburg Campus"})
         self.stdout.write(self.style.SUCCESS(f"Campus ensured: {edinburg}"))
 
-        brownsville, _ = Campus.objects.get_or_create(code="B-UTRGV", defaults={"name": "Brownsville Campus"})
-        self.stdout.write(self.style.SUCCESS(f"Campus ensured: {brownsville}"))
-
         # --- creating equipment types ---
         types_to_create = ["Media", "Electronics", "Accessories", "Supplies"]
         type_map = {t: EquipmentType.objects.get_or_create(name=t, defaults={"category": t})[0] for t in types_to_create}

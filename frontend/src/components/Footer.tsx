@@ -19,11 +19,16 @@ const Footer = () => {
               <li className="list-inline-item me-4">
                 <a href="https://github.com/Alondra371/library" className="text-white-50 small">Github</a>
               </li>
-              <li className="list-inline-item me-4">
+              {/* <li className="list-inline-item me-4">
                 <a href="#" className="text-white-50 small">Resources</a>
               </li>
               <li className="list-inline-item">
                 <a href="#" className="text-white-50 small">Contact Us</a>
+              </li> */}
+              
+              {/* update resources href and deletes the contact us list item */}
+              <li className="list-inline-item me-4">
+                <a href="https://www.utrgv.edu/library/about-us/contact-us/index.htm" target="_blank" rel="noreferrer" className="text-white-50 small">Resources</a>
               </li>
             </ul>
           </Col>

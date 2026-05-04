@@ -16,7 +16,12 @@ from .views import (
     decline_waitlist,
     remove_waitlist,
     room_schedule,
+    profile_summary,
+    update_profile,
+    change_password,
+    activity_history,
 )
+
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter() #default router automatically creates REST URLs for viewsets
@@ -39,6 +44,11 @@ urlpatterns = [
     path("notifications/", get_notifications),
     path("notifications/mark-read/", mark_notifications_read),
     path("studyspaces/<int:room_id>/schedule/", room_schedule),
+    path("user/profile-summary/", profile_summary), #summary for dashboard (updates)
+    path("user/profile/", update_profile),
+    path("auth/change-password/", change_password),
+    path("user/activity-history/", activity_history),
+
         
     path("", include(router.urls)), #include all router-generated urls
 ]
