@@ -376,10 +376,10 @@ def check_item_availability(
             if already_has_one:
                 return {
                     "ok": False,
-                    "reason": "You can only check out 1 of that item at a time.",
+                    "reason": "You can only check out 1 of that item at a time. If you have special circumstances, please ask at the library desk.",
                     "available": int(item.get("availableQuantity") or 0),
                     "item": item,
-                    "alternatives": [],
+                    "alternatives": category_alternatives[:5],
                 }
         except RuntimeError:
             raise

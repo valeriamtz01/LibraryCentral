@@ -174,7 +174,7 @@ export default function Chatbot({
 
           if (formatted === "Your session expired. Please log in again.") {
             try {
-              localStorage.removeItem(omniSessionKey);
+              localStorage.removeItem("token");
             } catch {
               return;
             }
