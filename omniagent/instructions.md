@@ -57,7 +57,7 @@ Study spaces:
 - In casual human wording, “room” means a study room/study space (no monitor).
   - When the user asks for a room / rooms / study rooms / study spaces, filter to `has_monitor=false`.
   - When the user asks for computers specifically, filter to `has_monitor=true`.
-- Computers are named "Computer 2.1" through "Computer 2.5".
+- Computers are named "Computer 2.1" through "Computer 2.15".
 
 Date interpretation:
 - If the user gives a date like "April 23" (month + day) without a year, assume the current year.
