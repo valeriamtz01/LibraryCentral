@@ -219,6 +219,11 @@ class Checkout(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="checkouts") # links checkout to user
     item = models.ForeignKey(EquipmentItem, on_delete=models.PROTECT, related_name="checkouts") #fe chooses this
 
+    # adding for the canceled items in profile history
+    # gives every checkout record a flag to track whether it ended because a student cancelled it or because staff marked it returned. 
+    # The default is False so all existing and new checkouts start as not cancelled.
+    is_cancelled = models.BooleanField(default=False) # exisiting/new checkout start as not cancelled
+
     assigned_asset = models.ForeignKey(
         EquipmentAsset,
         on_delete=models.SET_NULL,

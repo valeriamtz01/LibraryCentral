@@ -280,7 +280,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
             #capture who is cancelling
             cancelled_by = locked.user 
 
-            locked.delete()
+            #new: set status to cancelled instead of deleting
+            #so it will say reservation cancelled not completed (if clicking trash icon)
+            locked.status = Reservation.STATUS_CANCELLED
+            locked.save(update_fields=["status"])
 
             #notify and create hold(non blocking for ui response)
             # runs inside the transactions so that the waitlist hold row is created atomically with the deletion
@@ -388,13 +391,32 @@ class CheckoutViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+
+    # automatically set is_cancelled = True when a non-staff user (student) sets returned_at for the first time
+    # Staff setting returned_at through the admin portal goes through Django Admin's save_model() path, not perform_update, 
+    # so is_cancelled stays False
     def perform_update(self, serializer):
-        checkout = serializer.save()
+        # is_cancelled = True only when:
+        # 1. the user is a student (not staff)
+        # 2. returned_at is being set for the first time (was null before)
+        was_returned = serializer.instance.returned_at is not None
+        is_setting_returned = serializer.validated_data.get("returned_at") is not None
+
+        is_student_cancelling = (
+            not self.request.user.is_staff and
+            not was_returned and      # wasn't already returned
+            is_setting_returned       # is now being set
+        )
+
+        checkout = serializer.save(
+            is_cancelled=True if is_student_cancelling else serializer.instance.is_cancelled
+        )
         asset = checkout.assigned_asset
 
         if checkout.returned_at and asset:
             asset.status = EquipmentAsset.STATUS_AVAILABLE
             asset.save(update_fields=["status"])
+
 
             # asset.equipment_item.update_available_quantity()
         
@@ -1187,7 +1209,7 @@ def activity_history(request):
             "description": c.item.name,         # ex " Camera"
             "date":        c.checked_out_at.isoformat(),  # when they borrowed it
             "end_date":    c.returned_at.isoformat(),     # when they returned it
-            "status":      "Returned",
+            "status":      "Cancelled" if c.is_cancelled else "Returned" # asking a cancelled status 
         })
  
     # 3.) merge and sort everything together 

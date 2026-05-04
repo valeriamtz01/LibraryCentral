@@ -310,6 +310,7 @@ class CheckoutSerializer(serializers.ModelSerializer):
             'is_returned',
             "reminder_phone_number",  # NEW: optional SMS number for equipment reminders
             "reminder_sent_at",       # NEW: read-only tracking to avoid duplicate reminders
+            "is_cancelled", # added for cancelled status
         ]
         read_only_fields = ["checked_out_at", "assigned_asset", "due_at", "reminder_sent_at"]
 
