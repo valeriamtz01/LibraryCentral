@@ -7,6 +7,7 @@ tools:
   - list_rooms
   - list_study_spaces
   - list_my_reservations
+  - list_my_room_reservations
   - list_my_computer_reservations
   - list_my_equipment
   - check_time_window
