@@ -85,6 +85,9 @@ Note: Prior to running the terminal, follow the instructions located in the *'fr
     #install dependencies
     pip install -r requirements.txt
 
+    # If you see "workspace_root is required" errors in Codespaces,
+    # ensure you're using the pinned OmniAgents version from requirements.txt.
+
     #start server and leave running in the terminal
     omniagents run --mode server --config agent.yml --host 127.0.0.1 --port 9000 --approvals skip
 
