@@ -246,8 +246,14 @@ class ReservationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_staff:
             return Reservation.objects.all()
-        qs = Reservation.objects.filter(user=user)
-        return qs
+        #new: only return active upcoming reservation to the student (this is what is gonna be passed ot the agent)
+        #fitlers out: canceled reservations, and reservations whose end_time has already passed 
+        return Reservation.objects.filter(
+            user=user,
+            status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
+            end_time__gte=timezone.now(),
+        )
+        #this new changes allows a reservation to come back if it is not cancelled and still in the future 
     
     #added for waitlist queue
     #overrides the default delete behavior so that when a reservation is cancelled
