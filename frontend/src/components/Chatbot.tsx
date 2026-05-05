@@ -104,6 +104,7 @@ export default function Chatbot({
   const [busy, setBusy] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const runActiveRef = useRef(false);
 
   const omni = useMemo(() => new OmniAgentRpcClient(), []);
   const omniSessionKey = useMemo(() => {
@@ -140,6 +141,13 @@ export default function Chatbot({
       const browserNowIso = new Date().toISOString();
 
       await omni.connect((n) => {
+        if (
+          !runActiveRef.current &&
+          (n.method === "message_output" || n.method === "tool_called" || n.method === "tool_result")
+        ) {
+          return;
+        }
+
           if (n.method === "message_output") {
             const content = String(n.params?.content ?? "");
             if (!assistantAdded) {
@@ -209,6 +217,7 @@ export default function Chatbot({
 
         if (n.method === "run_end") {
           const errMsg = n.params?.error?.message ? String(n.params.error.message) : null;
+          runActiveRef.current = false;
           if (!assistantAdded) {
             setMessages((prev) => [
               ...prev,
@@ -236,11 +245,13 @@ export default function Chatbot({
       });
 
       const prompt = `SESSION_AUTH token=${jwt} base_url=${apiBase}\nCLIENT_CONTEXT now=${browserNowIso} tz=${browserTimeZone}\n\n${trimmed}`;
+      runActiveRef.current = true;
       const result = await omni.call("start_run", { prompt, session_id: sessionId || undefined });
       if (result?.session_id) {
         localStorage.setItem(omniSessionKey, String(result.session_id));
       }
     } catch (e: any) {
+      runActiveRef.current = false;
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: `Error: ${e?.message || "Request failed"}`, ts: Date.now() },

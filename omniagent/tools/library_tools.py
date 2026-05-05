@@ -116,7 +116,7 @@ def _mins(n: int):
 def _raise_for_error(resp: requests.Response) -> None:
     if resp.status_code < 400:
         return
-    if resp.status_code in (401, 403):
+    if resp.status_code == 401:
         raise RuntimeError("AUTH_REQUIRED")
     try:
         payload = resp.json()
@@ -201,7 +201,7 @@ def list_study_spaces(
     token: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """List study spaces (rooms and computers).
+    """List study spaces (rooms,study spaces, etc... not computers).
 
     Notes:
         In this system, a “computer” is stored as a Room with has_monitor=true.
@@ -245,23 +245,6 @@ def list_my_computer_reservations(*, token: Optional[str] = None, base_url: Opti
     return {"reservations": computers}
 
 
-@function_tool
-def list_my_room_reservations(*, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
-    """List the current user's reservations that are study rooms (no monitor).
-
-    Notes:
-        A “computer” is stored as a room with has_monitor=true.
-        A “room” (study room/study space) is stored as a room with has_monitor=false.
-    """
-
-    api = _normalize_api_base(base_url or _base_url())
-    url = f"{api}/api/reservations/"
-    resp = requests.get(url, headers=_auth_headers(token), timeout=20)
-    _raise_for_error(resp)
-    reservations = resp.json() if isinstance(resp.json(), list) else []
-
-    rooms = [r for r in reservations if not bool(r.get("room_has_monitor"))]
-    return {"reservations": rooms}
 
 
 @function_tool
