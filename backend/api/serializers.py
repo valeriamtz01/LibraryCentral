@@ -418,7 +418,10 @@ class RegisterSerializer(serializers.Serializer):
 
         # hasattr check keeps this safe if your User model changes later.
         if hasattr(user, "first_name"):
-            user.first_name = full_name
+            parts = full_name.split(" ", 1)  # split on first space only
+            user.first_name = parts[0] # "Jose"
+            user.last_name = parts[1] if len(parts) > 1 else ""  # "Lopez"
+            user.save(update_fields=["first_name", "last_name"])
 
             # update_fields updates ONLY that column (more efficient than saving everything)
             user.save(update_fields=["first_name"])
