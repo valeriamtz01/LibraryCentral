@@ -146,11 +146,11 @@ def library_login(*, email: str, password: str, base_url: Optional[str] = None) 
 
 
 @function_tool
-def list_rooms(*, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
+def list_rooms(*, token: str, base_url: Optional[str] = None) -> Dict[str, Any]:
     """List rooms.
 
     Args:
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -162,11 +162,11 @@ def list_rooms(*, token: Optional[str] = None, base_url: Optional[str] = None) -
 
 
 @function_tool
-def list_equipment(*, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
+def list_equipment(*, token: str, base_url: Optional[str] = None) -> Dict[str, Any]:
     """List equipment items.
 
     Args:
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -178,11 +178,11 @@ def list_equipment(*, token: Optional[str] = None, base_url: Optional[str] = Non
 
 
 @function_tool
-def list_my_reservations(*, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
+def list_my_reservations(*, token: str, base_url: Optional[str] = None) -> Dict[str, Any]:
     """List the current user's reservations.
 
     Args:
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -198,7 +198,7 @@ def list_my_reservations(*, token: Optional[str] = None, base_url: Optional[str]
 def list_study_spaces(
     *,
     kind: Optional[str] = None,
-    token: Optional[str] = None,
+    token: str,
     base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
     """List study spaces (rooms,study spaces, etc... not computers).
@@ -208,7 +208,7 @@ def list_study_spaces(
 
     Args:
         kind: Optional filter: "rooms" (no monitor) or "computers" (has monitor).
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -228,7 +228,7 @@ def list_study_spaces(
 
 
 @function_tool
-def list_my_computer_reservations(*, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
+def list_my_computer_reservations(*, token: str, base_url: Optional[str] = None) -> Dict[str, Any]:
     """List the current user's reservations that are computers.
 
     Notes:
@@ -245,14 +245,28 @@ def list_my_computer_reservations(*, token: Optional[str] = None, base_url: Opti
     return {"reservations": computers}
 
 
+@function_tool
+def list_my_room_reservations(*, token: str, base_url: Optional[str] = None) -> Dict[str, Any]:
+    """List the current user's reservations that are study rooms (not computers)."""
+
+    api = _normalize_api_base(base_url or _base_url())
+    url = f"{api}/api/reservations/"
+    resp = requests.get(url, headers=_auth_headers(token), timeout=20)
+    _raise_for_error(resp)
+    reservations = resp.json() if isinstance(resp.json(), list) else []
+
+    rooms = [r for r in reservations if not bool(r.get("room_has_monitor"))]
+    return {"reservations": rooms}
+
+
 
 
 @function_tool
-def list_my_equipment(*, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
+def list_my_equipment(*, token: str, base_url: Optional[str] = None) -> Dict[str, Any]:
     """List the current user's equipment checkouts.
 
     Args:
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -337,7 +351,7 @@ def check_time_window(
 def check_item_availability(
     *,
     equipment_item_id: int,
-    token: Optional[str] = None,
+    token: str,
     base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Check if an equipment item is currently available.
@@ -413,7 +427,7 @@ def check_reservation_feasibility(
     room_id: int,
     start_time_iso: str,
     end_time_iso: str,
-    token: Optional[str] = None,
+    token: str,
     base_url: Optional[str] = None,
     client_tz: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -525,7 +539,7 @@ def create_room_reservation(
     room_id: int,
     start_time_iso: str,
     end_time_iso: str,
-    token: Optional[str] = None,
+    token: str,
     base_url: Optional[str] = None,
     reminder_phone_number: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -535,7 +549,7 @@ def create_room_reservation(
         room_id: Room ID.
         start_time_iso: ISO-8601 datetime for start (timezone-aware recommended).
         end_time_iso: ISO-8601 datetime for end (timezone-aware recommended).
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
         reminder_phone_number: Optional phone number for reminders.
     """
@@ -551,12 +565,12 @@ def create_room_reservation(
 
 
 @function_tool
-def cancel_reservation(*, reservation_id: int, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
+def cancel_reservation(*, reservation_id: int, token: str, base_url: Optional[str] = None) -> Dict[str, Any]:
     """Cancel a reservation (delete it).
 
     Args:
         reservation_id: Reservation ID.
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -573,7 +587,7 @@ def join_waitlist(
     room_id: int,
     room_start_time_iso: Optional[str] = None,
     room_end_time_iso: Optional[str] = None,
-    token: Optional[str] = None,
+    token: str,
     base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Join the waitlist for a room.
@@ -582,7 +596,7 @@ def join_waitlist(
         room_id: Room ID.
         room_start_time_iso: Optional requested start time (ISO-8601 string).
         room_end_time_iso: Optional requested end time (ISO-8601 string).
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -600,12 +614,12 @@ def join_waitlist(
 
 
 @function_tool
-def decline_waitlist(*, room_id: int, token: Optional[str] = None, base_url: Optional[str] = None) -> Dict[str, Any]:
+def decline_waitlist(*, room_id: int, token: str, base_url: Optional[str] = None) -> Dict[str, Any]:
     """Decline a waitlist notification (remove yourself from the notified spot).
 
     Args:
         room_id: Room ID.
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -621,7 +635,7 @@ def decline_waitlist(*, room_id: int, token: Optional[str] = None, base_url: Opt
 def create_equipment_checkout(
     *,
     equipment_item_id: int,
-    token: Optional[str] = None,
+    token: str,
     base_url: Optional[str] = None,
     reminder_phone_number: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -629,7 +643,7 @@ def create_equipment_checkout(
 
     Args:
         equipment_item_id: Equipment item ID.
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
         reminder_phone_number: Optional phone number for reminders.
     """
@@ -649,7 +663,7 @@ def return_equipment(
     *,
     checkout_id: int,
     returned_at_iso: Optional[str] = None,
-    token: Optional[str] = None,
+    token: str,
     base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Mark a checkout as returned.
@@ -657,7 +671,7 @@ def return_equipment(
     Args:
         checkout_id: Checkout ID.
         returned_at_iso: ISO-8601 datetime for return time (defaults to now in America/Chicago).
-        token: JWT token (optional; falls back to env LIBRARY_API_TOKEN).
+        token: JWT token.
         base_url: API base URL (optional).
     """
 
@@ -675,7 +689,7 @@ def cancel_equipment(
     *,
     checkout_id: int,
     cancelled_at_iso: Optional[str] = None,
-    token: Optional[str] = None,
+    token: str,
     base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Cancel an equipment checkout (student-facing wording).

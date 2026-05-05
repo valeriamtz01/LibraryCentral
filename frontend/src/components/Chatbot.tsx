@@ -10,6 +10,14 @@ type ChatMessage = {
   ts: number;
 };
 
+function sanitizeAssistantText(value: string): string {
+  let out = String(value ?? "");
+  out = out.replace(/SESSION_AUTH\b/gi, "session");
+  out = out.replace(/\btoken=[^\s\n]+/gi, "token=[redacted]");
+  out = out.replace(/\bbase_url=[^\s\n]+/gi, "base_url=[redacted]");
+  return out;
+}
+
 function formatChicagoDateTime(value: string): string {
   const dt = new Date(value);
   if (Number.isNaN(dt.getTime())) return value;
@@ -148,8 +156,8 @@ export default function Chatbot({
           return;
         }
 
-          if (n.method === "message_output") {
-            const content = String(n.params?.content ?? "");
+        if (n.method === "message_output") {
+            const content = sanitizeAssistantText(String(n.params?.content ?? ""));
             if (!assistantAdded) {
               assistantAdded = true;
               setMessages((prev) => [...prev, { role: "assistant", content, ts: Date.now() }]);
@@ -246,10 +254,14 @@ export default function Chatbot({
 
       const prompt = `SESSION_AUTH token=${jwt} base_url=${apiBase}\nCLIENT_CONTEXT now=${browserNowIso} tz=${browserTimeZone}\n\n${trimmed}`;
       runActiveRef.current = true;
-      const result = await omni.call("start_run", { prompt, session_id: sessionId || undefined });
-      if (result?.session_id) {
-        localStorage.setItem(omniSessionKey, String(result.session_id));
-      }
+       const result = await omni.call("start_run", {
+         prompt,
+         session_id: sessionId || undefined,
+         context: { token: jwt, base_url: apiBase },
+       });
+       if (result?.session_id) {
+         localStorage.setItem(omniSessionKey, String(result.session_id));
+       }
     } catch (e: any) {
       runActiveRef.current = false;
       setMessages((prev) => [
