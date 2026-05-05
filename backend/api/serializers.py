@@ -423,8 +423,7 @@ class RegisterSerializer(serializers.Serializer):
             user.last_name = parts[1] if len(parts) > 1 else ""  # "Lopez"
             user.save(update_fields=["first_name", "last_name"])
 
-            # update_fields updates ONLY that column (more efficient than saving everything)
-            user.save(update_fields=["first_name"])
+          
 
         # return the newly created user object.
         # this serializer isn't returning the user data automatically
