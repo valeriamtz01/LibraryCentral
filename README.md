@@ -59,6 +59,7 @@ Library Central is a full-stack web application designed to streamline the stude
     python manage.py migrate
     python manage.py seed
     python manage.py seed_rooms_from_floormap
+    python manage.py seed_test_users
 
     # Start server - and leave runnning in this terminal 
     python manage.py runserver
