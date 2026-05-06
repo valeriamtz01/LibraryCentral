@@ -128,27 +128,39 @@ export default function Chatbot({
 
   if (!token) return null;
 
-  async function send(text: string) {
+  async function send(text: string, opts?: { isRetry?: boolean }) {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
 
     setBusy(true);
-    setMessages((prev) => [...prev, { role: "user", content: trimmed, ts: Date.now() }]);
+    if (!opts?.isRetry) {
+      setMessages((prev) => [...prev, { role: "user", content: trimmed, ts: Date.now() }]);
+    }
 
     let assistantAdded = false;
     let lastToolOutput: string | null = null;
     let didMutate = false;
+    let authRequired = false;
+    let suppressOutputs = false;
 
     try {
       let apiBase = (api.defaults.baseURL || "").replace(/\/$/, "");
       apiBase = apiBase.replace(/\/api$/, "");
       const jwt = token || "";
-      const sessionId = localStorage.getItem(omniSessionKey);
+      const readSessionId = () => localStorage.getItem(omniSessionKey);
+
+      const clearSessionId = () => {
+        try {
+          localStorage.removeItem(omniSessionKey);
+        } catch {
+          return;
+        }
+      };
 
       const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const browserNowIso = new Date().toISOString();
 
-      await omni.connect((n) => {
+      const handleNotify = (n: any) => {
         if (
           !runActiveRef.current &&
           (n.method === "message_output" || n.method === "tool_called" || n.method === "tool_result")
@@ -157,6 +169,7 @@ export default function Chatbot({
         }
 
         if (n.method === "message_output") {
+            if (suppressOutputs) return;
             const content = sanitizeAssistantText(String(n.params?.content ?? ""));
             if (!assistantAdded) {
               assistantAdded = true;
@@ -189,11 +202,9 @@ export default function Chatbot({
           if (formatted) lastToolOutput = formatted;
 
           if (formatted === "Your session expired. Please log in again.") {
-            try {
-              localStorage.removeItem(omniSessionKey);
-            } catch {
-              return;
-            }
+            authRequired = true;
+            suppressOutputs = true;
+            clearSessionId();
           }
 
           const tool = String(n.params?.tool ?? "");
@@ -226,6 +237,13 @@ export default function Chatbot({
         if (n.method === "run_end") {
           const errMsg = n.params?.error?.message ? String(n.params.error.message) : null;
           runActiveRef.current = false;
+
+          if (authRequired && !opts?.isRetry) {
+            setBusy(false);
+            void send(trimmed, { isRetry: true });
+            return;
+          }
+
           if (!assistantAdded) {
             setMessages((prev) => [
               ...prev,
@@ -250,18 +268,39 @@ export default function Chatbot({
             }, 600);
           }
         }
-      });
+      };
+
+      await omni.connect(handleNotify);
 
       const prompt = `SESSION_AUTH token=${jwt} base_url=${apiBase}\nCLIENT_CONTEXT now=${browserNowIso} tz=${browserTimeZone}\n\n${trimmed}`;
+      const startRun = async () => {
+        const sessionId = readSessionId();
+        return await omni.call("start_run", {
+          prompt,
+          session_id: sessionId || undefined,
+          context: { token: jwt, base_url: apiBase },
+        });
+      };
+
       runActiveRef.current = true;
-       const result = await omni.call("start_run", {
-         prompt,
-         session_id: sessionId || undefined,
-         context: { token: jwt, base_url: apiBase },
-       });
-       if (result?.session_id) {
-         localStorage.setItem(omniSessionKey, String(result.session_id));
-       }
+      let result: any;
+      try {
+        result = await startRun();
+      } catch (e: any) {
+        const msg = String(e?.message || "");
+        const shouldRetry =
+          /session expired|expired session|invalid session|unknown session/i.test(msg) ||
+          /Disconnected/i.test(msg);
+
+        if (!shouldRetry) throw e;
+        clearSessionId();
+        await omni.connect(handleNotify);
+        result = await startRun();
+      }
+
+      if (result?.session_id) {
+        localStorage.setItem(omniSessionKey, String(result.session_id));
+      }
     } catch (e: any) {
       runActiveRef.current = false;
       setMessages((prev) => [
