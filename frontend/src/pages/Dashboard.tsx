@@ -125,21 +125,23 @@ const Dashboard = () => {
     return new Date(isoString).toLocaleString('en-US', options); // newDate(isostring) = parses the ISO-8601 string ("2026-03-10T12:30:00Z"). .toLocalestring = guarantees the "month day, time" order
   }
 
+  const [cancelSuccessId, setCancelSuccessId] = useState<number | null>(null);
+
   const handleDeleteReservation = async (reservationId: number) => {
-   setDeletingId(reservationId);
-
-  try {
-    // call the be to delete
-    await api.delete(`/reservations/${reservationId}/`);
-
-    await fetchDashboard();
-    
-    alert("Reservation cancelled successfully.");
-  } catch (error) {
-    console.error("Failed to delete reservation:", error);
-    alert("Could not cancel reservation. Please try again.");
-  }
-};
+    setDeletingId(reservationId);
+    try {
+      await api.delete(`/reservations/${reservationId}/`);
+      setConfirmDeleteId(null);
+      setShowCancelWarning(false);
+      setCancelSuccessId(reservationId);
+      setTimeout(() => setCancelSuccessId(null), 3000); // clears after 3 seconds
+      await fetchDashboard();
+    } catch (error) {
+      console.error("Failed to delete reservation:", error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // calculate due date using loan_period and checked_out_at
   const calculateDueDate = (loanPeriod: string, checkedOutAt?: string) => {
@@ -331,6 +333,24 @@ return (
             }}>
               Upcoming activity
             </div>
+
+            {/* cancel success banner */}
+            {cancelSuccessId && (
+              <div
+                className="d-flex align-items-center gap-2 px-3 py-2 mb-3"
+                style={{
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderLeft: '3px solid #16a34a',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  color: '#166534',
+                }}
+              >
+                <i className="bi bi-check-circle-fill" style={{ fontSize: '14px', color: '#16a34a' }} />
+                <span>Reservation cancelled successfully.</span>
+              </div>
+            )}
 
             {/* ── Timeline container ─────────────────────────────────────────
                 paddingLeft: 24px → makes room for the dot + connecting line

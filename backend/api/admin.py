@@ -69,7 +69,7 @@ class EquipmentItemAdmin(admin.ModelAdmin):
 # checkput admin 
 @admin.register(Checkout)
 class CheckoutAdmin(admin.ModelAdmin):
-    list_display = ['user', 'item', 'assigned_asset', 'checked_out_at', 'due_at', 'returned_at']
+    list_display = ['user', 'item', 'assigned_asset', 'checked_out_at', 'due_at', 'returned_at', 'is_overdue']
     readonly_fields = ['assigned_asset']  # hide the dropdown for manual assignment
     list_filter = ['item', 'checked_out_at', 'due_at', 'returned_at']
 
@@ -77,6 +77,13 @@ class CheckoutAdmin(admin.ModelAdmin):
         # this will call the model's save() method which auto-assigns the asset
         super().save_model(request, obj, form, change)
     
+    # added an overdue field to make it easier to tell if a checkout is past it's returned date
+    @admin.display(description='Overdue', boolean=True)
+    def is_overdue(self, obj):
+        from django.utils import timezone
+        if obj.returned_at:
+            return False  # already returned, not overdue
+        return obj.due_at < timezone.now()
 
 # equipment type - shows total items per category
 @admin.register(EquipmentType)

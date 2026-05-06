@@ -59,9 +59,14 @@ Library Central is a full-stack web application designed to streamline the stude
     python manage.py migrate
     python manage.py seed
     python manage.py seed_rooms_from_floormap
+    python manage.py seed_test_users
 
-    # Start server - and leave runnning in this terminal
+    # Start server - and leave runnning in this terminal 
     python manage.py runserver
+
+    # IMPORTANT: run this one instead if you're in codespaces
+    python manage.py runserver 0.0.0.0:8000
+    
 
 Backend should be at `http://127.0.0.1:8000`.
 If running in codespace set port to 'public'.
@@ -118,6 +123,10 @@ In new terminal with backend, and omniagent still running...
 
     # Start development server
     npm run dev
+
+    # IMPORTANT: run this one instead if you're in codespaces
+    npm run dev -- --host 0.0.0.0 --port 5173
+
 
 Frontend UI runs at: http://localhost:5173
 If running in codespace set port to 'public'.

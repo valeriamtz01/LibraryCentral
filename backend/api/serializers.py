@@ -310,6 +310,7 @@ class CheckoutSerializer(serializers.ModelSerializer):
             'is_returned',
             "reminder_phone_number",  # NEW: optional SMS number for equipment reminders
             "reminder_sent_at",       # NEW: read-only tracking to avoid duplicate reminders
+            "is_cancelled", # added for cancelled status
         ]
         read_only_fields = ["checked_out_at", "assigned_asset", "due_at", "reminder_sent_at"]
 
@@ -417,10 +418,12 @@ class RegisterSerializer(serializers.Serializer):
 
         # hasattr check keeps this safe if your User model changes later.
         if hasattr(user, "first_name"):
-            user.first_name = full_name
+            parts = full_name.split(" ", 1)  # split on first space only
+            user.first_name = parts[0] # "Jose"
+            user.last_name = parts[1] if len(parts) > 1 else ""  # "Lopez"
+            user.save(update_fields=["first_name", "last_name"])
 
-            # update_fields updates ONLY that column (more efficient than saving everything)
-            user.save(update_fields=["first_name"])
+          
 
         # return the newly created user object.
         # this serializer isn't returning the user data automatically

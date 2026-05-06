@@ -133,6 +133,53 @@ const Login = () => {
               <Link to="/signup">Create an account</Link>
             </div>
 
+            {/* div for test accounts */}
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid #e9ecef' }}>
+            <p className="text-center text-muted mb-2" style={{ fontSize: '11px' }}>
+              Test Accounts
+            </p>
+            <div className="d-flex flex-wrap gap-1 justify-content-center">
+              {[
+                { label: 'Vaquero 01', email: 'vaquero01@utrgv.edu', password: 'Vaquero01!' },
+                { label: 'Vaquero 02', email: 'vaquero02@utrgv.edu', password: 'Vaquero02!' },
+              ].map(({ label, email: e, password: p }) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={async () => {
+                    setEmail(e);
+                    setPassword(p);
+                    setLoading(true);
+                    setError(null);
+                    try {
+                      const resp = await api.post('/auth/login/', { email: e, password: p });
+                      if (resp?.data?.token) {
+                        localStorage.setItem('token', resp.data.token);
+                      }
+                      navigate('/dashboard');
+                    } catch (err: any) {
+                      const msg = err?.response?.data?.error || 'Login failed.';
+                      setError(String(msg));
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  style={{
+                    fontSize: '11px',
+                    padding: '3px 12px',
+                    borderRadius: '20px',
+                    border: '1px solid #dee2e6',
+                    backgroundColor: '#f8f9fa',
+                    color: '#495057',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
 
             {/* admin login button - removed it and instead added it to the header */}
              {/* <div className="text-center mt-3 pt-3 border-top">
