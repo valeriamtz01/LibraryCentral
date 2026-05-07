@@ -192,6 +192,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        "OPTIONS": {
+            "timeout": 20,  # wait up to 20s before raising locked error
+        },
     }
 }
 
@@ -287,8 +290,8 @@ REST_FRAMEWORK = {
 
 # before we didn't have any JWT settings defined, so Django used SimpleJWT defaults ( access token=5 mins, refresh token=1 day )
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),   # login pass expires in 60 minutes (can change it, need to decide)
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=24),   # login pass expires in 24 hours (can change it, need to decide)
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 
     "AUTH_HEADER_TYPES": ("Bearer",),
 }

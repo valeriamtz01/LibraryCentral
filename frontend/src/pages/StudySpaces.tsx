@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import FloorMap from "../components/FloorMap";
 import { Modal, Form } from "react-bootstrap";
 import { api } from "../api";
+import { useLocation} from 'react-router-dom'; // added to read the navigation state and auto open the room from dashboard
 
 
 /**
@@ -328,6 +329,9 @@ const StudySpaces = () => {
   // state for waitlist rules modal
   const [showWaitlistRules, setShowWaitlistRules] = useState(false);
 
+  // added state for room modal
+  const [locationStateConsumed, setLocationStateConsumed] = useState(false);
+
   // added state for booked windows to color the dropdown
   const [bookedWindows, setBookedWindows] = useState<{ start: string; end: string }[]>([]);
   const [heldWindows, setHeldWindows] = useState<{ start: string; end: string; reserved_for_me: boolean }[]>([]);
@@ -498,6 +502,7 @@ const StudySpaces = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
   // added so that it fires whenenever the selected room or date changes to fetch that room's scheldue
   useEffect(() => {
     if (!bookingData.resource || !bookingData.date) return;
@@ -511,8 +516,6 @@ const StudySpaces = () => {
     if (!bookingData.date) return false;
     const slotDate = zonedDateTimeToDate(bookingData.date, hhmm, UTRGV_TIME_ZONE);
 
-    // exclude windows that belong to the current user from both held and waitlisted
-    // so their priority slot shows green and doesn't trigger the waitlist modal
     const blockedHolds = heldWindows.filter((w) => !w.reserved_for_me);
     const blockedWaitlisted = waitlistedWindows.filter((w) => !w.reserved_for_me);
 
@@ -530,10 +533,39 @@ const StudySpaces = () => {
           bookingData.startTime,
           UTRGV_TIME_ZONE
         );
-        return selectedStart < wEnd && slotDate > wStart;
+        // end time is red only if a blocked window starts AFTER the selected start
+        // and BEFORE the selected end, meaning it cuts into the booking window
+        return wStart >= selectedStart && wStart < slotDate;
       }
     });
   };
+
+  const location = useLocation(); 
+  
+  useEffect(() => {
+    if (locationStateConsumed) return; // already handled, don't re-open
+    
+    const state = location.state as { openRoomId?: number; openRoomName?: string } | null;
+    if (!state?.openRoomId || !state?.openRoomName) return;
+
+    // wait for activeRooms to load before trying to open the modal
+    if (activeRooms.length === 0) return;
+
+    const found = activeRooms.find(r => r.id === state.openRoomId);
+    setSelectedRoomDetail(found ?? { id: state.openRoomId, room_name: state.openRoomName });
+    setBookingData(prev => ({
+      ...prev,
+      resource: state.openRoomName!,
+      date: todayInTimeZone(UTRGV_TIME_ZONE),
+      startTime: '',
+      endTime: '',
+      resourceType: 'room',
+    }));
+    setShowRoomDetail(true);
+    setLocationStateConsumed(true); // mark as consumed so it never fires again
+
+    window.history.replaceState({}, '');
+  }, [location.state, activeRooms, locationStateConsumed]);
 
   /**
    * When a room hotspot is clicked:
@@ -608,6 +640,7 @@ const StudySpaces = () => {
       });
 
       setShowModal(false);
+      setShowRoomDetail(false);
       setShowWaitlistFromError(false);
       // Refresh live statuses so the map changes color
       await fetchStatuses();
@@ -623,7 +656,7 @@ const StudySpaces = () => {
       // with {code,message} when it's a hold conflict
       const nonFieldErrors = err?.response?.data?.non_field_errors;
       const firstError = Array.isArray(nonFieldErrors) ? nonFieldErrors[0] : null;
-
+  
       /* 
         detect waitlist_hold by pipe-prefix in the error string
         be raises validationerror so DFR wriaps it as non field errors
@@ -2128,8 +2161,17 @@ return (
                     cursor: "pointer",
                   }}
                   onClick={() => {
+                    setBookingError(null);
+                    setShowWaitlistFromError(false);
+                    setShowWaitlistHoldConflict(false);
+                    setWaitlistHoldMessage("");
                     setShowRoomDetail(false);
                     setShowModal(true);
+                     // manually trigger a fresh schedule fetch
+                    const roomId = roomNameToId.get(bookingData.resource);
+                    if (roomId && bookingData.date) {
+                      fetchRoomSchedule(roomId, bookingData.date);
+                    }
                   }}
                 >
                   <i className="bi bi-calendar-plus me-2" />

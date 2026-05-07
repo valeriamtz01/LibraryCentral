@@ -91,6 +91,19 @@
   flex-direction: column;
 }
 
+/* waitlist badge wrapper so the X overlaps the badge on hover */
+.db-waitlist-badge-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.db-waitlist-card:hover .db-waitlist-badge {
+  opacity: 0;
+}
+
+.db-waitlist-card:hover .db-waitlist-remove-btn {
+  opacity: 1 !important;
+}
 
 /* 
    TABLET (768px–991px)

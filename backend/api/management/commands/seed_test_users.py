@@ -18,7 +18,11 @@ from api.models import (
     Campus, Room, Reservation, EquipmentItem,
     EquipmentAsset, Checkout
 )
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
+
+CENTRAL = ZoneInfo("America/Chicago")
 
 class Command(BaseCommand):
     help = "Seeds two demo student accounts with rich reservations, checkouts, and history."
@@ -103,9 +107,15 @@ class Command(BaseCommand):
         CANCELLED = Reservation.STATUS_CANCELLED
 
         def make_res(user, room, days_offset, hour_start, duration_hrs, status):
-            base = now.replace(hour=hour_start, minute=0, second=0, microsecond=0)
-            start = base + timedelta(days=days_offset)
-            end   = start + timedelta(hours=duration_hrs)
+            # build the datetime in Central Time directly so it displays correctly
+            base_ct = now.astimezone(CENTRAL).replace(
+                hour=hour_start, minute=0, second=0, microsecond=0
+            )
+            start_ct = base_ct + timedelta(days=days_offset)
+            end_ct   = start_ct + timedelta(hours=duration_hrs)
+            # convert back to UTC for storage (since Django stores everything in UTC)
+            start = start_ct.astimezone(ZoneInfo("UTC"))
+            end   = end_ct.astimezone(ZoneInfo("UTC"))
             return Reservation(
                 user=user, room=room,
                 start_time=start, end_time=end,

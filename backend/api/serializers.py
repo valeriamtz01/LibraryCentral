@@ -170,24 +170,22 @@ class ReservationSerializer(serializers.ModelSerializer):
         ).first()
 
         if conflicting_hold:
-            # priority user: allow booking only if it fits exactly within the held window
+            # priority user: allow booking if their start time is within the held window
+            # they can extend past the hold end as long as those extra times are free
             if (
                 conflicting_hold.reserved_for == current_user
                 and start >= conflicting_hold.held_start
-                and end <= conflicting_hold.held_end
+                and start < conflicting_hold.held_end
             ):
-                return attrs # priority user booking their exact held slot
+                return attrs  # priority user — let the overlap check above handle the rest
 
-            # original canceller: always blocked, even if reserved_for is none
-            # covers the case where no one was on the waitlist but we still want to prevent the canceller from immediately re-grabbing the slot
             elif conflicting_hold.cancelled_by == current_user:
                 raise serializers.ValidationError(
                     "WAITLIST_HOLD|You cancelled this reservation. "
                     "This time is now pending for a waitlisted user. "
                     "You may join the waitlist to be notified if it becomes available."
                 )
-            
-            #everyone else: blocked with the waitlist prompt
+
             else:
                 raise serializers.ValidationError(
                     "WAITLIST_HOLD|These times conflict with a pending reservation. "

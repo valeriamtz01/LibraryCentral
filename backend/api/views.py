@@ -133,12 +133,13 @@ def dashboard_summary(request):
     user = request.user
     now = timezone.now()
 
-     # active room reservations => fetching future-active reservations
+    # active room reservations => fetching future-active reservations
     upcoming_reservations = Reservation.objects.filter(
         user=user,
         status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
-        end_time__gte=timezone.now()  # still future or ongoing
-    ).select_related("room") # optimizing: joins the room table to prevent n+1 queries
+        end_time__gte=timezone.now()
+    ).select_related("room").order_by("start_time")
+
 
     # segmenting spaces => so our logic defines computer as a room with a room montior
     activeRooms = upcoming_reservations.filter(room__has_monitor=False).count()
@@ -146,7 +147,7 @@ def dashboard_summary(request):
 
     # equipment loans 
     # active loans: => only items where 'returned_at' is null
-    equipment_loans_qs = Checkout.objects.filter(user=user, returned_at__isnull = True)
+    equipment_loans_qs = Checkout.objects.filter(user=user, returned_at__isnull=True).order_by("due_at")
     equipmentLoans = equipment_loans_qs.count()
 
     # added: uses the serializer here instead of the manual list
@@ -255,6 +256,147 @@ class ReservationViewSet(viewsets.ModelViewSet):
         )
         #this new changes allows a reservation to come back if it is not cancelled and still in the future 
     
+
+    # def list(self, request, *args, **kwargs):
+    #     response = super().list(request, *args, **kwargs)
+
+    #     if not request.user.is_staff:
+    #         waitlist_entries = Waitlist.objects.filter(
+    #             user=request.user,
+    #             status__in=["waiting", "notified"],
+    #         ).select_related("room").order_by("created_at")
+
+    #         waitlist_data = []
+    #         for entry in waitlist_entries:
+    #             position = Waitlist.objects.filter(
+    #                 room=entry.room,
+    #                 status__in=["waiting", "notified"],
+    #                 created_at__lt=entry.created_at,
+    #             ).count() + 1
+
+    #             total = Waitlist.objects.filter(
+    #                 room=entry.room,
+    #                 status__in=["waiting", "notified"],
+    #             ).count()
+
+    #             waitlist_data.append({
+    #                 "type": "waitlist",
+    #                 "room_name": entry.room.name if entry.room else None,
+    #                 "status": entry.status,
+    #                 "position": position,
+    #                 "total": total,
+    #                 "requested_start": entry.room_start_time.isoformat() if entry.room_start_time else None,
+    #             })
+
+    #         # response.data is a list by default
+    #         reservations_list = response.data
+    #         response.data = {
+    #             "reservations": reservations_list,
+    #             "waitlist": waitlist_data,
+    #         }
+
+    #         # inject waitlist entries into reservations list
+    #         for w in waitlist_data:
+    #             reservations_list.append({
+    #                 "id": f"waitlist-{w['room_name']}",
+    #                 "room_name": f"{w['room_name']} (WAITLIST)",
+    #                 "status": f"Waitlist position {w['position']} of {w['total']}",
+    #                 "start_time": w.get("requested_start"),
+    #                 "end_time": None,
+    #                 "type": "waitlist"
+    #             })
+
+
+    #         # if waitlist_data:
+    #         #     summary_parts = []
+    #         #     for w in waitlist_data:
+    #         #         part = f"{w['room_name']} (position {w['position']} of {w['total']}"
+    #         #         if w["requested_start"]:
+    #         #             from datetime import datetime
+    #         #             from zoneinfo import ZoneInfo
+    #         #             dt = datetime.fromisoformat(w["requested_start"]).astimezone(ZoneInfo("America/Chicago"))
+    #         #             part += f", requested {dt.strftime('%b %d at %I:%M %p CT')}"
+    #         #         part += ")"
+    #         #         summary_parts.append(part)
+    #         #     response.data["waitlist_summary"] = (
+    #         #         "Student is also on the waitlist for: " + ", ".join(summary_parts)
+    #         #     )
+    #         if waitlist_data:
+    #             summary_parts = []
+
+    #             for w in waitlist_data:
+    #                 part = f"{w['room_name']} (position {w['position']} of {w['total']}"
+
+    #                 if w["requested_start"]:
+    #                     from datetime import datetime
+    #                     from zoneinfo import ZoneInfo
+
+    #                     dt = datetime.fromisoformat(
+    #                         w["requested_start"]
+    #                     ).astimezone(ZoneInfo("America/Chicago"))
+
+    #                     part += f", requested {dt.strftime('%b %d at %I:%M %p CT')}"
+
+    #                 part += ")"
+    #                 summary_parts.append(part)
+
+    #             summary_text = (
+    #                 "Current waitlists: " + ", ".join(summary_parts)
+    #             )
+
+    #             response.data["message"] = summary_text
+    #             response.data["summary"] = summary_text
+    #             response.data["waitlist_summary"] = summary_text
+
+    #     return response
+
+
+    def list(self, request, *args, **kwargs):
+            # 1. get the standard list of reservations (this is a Response object)
+            response = super().list(request, *args, **kwargs)
+
+            if not request.user.is_staff:
+                # 2. fetch the students's active waitlist entries
+                waitlist_entries = Waitlist.objects.filter(
+                    user=request.user,
+                    status__in=["waiting", "notified"],
+                ).select_related("room").order_by("created_at")
+
+                # 3. create a list to hold waitlist 
+                waitlist_items = []
+                for entry in waitlist_entries:
+                    # calculate the queue position
+                    position = Waitlist.objects.filter(
+                        room=entry.room,
+                        status__in=["waiting", "notified"],
+                        created_at__lt=entry.created_at,
+                    ).count() + 1
+
+                    total = Waitlist.objects.filter(
+                        room=entry.room,
+                        status__in=["waiting", "notified"],
+                    ).count()
+
+                    # formatted this so the AI sees it as a "Reservation" it can read
+                    waitlist_items.append({
+                        "id": f"waitlist-{entry.id}",
+                        "room_name": f"WAITLIST: {entry.room.name}",
+                        "status": f"Position {position} of {total} ({entry.status})",
+                        "start_time": entry.room_start_time.isoformat() if entry.room_start_time else "TBD",
+                        "end_time": None,
+                        "is_waitlist": True  # flag to help the fe(ai) identify it
+                    })
+
+                # 4. inject into the data without breaking the list structure (useful for ai)
+                if isinstance(response.data, list):
+                    # Put waitlist items at the very beginning so the AI sees them first
+                    response.data = waitlist_items + response.data
+                else:
+                    # if it's already a dict, just add the key
+                    response.data["waitlist"] = waitlist_items
+
+            return response
+
     #added for waitlist queue
     #overrides the default delete behavior so that when a reservation is cancelled
     def perform_destroy(self, instance):
@@ -610,19 +752,16 @@ def list_waitlist(request):
 def notify_next_user(room, cancelled_start=None, cancelled_end=None, cancelled_by=None):
     now = timezone.now()
 
-    # normalize to timezone
     if cancelled_start and timezone.is_naive(cancelled_start):
         cancelled_start = timezone.make_aware(cancelled_start)
     if cancelled_end and timezone.is_naive(cancelled_end):
         cancelled_end = timezone.make_aware(cancelled_end)
 
-    #  1)  always compute deadline for the cancelled window 
-    window_deadline = None
+    # 1) check if the cancelled window is no longer bookable
     if cancelled_start:
         window_deadline = cancelled_start - timedelta(minutes=ADVANCE_MINUTES)
         if window_deadline <= now:
-            # slot is no longer bookable — create a permanently inactive hold
-            # so no one (including the original booker) can sneak back in
+            # slot is unbookable — create an inactive hold to block re-booking
             if cancelled_start and cancelled_end:
                 WaitlistHold.objects.create(
                     room=room,
@@ -633,78 +772,79 @@ def notify_next_user(room, cancelled_start=None, cancelled_end=None, cancelled_b
                     is_active=False,
                     cancelled_by=cancelled_by,
                 )
-            return  # window is unbookable, nothing more to do
+            return  # nothing more to do
 
-    #  2) notify the next person in waitlist 
+    # 2) find the next person in the waitlist
     next_entry = Waitlist.objects.filter(
         room=room, status="waiting"
     ).order_by("created_at").first()
 
     # determine slot times for notification message
-    # if a reservation was cancelled, always notify using the freed window
-    # (waitlist entry times can drift or be missing and should not override reality)
     if cancelled_start and cancelled_end:
         slot_start = cancelled_start
         slot_end = cancelled_end
     elif next_entry and next_entry.room_start_time:
         slot_start = next_entry.room_start_time
-        if next_entry.room_end_time:
-            slot_end = next_entry.room_end_time
-        else:
-            slot_end = slot_start + timedelta(hours=1)
+        slot_end = next_entry.room_end_time if next_entry.room_end_time else slot_start + timedelta(hours=1)
     else:
         slot_start = now
         slot_end = slot_start + timedelta(hours=1)
 
-    # compute booking deadline
-    deadline = slot_start - timedelta(minutes=ADVANCE_MINUTES)
+    # compute deadline using the waitlisted user's requested start
+    if next_entry and next_entry.room_start_time:
+        deadline = next_entry.room_start_time - timedelta(minutes=ADVANCE_MINUTES)
+    else:
+        deadline = slot_start - timedelta(minutes=ADVANCE_MINUTES)
+
     if deadline <= now:
         deadline = now + timedelta(hours=24)
 
     deadline_central = deadline.astimezone(CENTRAL)
     deadline_str = deadline_central.strftime("%b %d at %I:%M %p CT")
 
-    # build message
-    slot_start_ct = slot_start.astimezone(CENTRAL)
-    slot_end_ct = slot_end.astimezone(CENTRAL)
-    slot_str = f"{slot_start_ct.strftime('%b %d, %I:%M %p')}–{slot_end_ct.strftime('%I:%M %p CT')}"
-
     if next_entry:
+        if next_entry.room_start_time:
+            entry_start_ct = next_entry.room_start_time.astimezone(CENTRAL)
+            entry_time_str = entry_start_ct.strftime("%b %d, %I:%M %p CT")
+        else:
+            entry_time_str = slot_start.astimezone(CENTRAL).strftime("%b %d, %I:%M %p CT")
+
         message_body = (
-            f"{room.name} is now available for {slot_str}! "
+            f"{room.name} is now available! "
+            f"Your requested time was {entry_time_str}. "
             f"You have until {deadline_str} to book it. "
             f"Click to reserve or decline your spot."
         )
 
-        Notification.objects.create(
-                user=next_entry.user,
-                room=room,
-                message=message_body,
-            )
+        Notification.objects.create(user=next_entry.user, room=room, message=message_body)
 
-
-        # update waitlist entry
         next_entry.status = "notified"
         next_entry.notification_time = now
         next_entry.notification_deadline = deadline
         next_entry.save(update_fields=["status", "notification_time", "notification_deadline"])
-        
-    # always create a waitlist hold for the cancelled window
-    # this is what blocks the original booker from re-reserving
-    # reserved_for = none when no one is waiting means the slot is held but unclaimable until it expires
+
+    # 3) create the hold using the priority user's requested window (start + 3hr cap)
     if cancelled_start and cancelled_end:
-        # deactuvate any previous holds for this exact window first (avoid duplicates)
+        # deactivate previous holds from this same cancellation
         WaitlistHold.objects.filter(
             room=room,
-            held_start=cancelled_start,
-            held_end=cancelled_end,
             is_active=True,
         ).update(is_active=False)
 
+        # use the priority user's requested start extended to 3 hours
+        # so other students see red from their requested time, not the original window
+        MAX_SESSION_HOURS = 3
+        if next_entry and next_entry.room_start_time:
+            hold_start = next_entry.room_start_time
+            hold_end = hold_start + timedelta(hours=MAX_SESSION_HOURS)
+        else:
+            hold_start = cancelled_start
+            hold_end = cancelled_end
+
         WaitlistHold.objects.create(
             room=room,
-            held_start=cancelled_start,
-            held_end=cancelled_end,
+            held_start=hold_start,
+            held_end=hold_end,
             reserved_for=next_entry.user if next_entry else None,
             expires_at=deadline,
             is_active=True,
@@ -796,55 +936,78 @@ def mark_notifications_read(request):
 def decline_waitlist(request):
     user = request.user
     room_id = request.data.get("room_id")
+    room_name = request.data.get("room_name") 
 
-    try:
-        room = Room.objects.get(id=room_id)
-    except Room.DoesNotExist:
-        return Response({"error": "Room not found"}, status=404)
+    # resolve room by name if id not provided
+    if not room_id and room_name:
+        try:
+            room = Room.objects.get(name__iexact=room_name.strip(), is_active=True)
+        except Room.DoesNotExist:
+            return Response({"error": f"Room '{room_name}' not found"}, status=404)
+    else:
+        try:
+            room = Room.objects.get(id=room_id)
+        except Room.DoesNotExist:
+            return Response({"error": "Room not found"}, status=404)
 
-    # find their active notified entry
+    # handle notified entry => full decline flow (notify next person in queue)
     entry = Waitlist.objects.filter(
         user=user,
         room=room,
         status="notified"
     ).first()
 
-    if not entry:
-        return Response({"error": "No active waitlist notification"}, status=400)
+    if entry:
+        # mark as declined
+        entry.status = "declined"
+        entry.save(update_fields=["status"])
 
-    # mark as declined (or you can delete instead)
-    entry.status = "declined"
-    entry.save(update_fields=["status"])
+        # look up the active hold so we can pass the original window to notify_next_user
+        # without this, notify_next_user has no window info and falls back to "now + 1h"
+        active_hold = WaitlistHold.objects.filter(
+            room=room,
+            reserved_for=user,
+            is_active=True,
+        ).first()
 
-    # look up the active hold so we can pass the original window to notify_next_user
-    # without this, notify_next_user has no window info and falls back to "now + 1h"
-    active_hold = WaitlistHold.objects.filter(
+        # deactivate their hold
+        WaitlistHold.objects.filter(
+            room=room,
+            reserved_for=user,
+            is_active=True,
+        ).update(is_active=False)
+
+        # mark notification as read
+        Notification.objects.filter(user=user, room=room, is_read=False).update(is_read=True)
+
+        # notify the next user => pass the original window so the next person's
+        # notification shows the right slot
+        notify_next_user(
+            room,
+            cancelled_start=active_hold.held_start if active_hold else None,
+            cancelled_end=active_hold.held_end if active_hold else None,
+            cancelled_by=None,  # decline is not a cancellation, don't block anyone
+        )
+
+        return Response({"message": "You have been removed from the waitlist"})
+
+    # handle waiting entry (simple removal)
+    # student is just queued (not yet notified), so no hold or next-person flow needed
+    waiting_entry = Waitlist.objects.filter(
+        user=user,
         room=room,
-        reserved_for=user,
-        is_active=True,
+        status="waiting"
     ).first()
 
+    if waiting_entry:
+        waiting_entry.delete()
+        Notification.objects.filter(user=user, room=room, is_read=False).update(is_read=True)
+        WaitlistHold.objects.filter(
+            room=room, reserved_for=user, is_active=True
+        ).update(is_active=False)
+        return Response({"message": f"Removed from waitlist for {room.name}"})
 
-    # deactivate their hold
-    WaitlistHold.objects.filter(
-        room=room,
-        reserved_for=user,
-        is_active=True,
-    ).update(is_active=False)
-
-    # mark notification as read
-    Notification.objects.filter(user=user, room=room, is_read=False).update(is_read=True) # .delete() - notfication to disappear completely
-
-    # notify the next user - pass the original window so the next person's notification shows the right slot
-    notify_next_user(
-        room,
-        cancelled_start=active_hold.held_start if active_hold else None,
-        cancelled_end=active_hold.held_end if active_hold else None,
-        cancelled_by=None,  # decline is not a cancellation, don't block anyone
-    )
-
-    return Response({"message": "You have been removed from the waitlist"})
-
+    return Response({"error": "You are not on the waitlist for this room"}, status=400)
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -925,8 +1088,7 @@ def room_schedule(request, room_id):
         expires_at__gt=timezone.now(),
         held_start__lt=day_end,
         held_end__gt=day_start,
-    )
-
+        )
     held = [
         {
             "start": h.held_start.isoformat(),
@@ -952,10 +1114,36 @@ def room_schedule(request, room_id):
                 w_start + timedelta(hours=1)
             )
             if w_start < day_end and w_end > day_start:
+                # skip if the CURRENT USER (viewer) has a hold that covers
+                # this waitlist window : they have priority so it should be green
+                viewer_has_priority = WaitlistHold.objects.filter(
+                    room=room,
+                    is_active=True,
+                    expires_at__gt=timezone.now(),
+                    held_start__lte=w_start,
+                    held_end__gte=w_end,
+                    reserved_for=request.user,
+                ).exists()
+
+                if viewer_has_priority:
+                    continue
+
+                # skip if the entry's own user has a hold (original fix)
+                already_held = WaitlistHold.objects.filter(
+                    room=room,
+                    is_active=True,
+                    expires_at__gt=timezone.now(),
+                    held_start__lte=w_start,
+                    held_end__gte=w_end,
+                    reserved_for=entry.user,
+                ).exists()
+                if already_held:
+                    continue
+
                 waitlisted.append({
                     "start": w_start.isoformat(),
                     "end": w_end.isoformat(),
-                    "reserved_for_me": entry.user == request.user,  # ← add this
+                    "reserved_for_me": entry.user == request.user,
                 })
 
 
@@ -995,8 +1183,8 @@ def profile_summary(request):
     upcoming_reservations = Reservation.objects.filter(
         user=user,
         status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
-        end_time__gte=timezone.now()  # still future or ongoing
-    ).select_related("room") # optimizing: joins the room table to prevent n+1 queries
+        end_time__gte=timezone.now()
+    ).select_related("room").order_by("start_time")
 
     # segmenting spaces => so our logic defines computer as a room with a room montior
     activeRooms = upcoming_reservations.filter(room__has_monitor=False).count()
@@ -1004,7 +1192,7 @@ def profile_summary(request):
 
     # equipment loans 
     # active loans: => only items where 'returned_at' is null
-    equipment_loans_qs = Checkout.objects.filter(user=user, returned_at__isnull = True)
+    equipment_loans_qs = Checkout.objects.filter(user=user, returned_at__isnull=True).order_by("due_at")
     equipmentLoans = equipment_loans_qs.count()
 
     # added: uses the serializer here instead of the manual list
