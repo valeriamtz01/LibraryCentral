@@ -998,75 +998,160 @@ return (
               </div>
 
               {notifications.length > 0 ? (
-                <>
-                  {/* First 2 notifications only — full list via bell dropdown in navbar */}
-                  {notifications.slice(0, 2).map((n) => (
-                    <div
-                      key={n.id}
-                      style={{
-                        fontSize: '12px',
-                        color: '#495057',
-                        padding: '6px 0',
-                        borderBottom: '1px solid #f0f0f0',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {/* "New:" in brand orange draws attention to actionable items */}
-                      <span style={{ fontWeight: 600, color: '#C0421A', marginRight: '4px' }}>New:</span>
-                      {n.message}
-                    </div>
-                  ))}
+  notifications.slice(0, 2).map((n) => (
+    <div
+  key={n.id}
+  style={{
+    backgroundColor: '#fafafa',
+    border: '1px solid #ececec',
+    borderRadius: '10px',
+    padding: '10px 11px',
+    marginBottom: '8px',
+  }}
+>
+  {/* top row */}
+  <div
+    className="d-flex justify-content-between align-items-start"
+    style={{ marginBottom: '6px' }}
+  >
+    <div className="d-flex align-items-center gap-2">
+      {/* SMALLER ICON */}
+      <div
+        style={{
+          width: '22px',
+          height: '22px',
+          borderRadius: '50%',
+          backgroundColor: '#C0421A',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <i
+          className="bi bi-door-open-fill"
+          style={{
+            color: '#fff',
+            fontSize: '10px',
+          }}
+        />
+      </div>
 
-                  <div className="d-flex gap-2 mt-2">
-                    <Button
-                      variant="outline-secondary" size="sm"
-                      style={{ flex: 1, fontSize: '11px', borderRadius: '8px' }}
-                      onClick={async () => {
-                        // decline: which will mark it read, remove from waitlist to  notify next person
-                        const roomId = notifications[0]?.room_id;
-                        if (roomId) {
-                          try {
-                            await api.post("/waitlist/decline/", { room_id: roomId });
-                          } catch (err) {
-                            console.error("Failed to decline waitlist", err);
-                          }
-                        }
-                        await markAllRead();
-                        await fetchDashboard();
-                      }}
-                    >
-                      Decline 
-                    </Button>
-                    <Button
-                      size="sm"
-                      style={{
-                        flex: 1, fontSize: '11px', borderRadius: '8px',
-                        backgroundColor: '#C0421A', borderColor: '#C0421A',
-                      }}
-                      onClick={() => {
-                        // reserve: which will navigate student to study space and not mark notification as read
-                        const n = notifications[0];
-                        if (n?.room_id && n?.room_name) {
-                          navigate('/study-spaces', {
-                            state: { openRoomId: n.room_id, openRoomName: n.room_name }
-                          });
-                        } else {
-                          navigate('/study-spaces');
-                        }
-                      }}
-                    >
-                      Reserve
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                // Empty state — no unread notifications
-                <div className="text-center py-2">
-                  {/* bi-bell-slash — Bootstrap Icon: bell with slash, no notifications */}
-                  <i className="bi bi-bell-slash" style={{ fontSize: '1.4rem', color: '#dee2e6' }} />
-                  <p className="text-muted mt-2 mb-0" style={{ fontSize: '12px' }}>No new notifications.</p>
-                </div>
-              )}
+      <div
+        style={{
+          fontSize: '12px',
+          fontWeight: 600,
+          color: '#1a1a1a',
+          lineHeight: 1.2,
+        }}
+      >
+        Room Available
+      </div>
+    </div>
+
+    {/* SMALLER NEW BADGE */}
+    <span
+      style={{
+        fontSize: '9px',
+        fontWeight: 700,
+        color: '#C0421A',
+        backgroundColor: '#fff1eb',
+        padding: '2px 6px',
+        borderRadius: '999px',
+      }}
+    >
+      NEW
+    </span>
+  </div>
+
+  {/* message */}
+  <div
+    style={{
+      fontSize: '11px',
+      color: '#6b7280',
+      lineHeight: 1.4,
+      marginBottom: '8px',
+    }}
+  >
+    {n.message}
+  </div>
+
+  {/* actions */}
+  <div className="d-flex gap-2">
+    <button
+      onClick={async () => {
+        if (n.room_id) {
+          try {
+            await api.post("/waitlist/decline/", {
+              room_id: n.room_id,
+            });
+          } catch (err) {
+            console.error("Failed to decline waitlist", err);
+          }
+        }
+
+        await fetchNotifications();
+        await fetchDashboard();
+      }}
+      style={{
+        flex: 1,
+        height: '30px',
+        borderRadius: '7px',
+        border: '1px solid #dee2e6',
+        backgroundColor: '#fff',
+        fontSize: '11px',
+        fontWeight: 500,
+        color: '#495057',
+      }}
+    >
+      Decline
+    </button>
+
+    <button
+      onClick={() => {
+        if (n.room_id && n.room_name) {
+          navigate('/study-spaces', {
+            state: {
+              openRoomId: n.room_id,
+              openRoomName: n.room_name,
+            },
+          });
+        } else {
+          navigate('/study-spaces');
+        }
+      }}
+      style={{
+        flex: 1,
+        height: '30px',
+        borderRadius: '7px',
+        border: 'none',
+        backgroundColor: '#C0421A',
+        color: '#fff',
+        fontSize: '11px',
+        fontWeight: 600,
+      }}
+    >
+      Reserve
+    </button>
+  </div>
+</div>
+  ))
+) : (
+  <div className="text-center py-2">
+    <i
+      className="bi bi-bell-slash"
+      style={{ fontSize: '1.4rem', color: '#dee2e6' }}
+    />
+    <p
+      className="text-muted mt-2 mb-0"
+      style={{ fontSize: '12px' }}
+    >
+      No new notifications.
+    </p>
+  </div>
+)}
+
+                  
             </div>
             {/* END CARD 1: Notifications */}
 

@@ -779,6 +779,11 @@ def notify_next_user(room, cancelled_start=None, cancelled_end=None, cancelled_b
         room=room, status="waiting"
     ).order_by("created_at").first()
 
+    # before this added: the system was creating a "hold" on the times to reserve them for the next person on the waitlist even when nobody was on the wailist
+    # no more "stuck" time: if nobody is waiting, nothing to do (meaning don't create a hold)
+    if not next_entry:
+        return
+
     # determine slot times for notification message
     if cancelled_start and cancelled_end:
         slot_start = cancelled_start
@@ -857,6 +862,7 @@ def notify_next_user(room, cancelled_start=None, cancelled_end=None, cancelled_b
 # this function is now called by the APScheduler background job, NOT on every
 # page load, see the scheduler.py
 def check_expired_waitlist():
+    print("RUNNING EXPIRE CHECK")
     now = timezone.now()
 
     # uses notification_deadline instead of the harcoded 24 hours
@@ -871,6 +877,13 @@ def check_expired_waitlist():
     for entry in expired:
         entry.status = "expired"
         entry.save(update_fields = ["status"])
+
+        # update notifications
+        Notification.objects.filter(
+            user=entry.user,
+            room=entry.room,
+            is_read=False,
+        ).update(is_read=True)
 
         # look up the hold to recover the original window
         active_hold = WaitlistHold.objects.filter(
@@ -903,7 +916,27 @@ def check_expired_waitlist():
 def get_notifications(request):
 
     # fetch unread notifications
-    notifications = Notification.objects.filter(user=request.user, is_read=False)
+    now = timezone.now()
+
+    notifications = Notification.objects.filter(
+        user=request.user,
+        is_read=False,
+    )
+
+    valid_notifications = []
+
+    for n in notifications:
+        wait = Waitlist.objects.filter(
+            user=request.user,
+            room=n.room,
+        ).first()
+
+        # skip if the deadline has passed
+        if wait and wait.notification_deadline and wait.notification_deadline < now:
+            continue
+
+        valid_notifications.append(n)
+
     data = [
         {
             "id": n.id,
@@ -912,7 +945,7 @@ def get_notifications(request):
             "room_id": n.room.id if n.room else None,
             "created_at": n.created_at,
         }
-        for n in notifications
+        for n in valid_notifications
     ]
 
     return Response({"notifications": data, "count": len(data)})

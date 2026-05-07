@@ -172,13 +172,19 @@ class ReservationSerializer(serializers.ModelSerializer):
         if conflicting_hold:
             # priority user: allow booking if their start time is within the held window
             # they can extend past the hold end as long as those extra times are free
-            if (
-                conflicting_hold.reserved_for == current_user
-                and start >= conflicting_hold.held_start
-                and start < conflicting_hold.held_end
-            ):
-                return attrs  # priority user — let the overlap check above handle the rest
+            # if (
+            #     conflicting_hold.reserved_for == current_user
+            #     and start >= conflicting_hold.held_start
+            #     and start < conflicting_hold.held_end
+            # ):
+            #     return attrs  # priority user — let the overlap check above handle the rest
 
+            # student can book any start tuime as long as they are th epiority user 
+            # for a hold that overlaps the requested window
+            if conflicting_hold.reserved_for == current_user:
+             return attrs
+            
+        
             elif conflicting_hold.cancelled_by == current_user:
                 raise serializers.ValidationError(
                     "WAITLIST_HOLD|You cancelled this reservation. "

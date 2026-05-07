@@ -27,11 +27,11 @@ def start():
     scheduler = BackgroundScheduler()
     scheduler.add_jobstore(DjangoJobStore(), "default")
 
-    # run every 5 minutes — expiry checks are cheap (indexed query)
+    # run every minute — expiry checks are cheap (indexed query)
     scheduler.add_job(
         check_expired_waitlist,
         trigger="interval",
-        minutes=5,
+        minutes=1,
         id="check_expired_waitlist",
         max_instances=1,         # never run two copies simultaneously
         replace_existing=True,   # on restart, replace the old job record
