@@ -1135,7 +1135,7 @@ def room_schedule(request, room_id):
     # so even before a hold is created, the slot shows as unavailable
     waiting_entries = Waitlist.objects.filter(
         room=room,
-        status__in=["waiting", "notified"],
+        status__in="notified",
         room_start_time__isnull=False,
     )
 
