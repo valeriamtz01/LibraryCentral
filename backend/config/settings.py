@@ -193,7 +193,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
         "OPTIONS": {
-            "timeout": 20,  # wait up to 20s before raising locked error
+            "timeout": 60,  # wait up to 60s before raising locked error
         },
     }
 }

@@ -158,6 +158,22 @@ class ReservationSerializer(serializers.ModelSerializer):
         request = self.context.get("request")  # key must be a string
         current_user = request.user if request else None
     
+        # check if the current user already owns a reservation for this room
+        # that overlaps the requested window — tell them instead of offering waitlist
+        if current_user:
+            own_reservation = Reservation.objects.filter(
+                user=current_user,
+                room=room,
+                status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
+                start_time__lt=end,
+                end_time__gt=start,
+            ).exists()
+            if own_reservation:
+                raise serializers.ValidationError(
+                    "You already have this room booked for that time. "
+                    "Check your upcoming reservations on the dashboard."
+                )
+    
         # find any ac\tive, unexpired hold that overlaps the requested window
         # behavior: user1 blcoked from the held window, free on other times
         # reserved_for is allowed only if bookings fis insde the held window

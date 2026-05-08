@@ -682,7 +682,6 @@ def join_waitlist(request):
     # the fe send the start_time the user was trying to book
     # so store it and later compute theie exact booking deadline
     room_start_time = request.data.get("room_start_time")  # ISO string or None
-
     room_end_time = request.data.get("room_end_time")
 
     try:
@@ -693,20 +692,10 @@ def join_waitlist(request):
     if room.has_monitor:
         return Response({"error": "Computers cannot be added to the waitlist."}, status=400)
 
-    # allow user who cancelled to rejoin waitlist cleanly
-    Waitlist.objects.filter(user=user, room=room, status__in=["cancelled", "expired"]).delete()
-
-    # prevent duplicates (so if student is already in the waitlist)
-    if Waitlist.objects.filter(user=user, room=room, status="waiting").exists():
-        return Response({"message": "Already in waitlist"}, status=400)
-
-    room_end_time = request.data.get("room_end_time")
-
-    # parse the ISO string into a timezone-aware datetime if provided
+    # parse times first,  needed for the ownership check below
     parsed_start = None
     if room_start_time:
         parsed_start = parse_datetime(room_start_time)
-        # parse_datetime returns naive if no tz info — make it aware
         if parsed_start and timezone.is_naive(parsed_start):
             parsed_start = timezone.make_aware(parsed_start)
 
@@ -715,6 +704,54 @@ def join_waitlist(request):
         parsed_end = parse_datetime(room_end_time)
         if parsed_end and timezone.is_naive(parsed_end):
             parsed_end = timezone.make_aware(parsed_end)
+
+    # prevent a student from joining waitlist for a room they already have booked
+    # check runs even if only start time is provided
+    if parsed_start:
+        # use the actual end time if provided, otherwise just check a tight window
+        # around the start — don't inflate to 3hrs as that causes false positives
+        if parsed_end:
+            check_end = parsed_end
+        else:
+            check_end = parsed_start + timedelta(minutes=30)
+
+        own_qs = Reservation.objects.filter(
+            user=user,
+            room=room,
+            status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
+            start_time__lt=check_end,
+            end_time__gt=parsed_start,
+        )
+        print(f"[DEBUG JOIN WAITLIST] found {own_qs.count()} active reservations for user={user}, room={room}")
+        for r in own_qs:
+            print(f"  → id={r.id}, status={r.status}, start={r.start_time}, end={r.end_time}")
+
+        if own_qs.exists():
+            return Response(
+                {"error": "You already have this room booked for that time."},
+                status=400
+            )
+    # broader check: if no times provided, block if student has any active reservation for this room at all
+    else:
+        # no time provided: block if they have active reservations for this room
+        any_reservation = Reservation.objects.filter(
+            user=user,
+            room=room,
+            status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
+            end_time__gte=timezone.now(),
+        ).exists()
+        if any_reservation:
+            return Response(
+                {"error": "You already have this room booked. Check your dashboard."},
+                status=400
+            )
+            
+    # allow user who cancelled to rejoin waitlist cleanly
+    Waitlist.objects.filter(user=user, room=room, status__in=["cancelled", "expired"]).delete()
+
+    # prevent duplicates (so if student is already in the waitlist)
+    if Waitlist.objects.filter(user=user, room=room, status="waiting").exists():
+        return Response({"message": "Already in waitlist"}, status=400)
 
     Waitlist.objects.create(user=user, room=room, room_start_time=parsed_start, room_end_time = parsed_end,) # store the slot time they want
 
@@ -899,13 +936,59 @@ def check_expired_waitlist():
             is_active=True,
         ).update(is_active=False)
 
-        # notify the next person in queue
-        notify_next_user(
-            entry.room,
-            cancelled_start=active_hold.held_start if active_hold else None,
-            cancelled_end=active_hold.held_end if active_hold else None,
-            cancelled_by=None,
-        )
+        # check if the held window's start is already in the past
+        # if so, collapse the whole waitlist for this room — nobody can book it
+        if active_hold and active_hold.held_start <= now:
+            Waitlist.objects.filter(
+                room=entry.room,
+                status__in=["waiting", "notified"],
+            ).update(status="expired")
+            WaitlistHold.objects.filter(
+                room=entry.room,
+                is_active=True,
+            ).update(is_active=False)
+            Notification.objects.filter(
+                room=entry.room,
+                is_read=False,
+            ).update(is_read=True)
+            continue
+
+        # find the next person in queue
+        next_entry = Waitlist.objects.filter(
+            room=entry.room,
+            status="waiting",
+        ).order_by("created_at").first()
+
+        if next_entry:
+            # check if the next person's requested time is still bookable
+            # (must be at least 30 mins in the future)
+            if next_entry.room_start_time:
+                next_deadline = next_entry.room_start_time - timedelta(minutes=ADVANCE_MINUTES)
+                if next_deadline <= now:
+                    # their requested time is also unbookable — just expire them
+                    # don't notify, don't create a hold
+                    next_entry.status = "expired"
+                    next_entry.save(update_fields=["status"])
+                    # remove from dashboard by marking any notification read
+                    Notification.objects.filter(
+                        user=next_entry.user,
+                        room=entry.room,
+                        is_read=False,
+                    ).update(is_read=True)
+                    # don't cascade further — loop will pick up the next expired entry
+                    # on the next scheduler run if there are more people in queue
+                    continue
+            
+            # their time is still valid — notify them
+            notify_next_user(
+                entry.room,
+                cancelled_start=None,
+                cancelled_end=None,
+                cancelled_by=None,
+            )
+        else:
+            # nobody left in queue — nothing to do
+            pass
 
 # added for notifcations
 # this is a GET endpoint at /notifications/
@@ -1135,7 +1218,7 @@ def room_schedule(request, room_id):
     # so even before a hold is created, the slot shows as unavailable
     waiting_entries = Waitlist.objects.filter(
         room=room,
-        status__in="notified",
+        status="notified",
         room_start_time__isnull=False,
     )
 
