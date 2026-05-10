@@ -1967,8 +1967,8 @@ return (
 						<h6>UTRGV Main Campus (Edinburg)</h6>
                     <ol>
                       <li>For individual study or group study. Please check room capacity — seating capacity cannot be exceeded.</li>
-                      <li>In one (1) hour increments.</li>
-                      <li>Up to three (3) days in advance.</li>
+                      <li>In 30-minute increments.</li>
+                      <li>Displays availability by week (Sunday-Saturday).</li>
                     </ol>
                     <h6>Your reservation will be canceled and made available to other students:</h6>
                     <ol>
