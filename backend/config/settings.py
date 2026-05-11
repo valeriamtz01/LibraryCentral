@@ -192,6 +192,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        "OPTIONS": {
+            "timeout": 60,  # wait up to 60s before raising locked error
+        },
     }
 }
 
@@ -220,7 +223,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "America/Chicago" # changed it so that django displays the times in central time in the admin panel (all datatimes are still stored as UTRC in the database but the admin will convert them to central for display)
 
 USE_I18N = True
 

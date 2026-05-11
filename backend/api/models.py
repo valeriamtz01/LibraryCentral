@@ -105,6 +105,10 @@ class Reservation(models.Model): # the booking itself creating allowed values an
 
     # waitlist feature
     def clean(self):
+        # allow cancellations to bypass hold validation
+        if self.status == Reservation.STATUS_CANCELLED:
+            return
+        
         overlapping = Reservation.objects.filter(
             room=self.room,
             start_time__lt=self.end_time,

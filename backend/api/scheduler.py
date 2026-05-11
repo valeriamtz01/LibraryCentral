@@ -22,25 +22,26 @@ def start():
     Called once from AppConfig.ready() — safe against double-start
     because APScheduler raises if you start an already-running scheduler.
     """
-    from .views import check_expired_waitlist   # local import avoids circular imports
+    from .views import check_expired_waitlist
+
+    # wrap in try/except so a DB lock error doesn't crash the scheduler thread
+    def safe_check():
+        try:
+            check_expired_waitlist()
+        except Exception as e:
+            logger.error(f"check_expired_waitlist failed: {e}")
 
     scheduler = BackgroundScheduler()
     scheduler.add_jobstore(DjangoJobStore(), "default")
 
-    # run every 5 minutes — expiry checks are cheap (indexed query)
     scheduler.add_job(
-        check_expired_waitlist,
+        safe_check,                  # ← use safe_check instead of check_expired_waitlist
         trigger="interval",
-        minutes=5,
+        minutes=1,
         id="check_expired_waitlist",
-        max_instances=1,         # never run two copies simultaneously
-        replace_existing=True,   # on restart, replace the old job record
+        max_instances=1,
+        replace_existing=True,
+        misfire_grace_time=30,       # ← allows up to 30s delay before skipping a run
     )
-
-    logger.info("Starting APScheduler — check_expired_waitlist every 5 minutes")
-
-    try:
-        scheduler.start()
-    except Exception as e:
-        logger.error(f"APScheduler failed to start: {e}")
-        
+    
+   

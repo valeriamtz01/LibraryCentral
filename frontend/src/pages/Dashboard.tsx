@@ -88,13 +88,15 @@ const Dashboard = () => {
     }
   };
 
-  // poll for notifications every 10 seconds
-  // evert 10 seconds, the broswer makes a GET request to /notifications/ and check if there's anything new
+  // poll for notifications AND dashboard every 10 seconds
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10_000);
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchDashboard(); // re-fetches waitlist status so badge updates instantly
+    }, 10_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchDashboard]);
 
   // added for the delete reservation
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -109,6 +111,10 @@ const Dashboard = () => {
 
   // added loading state
   const [loading, setLoading] = useState(true);
+
+  // added new state variables for waitlist
+  const [waitlistRemoveEntry, setWaitlistRemoveEntry] = useState<any>(null); // entry to confirm removal
+  const [removingWaitlist, setRemovingWaitlist] = useState(false);
 
   // helper function for data formatting: 
   // be iso strings (2026-01-02T14:00:00Z) aren't user friendly
@@ -140,6 +146,20 @@ const Dashboard = () => {
       console.error("Failed to delete reservation:", error);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // new handler for waitlist
+  const handleRemoveWaitlist = async (waitlistId: number) => {
+    setRemovingWaitlist(true);
+    try {
+      await api.post("/waitlist/remove/", { waitlist_id: waitlistId });
+      setWaitlistRemoveEntry(null);
+      await fetchDashboard();
+    } catch (error) {
+      console.error("Failed to remove from waitlist:", error);
+    } finally {
+      setRemovingWaitlist(false);
     }
   };
 
@@ -727,19 +747,23 @@ return (
                   }} />
 
                   {/* Waitlist card */}
-                  <div style={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '10px',
-                    padding: '11px 14px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}>
+                  <div
+                    className="db-waitlist-card"
+                    style={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '10px',
+                      padding: '11px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      position: 'relative',
+                    }}
+                  >
                     <div>
                       {/* Room name + waitlist label */}
                       <div style={{ fontWeight: 500, fontSize: '14px', color: '#1a1a1a', marginBottom: '2px' }}>
-                        {entry.room_name} 
+                        {entry.room_name}
                       </div>
 
                       {/* Time slot if available */}
@@ -761,18 +785,81 @@ return (
                       </div>
                     </div>
 
-                    {/* Status badge */}
-                    <Badge
-                      style={{
-                        backgroundColor: entry.status === 'notified' ? '#7c3aed' : '#6c757d',
-                        color: '#fff',
-                        fontSize: '11px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {entry.status === 'notified' ? 'Notified — Book Now' : 'Waitlisted'}
-                    </Badge>
+                    {/* Right side with two different actions based on status */}
+                  <div className="db-waitlist-badge-wrap">
+                    {entry.status === 'notified' ? (
+                      // "Notified" => styled like the original purple badge but clickable
+                      <button
+                        onClick={() => navigate('/study-spaces', {
+                          state: { openRoomId: entry.room_id, openRoomName: entry.room_name }
+                        })}
+                        style={{
+                          backgroundColor: '#0d6efd',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '0.375rem',  
+                          padding: '0.35em 0.65em',  
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          lineHeight: 1,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        Notified — Book Now
+                      </button>
+                    ) : (
+                      // "Waitlisted" => badge fades to X on hover
+                      <>
+                        <Badge
+                          className="db-waitlist-badge"
+                          style={{
+                            backgroundColor: '#6c757d',
+                            color: '#fff',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            flexShrink: 0,
+                            transition: 'opacity 0.15s',
+                            borderRadius: '0.375rem',
+                            padding: '0.35em 0.65em',
+                            lineHeight: 1,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          Waitlisted
+                        </Badge>
+                        <button
+                          className="db-waitlist-remove-btn"
+                          onClick={() => setWaitlistRemoveEntry(entry)}
+                          title="Leave waitlist"
+                          style={{
+                            position: 'absolute',
+                            top: 0, left: 0, right: 0, bottom: 0,
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#C0421A',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            opacity: 0,
+                            transition: 'opacity 0.15s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          <i className="bi bi-x-lg" style={{ fontSize: '12px' }} /> Leave
+                        </button>
+                      </>
+                    )}
                   </div>
+                  </div>
+                  
                 </div>
               ))}
 
@@ -911,55 +998,160 @@ return (
               </div>
 
               {notifications.length > 0 ? (
-                <>
-                  {/* First 2 notifications only — full list via bell dropdown in navbar */}
-                  {notifications.slice(0, 2).map((n) => (
-                    <div
-                      key={n.id}
-                      style={{
-                        fontSize: '12px',
-                        color: '#495057',
-                        padding: '6px 0',
-                        borderBottom: '1px solid #f0f0f0',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {/* "New:" in brand orange draws attention to actionable items */}
-                      <span style={{ fontWeight: 600, color: '#C0421A', marginRight: '4px' }}>New:</span>
-                      {n.message}
-                    </div>
-                  ))}
+  notifications.slice(0, 2).map((n) => (
+    <div
+  key={n.id}
+  style={{
+    backgroundColor: '#fafafa',
+    border: '1px solid #ececec',
+    borderRadius: '10px',
+    padding: '10px 11px',
+    marginBottom: '8px',
+  }}
+>
+  {/* top row */}
+  <div
+    className="d-flex justify-content-between align-items-start"
+    style={{ marginBottom: '6px' }}
+  >
+    <div className="d-flex align-items-center gap-2">
+      {/* SMALLER ICON */}
+      <div
+        style={{
+          width: '22px',
+          height: '22px',
+          borderRadius: '50%',
+          backgroundColor: '#C0421A',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <i
+          className="bi bi-door-open-fill"
+          style={{
+            color: '#fff',
+            fontSize: '10px',
+          }}
+        />
+      </div>
 
-                  <div className="d-flex gap-2 mt-2">
-                    {/* Mark all read — POST /notifications/mark-read/ */}
-                    <Button
-                      variant="outline-secondary" size="sm"
-                      style={{ flex: 1, fontSize: '11px', borderRadius: '8px' }}
-                      onClick={markAllRead}
-                    >
-                      Mark all read
-                    </Button>
-                    {/* Reserve now — markAllRead + navigate to study spaces */}
-                    <Button
-                      size="sm"
-                      style={{
-                        flex: 1, fontSize: '11px', borderRadius: '8px',
-                        backgroundColor: '#C0421A', borderColor: '#C0421A',
-                      }}
-                      onClick={() => { markAllRead(); navigate('/study-spaces'); }}
-                    >
-                      Reserve now
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                // Empty state — no unread notifications
-                <div className="text-center py-2">
-                  {/* bi-bell-slash — Bootstrap Icon: bell with slash, no notifications */}
-                  <i className="bi bi-bell-slash" style={{ fontSize: '1.4rem', color: '#dee2e6' }} />
-                  <p className="text-muted mt-2 mb-0" style={{ fontSize: '12px' }}>No new notifications.</p>
-                </div>
-              )}
+      <div
+        style={{
+          fontSize: '12px',
+          fontWeight: 600,
+          color: '#1a1a1a',
+          lineHeight: 1.2,
+        }}
+      >
+        Room Available
+      </div>
+    </div>
+
+    {/* SMALLER NEW BADGE */}
+    <span
+      style={{
+        fontSize: '9px',
+        fontWeight: 700,
+        color: '#C0421A',
+        backgroundColor: '#fff1eb',
+        padding: '2px 6px',
+        borderRadius: '999px',
+      }}
+    >
+      NEW
+    </span>
+  </div>
+
+  {/* message */}
+  <div
+    style={{
+      fontSize: '11px',
+      color: '#6b7280',
+      lineHeight: 1.4,
+      marginBottom: '8px',
+    }}
+  >
+    {n.message}
+  </div>
+
+  {/* actions */}
+  <div className="d-flex gap-2">
+    <button
+      onClick={async () => {
+        if (n.room_id) {
+          try {
+            await api.post("/waitlist/decline/", {
+              room_id: n.room_id,
+            });
+          } catch (err) {
+            console.error("Failed to decline waitlist", err);
+          }
+        }
+
+        await fetchNotifications();
+        await fetchDashboard();
+      }}
+      style={{
+        flex: 1,
+        height: '30px',
+        borderRadius: '7px',
+        border: '1px solid #dee2e6',
+        backgroundColor: '#fff',
+        fontSize: '11px',
+        fontWeight: 500,
+        color: '#495057',
+      }}
+    >
+      Decline
+    </button>
+
+    <button
+      onClick={() => {
+        if (n.room_id && n.room_name) {
+          navigate('/study-spaces', {
+            state: {
+              openRoomId: n.room_id,
+              openRoomName: n.room_name,
+            },
+          });
+        } else {
+          navigate('/study-spaces');
+        }
+      }}
+      style={{
+        flex: 1,
+        height: '30px',
+        borderRadius: '7px',
+        border: 'none',
+        backgroundColor: '#C0421A',
+        color: '#fff',
+        fontSize: '11px',
+        fontWeight: 600,
+      }}
+    >
+      Reserve
+    </button>
+  </div>
+</div>
+  ))
+) : (
+  <div className="text-center py-2">
+    <i
+      className="bi bi-bell-slash"
+      style={{ fontSize: '1.4rem', color: '#dee2e6' }}
+    />
+    <p
+      className="text-muted mt-2 mb-0"
+      style={{ fontSize: '12px' }}
+    >
+      No new notifications.
+    </p>
+  </div>
+)}
+
+                  
             </div>
             {/* END CARD 1: Notifications */}
 
@@ -1012,6 +1204,91 @@ return (
 
       </main>
       {/* END main */}
+
+      {/*  waitlist removal confrimation modal*/}
+      {waitlistRemoveEntry && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1050,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => !removingWaitlist && setWaitlistRemoveEntry(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '16px',
+              padding: '28px 28px 24px',
+              maxWidth: '400px',
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* icon */}
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: '#fff4f0',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: '16px',
+            }}>
+              <i className="bi bi-bell-slash" style={{ fontSize: '20px', color: '#C0421A' }} />
+            </div>
+
+            {/* title */}
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a1a', marginBottom: '8px' }}>
+              Leave Waitlist?
+            </div>
+
+            {/* the description */}
+            <div style={{ fontSize: '13px', color: '#6c757d', lineHeight: 1.5, marginBottom: '20px' }}>
+              You'll be removed from the waitlist for{' '}
+              <strong style={{ color: '#1a1a1a' }}>{waitlistRemoveEntry.room_name}</strong>.
+              If a spot opens up, you won't be notified.
+            </div>
+
+            {/* buttons */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setWaitlistRemoveEntry(null)}
+                disabled={removingWaitlist}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: '1px solid #dee2e6',
+                  backgroundColor: '#fff',
+                  color: '#495057',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Keep My Spot
+              </button>
+              <button
+                onClick={() => handleRemoveWaitlist(waitlistRemoveEntry.id)}
+                disabled={removingWaitlist}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#C0421A',
+                  color: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {removingWaitlist ? 'Removing…' : 'Yes, Leave Queue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer — existing Footer component, completely unchanged */}
       <Footer />

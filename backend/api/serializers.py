@@ -158,6 +158,22 @@ class ReservationSerializer(serializers.ModelSerializer):
         request = self.context.get("request")  # key must be a string
         current_user = request.user if request else None
     
+        # check if the current user already owns a reservation for this room
+        # that overlaps the requested window — tell them instead of offering waitlist
+        if current_user:
+            own_reservation = Reservation.objects.filter(
+                user=current_user,
+                room=room,
+                status__in=[Reservation.STATUS_PENDING, Reservation.STATUS_CONFIRMED],
+                start_time__lt=end,
+                end_time__gt=start,
+            ).exists()
+            if own_reservation:
+                raise serializers.ValidationError(
+                    "You already have this room booked for that time. "
+                    "Check your upcoming reservations on the dashboard."
+                )
+    
         # find any ac\tive, unexpired hold that overlaps the requested window
         # behavior: user1 blcoked from the held window, free on other times
         # reserved_for is allowed only if bookings fis insde the held window
@@ -170,24 +186,28 @@ class ReservationSerializer(serializers.ModelSerializer):
         ).first()
 
         if conflicting_hold:
-            # priority user: allow booking only if it fits exactly within the held window
-            if (
-                conflicting_hold.reserved_for == current_user
-                and start >= conflicting_hold.held_start
-                and end <= conflicting_hold.held_end
-            ):
-                return attrs # priority user booking their exact held slot
+            # priority user: allow booking if their start time is within the held window
+            # they can extend past the hold end as long as those extra times are free
+            # if (
+            #     conflicting_hold.reserved_for == current_user
+            #     and start >= conflicting_hold.held_start
+            #     and start < conflicting_hold.held_end
+            # ):
+            #     return attrs  # priority user — let the overlap check above handle the rest
 
-            # original canceller: always blocked, even if reserved_for is none
-            # covers the case where no one was on the waitlist but we still want to prevent the canceller from immediately re-grabbing the slot
+            # student can book any start tuime as long as they are th epiority user 
+            # for a hold that overlaps the requested window
+            if conflicting_hold.reserved_for == current_user:
+             return attrs
+            
+        
             elif conflicting_hold.cancelled_by == current_user:
                 raise serializers.ValidationError(
                     "WAITLIST_HOLD|You cancelled this reservation. "
                     "This time is now pending for a waitlisted user. "
                     "You may join the waitlist to be notified if it becomes available."
                 )
-            
-            #everyone else: blocked with the waitlist prompt
+
             else:
                 raise serializers.ValidationError(
                     "WAITLIST_HOLD|These times conflict with a pending reservation. "
