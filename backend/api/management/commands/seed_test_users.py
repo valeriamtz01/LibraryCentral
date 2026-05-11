@@ -1,4 +1,4 @@
-# seed file for test users:
+# (ignore this for now) seed file for test users:
 
 #   1) creates vaquero01@utrgv.edu / Vaquero01! 
 #       on dashboard: 3 room reservations + 2 computer reservations + hdmi cable, headpbones, and mouse checked out
@@ -8,6 +8,28 @@
 #        on dashboard:  3 room reservations + 2 computer reservations + laptop, graphing calculator, scientific calculator checked out
 #        on history: 3 completed reservations + 3 canceled reservations + 2 returned items (camcorder and projector) + 3 cancelled items (headphone, hdmi cable, ipad)
 
+
+
+# PRESENTATION SETUP: 
+#           vaq2 has 1 study room booked for 11:30-1pm for may 11 (so it's show red on map during demo)
+#           vaq3 has 1 computer booked 11:30-1pm for today for may 11 (so it's shown red on map during demo)
+#           ** vaq1 has NO bookings between 11:30-1pm (free to demo live)
+
+# 1) vaquero01@utrgv.edu
+#   dashboard: 1 study room (different day) + 1 computer (different day) + 1 active checkout (NOTHING FOR MAY 11)
+#   history: 1 completed room and 1 completed and cancelled computery
+ 
+# 2) vaquero02@utrgv.edu
+#   dashboard: 1 study room + 1 other day room + 1 active checkout 
+#   history: 1 completed and cancelled room
+
+# 3) vaqeuro03@utrgv.edu
+#   dashboard: 1 computer + 1 other day room + 1 active checkout 
+#   history: 1 completed and cancelled room
+
+# thse 11:30–1pm bookings are computed from today's date in Central Time
+
+
 # important note: all dates are relative to 'now' so reservations are always in the future
 
 from django.core.management.base import BaseCommand
@@ -16,7 +38,7 @@ from django.utils import timezone
 from datetime import timedelta
 from api.models import (
     Campus, Room, Reservation, EquipmentItem,
-    EquipmentAsset, Checkout
+    EquipmentAsset, Checkout, Waitlist, WaitlistHold, Notification
 )
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -30,8 +52,10 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
 
         now = timezone.now()
+        now_ct = now.astimezone(CENTRAL)
 
-        # creating demo account
+
+        # creating demo account (vaquero01, vaquero02, vaquero03)
         demo_users = [
             {
                 "username":   "vaquero01@utrgv.edu",
@@ -46,6 +70,13 @@ class Command(BaseCommand):
                 "password":   "Vaquero02!",
                 "first_name": "Vaquero",
                 "last_name":  "Two",
+            },
+            {
+                "username":   "vaquero03@utrgv.edu",
+                "email":      "vaquero03@utrgv.edu",
+                "password":   "Vaquero03!",
+                "first_name": "Vaquero",
+                "last_name":  "Three",
             },
         ]
 
@@ -88,34 +119,37 @@ class Command(BaseCommand):
         computers = list(
             Room.objects.filter(has_monitor=True, is_active=True).order_by("name")
         )
-
+ 
         if not study_rooms:
             self.stdout.write(self.style.WARNING(
                 "No active study rooms found — run seed_rooms_from_floormap first."
             ))
-
+        if not computers:
+            self.stdout.write(self.style.WARNING(
+                "No active computer rooms found."
+            ))
+ 
         v01 = users["vaquero01@utrgv.edu"]
         v02 = users["vaquero02@utrgv.edu"]
-
-        # seed the reservations
-        #
-        # A) UPCOMING  — future, CONFIRMED  → shows on dashboard
-        # B) COMPLETED — past end_time, PENDING → "Completed" in history
-        # C) CANCELLED — STATUS_CANCELLED   → "Cancelled" in history
+        v03 = users["vaquero03@utrgv.edu"]
+ 
         CONFIRMED = Reservation.STATUS_CONFIRMED
         PENDING   = Reservation.STATUS_PENDING
         CANCELLED = Reservation.STATUS_CANCELLED
 
-        def make_res(user, room, days_offset, hour_start, duration_hrs, status):
-            # build the datetime in Central Time directly so it displays correctly
-            base_ct = now.astimezone(CENTRAL).replace(
-                hour=hour_start, minute=0, second=0, microsecond=0
+        # helper function: build a reservation using central time 
+        def make_res(user, room, days_offset, hour_start, minute_start, duration_hrs, status):
+            """
+            Builds a Reservation object with times anchored to Central Time.
+            days_offset: positive = future, negative = past
+            """
+            base_ct = now_ct.replace(
+                hour=hour_start, minute=minute_start, second=0, microsecond=0
             )
             start_ct = base_ct + timedelta(days=days_offset)
             end_ct   = start_ct + timedelta(hours=duration_hrs)
-            # convert back to UTC for storage (since Django stores everything in UTC)
-            start = start_ct.astimezone(ZoneInfo("UTC"))
-            end   = end_ct.astimezone(ZoneInfo("UTC"))
+            start    = start_ct.astimezone(ZoneInfo("UTC"))
+            end      = end_ct.astimezone(ZoneInfo("UTC"))
             return Reservation(
                 user=user, room=room,
                 start_time=start, end_time=end,
@@ -124,49 +158,142 @@ class Command(BaseCommand):
 
         reservations_to_create = []
 
-        def r(user, room_list, idx, days, hour, dur, status):
+        def r(user, room_list, idx, days, hour, minute, dur, status):
             if room_list and idx < len(room_list):
                 reservations_to_create.append(
-                    make_res(user, room_list[idx], days, hour, dur, status)
+                    make_res(user, room_list[idx], days, hour, minute, dur, status)
                 )
 
         # VAQUERO 01 
-        # upcoming
-        r(v01, study_rooms, 0,  1, 10, 2, CONFIRMED)
-        r(v01, study_rooms, 1,  2, 14, 2, CONFIRMED)
-        r(v01, study_rooms, 2,  4,  9, 2, CONFIRMED)
-        r(v01, computers,   0,  3,  9, 1, CONFIRMED)
-        r(v01, computers,   1,  5, 11, 1, CONFIRMED)
-        # completed
-        r(v01, study_rooms, 0, -3, 10, 2, PENDING)
-        r(v01, study_rooms, 1, -5, 14, 1, PENDING)
-        r(v01, computers,   0, -2,  9, 1, PENDING)
-        r(v01, study_rooms, 3, -8, 13, 2, PENDING)
-        # cancelled
-        r(v01, study_rooms, 2, -1, 13, 1, CANCELLED)
-        r(v01, study_rooms, 0, -7, 10, 1, CANCELLED)
-        r(v01, computers,   1, -4, 11, 1, CANCELLED)
+        # dashboard: 1 room tomorrow morning + 1 computer day after tomorrow
+        # history:   1 completed room + 1 completed computer + 1 cancelled computer
+        self.stdout.write("\nVaquero 01 reservations:")
+ 
+        # upcoming (not overlapping 11:30–1pm today)
+        r(v01, study_rooms, 0,  1,  9,  0, 2, CONFIRMED)   # tomorrow 9am–11am
+        r(v01, computers,   0,  2, 14,  0, 1, CONFIRMED)   # day after tomorrow 2pm–3pm
+ 
+        # completed (past)
+        r(v01, study_rooms, 1, -3, 10,  0, 2, PENDING)     # 3 days ago, room
+        r(v01, computers,   0, -5,  9,  0, 1, PENDING)     # 5 days ago, computer
+ 
+        # cancelled (past)
+        r(v01, computers,   1, -2, 11,  0, 1, CANCELLED)   # 2 days ago, computer cancelled
 
         # VAQUERO 02 
-        # upcoming
-        r(v02, study_rooms, 3,  1, 13, 1, CONFIRMED)
-        r(v02, study_rooms, 4,  3, 15, 2, CONFIRMED)
-        r(v02, computers,   0,  2, 11, 1, CONFIRMED)
-        r(v02, computers,   1,  4, 14, 1, CONFIRMED)
-        r(v02, study_rooms, 5,  6,  9, 2, CONFIRMED)
-        # completed
-        r(v02, study_rooms, 0, -4, 10, 2, PENDING)
-        r(v02, computers,   0, -6,  9, 1, PENDING)
-        r(v02, study_rooms, 1, -9, 14, 1, PENDING)
-        # cancelled
-        r(v02, study_rooms, 2, -2, 14, 1, CANCELLED)
-        r(v02, study_rooms, 3, -8, 11, 2, CANCELLED)
-        r(v02, computers,   1, -3, 10, 1, CANCELLED)
-
+        self.stdout.write("\nVaquero 02 reservations:")
+ 
+        # RED HOTSPOT: today 11:30am–1pm
+        r(v02, study_rooms, 0,  0, 11, 30, 1.5, CONFIRMED)   # TODAY 11:30am–1pm → RED
+ 
+        # other upcoming (different day, won't conflict with demo)
+        r(v02, study_rooms, 1,  3, 15,  0, 2, CONFIRMED)   # 3 days from now 3pm–5pm
+ 
+        # completed (past)
+        r(v02, study_rooms, 2, -4, 10,  0, 2, PENDING)     # 4 days ago
+ 
+        # cancelled (past)
+        r(v02, study_rooms, 3, -6, 13,  0, 1, CANCELLED)   # 6 days ago
+ 
+        # ── VAQUERO 03 — 1 computer TODAY 11:30AM–1PM (red hotspot) ──────────
+        self.stdout.write("\nVaquero 03 reservations:")
+ 
+        # RED HOTSPOT: today 11:30am–1pm
+        r(v03, computers,   0,  0, 11, 30, 1.5, CONFIRMED)   # TODAY 11:30am–1pm → RED
+ 
+        # other upcoming (different day)
+        r(v03, computers,   1,  2, 10,  0, 1, CONFIRMED)   # 2 days from now 10am–11am
+ 
+        # completed (past)
+        r(v03, computers,   0, -3,  9,  0, 1, PENDING)     # 3 days ago, computer
+ 
+        # cancelled (past)
+        r(v03, study_rooms, 0, -7, 14,  0, 2, CANCELLED)   # 7 days ago, room cancelled
+ 
         Reservation.objects.bulk_create(reservations_to_create)
         self.stdout.write(self.style.SUCCESS(
-            f"Created {len(reservations_to_create)} demo reservations"
+            f"\nCreated {len(reservations_to_create)} demo reservations"
         ))
+
+
+        self.stdout.write("\nSeeding waitlist notification for vaq1...")
+
+        # pick a room by using a different room index so it's not the same room as vaq2 red slot
+        notif_room = study_rooms[1] if len(study_rooms) > 1 else study_rooms[0] if study_rooms else None
+
+
+        if notif_room:
+            notif_start_ct = (now_ct + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+            notif_end_ct   = notif_start_ct + timedelta(hours=1, minutes=30)
+            notif_start    = notif_start_ct.astimezone(ZoneInfo("UTC"))
+            notif_end      = notif_end_ct.astimezone(ZoneInfo("UTC"))
+
+            # deadline: requested start minus 30 minutes
+            # since 11:30 minus 30 min = 11:00 which may already be past,
+            # use now + 24 hours as the fallback so it stays visible during demo
+            deadline = notif_start - timedelta(minutes=30)
+            deadline_ct = deadline.astimezone(CENTRAL)
+            deadline_str = deadline_ct.strftime("%b %d at %I:%M %p CT")
+
+            # create the waitlist entry for vaq1 as notified
+            waitlist_entry, _ = Waitlist.objects.get_or_create(
+                user=v01,
+                room=notif_room,
+                defaults={
+                    "status":                "notified",
+                    "room_start_time":       notif_start,
+                    "room_end_time":         notif_end,
+                    "notification_time":     now,
+                    "notification_deadline": deadline,
+                }
+            )
+            # if it already existed, make sure it is notified
+            if waitlist_entry.status != "notified":
+                waitlist_entry.status = "notified"
+                waitlist_entry.notification_time = now
+                waitlist_entry.notification_deadline = deadline
+                waitlist_entry.room_start_time = notif_start
+                waitlist_entry.room_end_time   = notif_end
+                waitlist_entry.save()
+
+            # create the active WaitlistHold reserved for vaq1
+            # deactivate any existing holds for this room first
+            WaitlistHold.objects.filter(room=notif_room, is_active=True).update(is_active=False)
+            WaitlistHold.objects.create(
+                room=notif_room,
+                held_start=notif_start,
+                held_end=notif_end,
+                reserved_for=v01,
+                expires_at=deadline,
+                is_active=True,
+                cancelled_by=v02,   # simulates that vaq2 cancelled
+            )
+
+            # create the bell notification message
+            notif_start_display = notif_start_ct.strftime("%b %d, %I:%M %p CT")
+            Notification.objects.filter(user=v01, room=notif_room, is_read=False).delete()
+            Notification.objects.create(
+                user=v01,
+                room=notif_room,
+                message=(
+                    f"{notif_room.name} is now available! "
+                    f"Your requested time was {notif_start_display}. "
+                    f"You have until {deadline_str} to book it. "
+                    f"Click to reserve or decline your spot."
+                ),
+                is_read=False,
+            )
+
+            self.stdout.write(self.style.SUCCESS(
+                f"  [NOTIFICATION] vaq1 notified for {notif_room.name} — deadline {deadline_str}"
+            ))
+        else:
+            self.stdout.write(self.style.WARNING(
+                "  No study room found — skipping waitlist notification seed"
+            ))
+
+
+
 
         # seed equipment checkouts
         #
@@ -174,7 +301,7 @@ class Command(BaseCommand):
         # B) RETURNED  — returned_at set,   is_cancelled=False → "Returned"
         # C) CANCELLED — returned_at set,   is_cancelled=True  → "Cancelled"
         checkouts_created = 0
-
+ 
         def get_asset(item_name):
             item = EquipmentItem.objects.filter(name__icontains=item_name).first()
             if not item:
@@ -188,7 +315,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f"  No available asset for '{item_name}' — skipping"))
                 return None, None
             return item, asset
-
+ 
         def checkout_active(user, item_name, due_days):
             nonlocal checkouts_created
             item, asset = get_asset(item_name)
@@ -207,14 +334,14 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f"  [ACTIVE]    {item.name} → {user.email} (due in {due_days}d)"
             ))
-
+ 
         def checkout_returned(user, item_name, days_ago):
             nonlocal checkouts_created
             item, asset = get_asset(item_name)
             if not item:
                 return
-            checked_out  = now - timedelta(days=days_ago + 1)
-            returned_at  = now - timedelta(days=days_ago)
+            checked_out = now - timedelta(days=days_ago + 1)
+            returned_at = now - timedelta(days=days_ago)
             Checkout.objects.create(
                 user=user, item=item, assigned_asset=asset,
                 checked_out_at=checked_out,
@@ -226,7 +353,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f"  [RETURNED]  {item.name} → {user.email} ({days_ago}d ago)"
             ))
-
+ 
         def checkout_cancelled(user, item_name, days_ago):
             nonlocal checkouts_created
             item, asset = get_asset(item_name)
@@ -247,40 +374,42 @@ class Command(BaseCommand):
             ))
 
         #  VAQUERO 01 
-        self.stdout.write("")
-        self.stdout.write("Vaquero 01 checkouts:")
-        checkout_active(v01,   "HDMI Cable",               due_days=1)
-        checkout_active(v01,   "Headphones",               due_days=1)
-        checkout_active(v01,   "Mouse",                    due_days=1)
-        checkout_returned(v01, "Projector",                days_ago=3)
-        checkout_returned(v01, "iPad",                     days_ago=5)
-        checkout_returned(v01, "Digital Camera",           days_ago=8)
-        checkout_cancelled(v01, "CDs",                     days_ago=2)
-        checkout_cancelled(v01, "DVDs",                    days_ago=6)
-        checkout_cancelled(v01, "Mobile Phone Charger",    days_ago=10)
+        # 1 active, 1 returned (history), 1 cancelled (history)
+        self.stdout.write("\nVaquero 01 checkouts:")
+        checkout_active(v01,    "HDMI Cable",            due_days=2)
+        checkout_returned(v01,  "Projector",             days_ago=4)
+        checkout_cancelled(v01, "Headphones",            days_ago=3)  
 
         #  VAQUERO 02 
-        self.stdout.write("")
-        self.stdout.write("Vaquero 02 checkouts:")
-        checkout_active(v02,   "Laptop",                   due_days=1)
-        checkout_active(v02,   "Graphing",                 due_days=90)
-        checkout_active(v02,   "Scientific",               due_days=90)
-        checkout_returned(v02, "Digital Camcorder",        days_ago=4)
-        checkout_returned(v02, "Projector",                days_ago=7)
-        checkout_cancelled(v02, "Headphones",              days_ago=3)
-        checkout_cancelled(v02, "HDMI Cable",              days_ago=9)
-        checkout_cancelled(v02, "iPad",                    days_ago=12)
+        # 1 active
+        self.stdout.write("\nVaquero 02 checkouts:")
+        checkout_active(v02,    "Laptop",                due_days=3)
+
+        # VAQUERO 03
+        # 1 active
+        self.stdout.write("\nVaquero 03 checkouts:")
+        checkout_active(v03,    "Mouse",                 due_days=1)
 
         # print out done
         self.stdout.write("")
-        self.stdout.write(self.style.SUCCESS("=" * 55))
+        self.stdout.write(self.style.SUCCESS("=" * 60))
         self.stdout.write(self.style.SUCCESS("Demo seed complete!"))
-        self.stdout.write(self.style.SUCCESS("=" * 55))
+        self.stdout.write(self.style.SUCCESS("=" * 60))
         self.stdout.write("")
         self.stdout.write("  vaquero01@utrgv.edu  /  Vaquero01!")
         self.stdout.write("  vaquero02@utrgv.edu  /  Vaquero02!")
+        self.stdout.write("  vaquero03@utrgv.edu  /  Vaquero03!")
         self.stdout.write("")
-        self.stdout.write("  Dashboard  — upcoming reservations + active equipment")
-        self.stdout.write("  History    — completed, cancelled reservations")
-        self.stdout.write("               returned, cancelled equipment")
+        self.stdout.write("  PRESENTATION SETUP:")
+        self.stdout.write("  ─────────────────────────────────────────────────")
+        self.stdout.write("  vaq2 → study room RED  11:30AM–1PM today")
+        self.stdout.write("  vaq3 → computer   RED  11:30AM–1PM today")
+        self.stdout.write("  vaq1 → nothing booked 11:30–1PM (free to demo live)")
+        self.stdout.write("")
+        self.stdout.write("  vaq1 dashboard:  1 room (tomorrow) + 1 computer (day after)")
+        self.stdout.write("  vaq1 history:    1 completed room + 1 completed computer + 1 cancelled computer")
+        self.stdout.write("  vaq1 equipment:  1 active (HDMI) + 1 returned (Projector) + 1 cancelled (Headphones)")
+        self.stdout.write("")
+        self.stdout.write("  vaq2 dashboard:  RED room today + 1 future room + 1 active checkout")
+        self.stdout.write("  vaq3 dashboard:  RED computer today + 1 future computer + 1 active checkout")
         self.stdout.write("")

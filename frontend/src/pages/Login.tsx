@@ -140,8 +140,10 @@ const Login = () => {
             </p>
             <div className="d-flex flex-wrap gap-1 justify-content-center">
               {[
+                // renders dyncamically from teh array
                 { label: 'Vaquero 01', email: 'vaquero01@utrgv.edu', password: 'Vaquero01!' },
                 { label: 'Vaquero 02', email: 'vaquero02@utrgv.edu', password: 'Vaquero02!' },
+                { label: 'Vaquero 03', email: 'vaquero03@utrgv.edu', password: 'Vaquero03!' },
               ].map(({ label, email: e, password: p }) => (
                 <button
                   key={e}
