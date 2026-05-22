@@ -508,6 +508,39 @@ def check_reservation_feasibility(
     sched = resp.json() if isinstance(resp.json(), dict) else {}
 
     busy: list[tuple[datetime, datetime]] = []
+    # for key in ("booked", "held", "waitlisted"):
+    #     for w in sched.get(key, []) or []:
+    #         try:
+    #             b0 = _to_chicago(_parse_dt(w.get("start"), default_tz=client_tz))
+    #             b1 = _to_chicago(_parse_dt(w.get("end"), default_tz=client_tz))
+    #         except Exception:
+    #             continue
+    #         reserved_for_me = bool(w.get("reserved_for_me"))
+    #         if reserved_for_me:
+    #             continue
+    #         busy.append((b0, b1))
+
+    # fetch the student's own reservations so we can detect self-conflicts
+    own_reservation_windows: list[tuple[datetime, datetime]] = []
+    try:
+        my_url = f"{api}/api/reservations/"
+        my_resp = requests.get(my_url, headers=_auth_headers(token), timeout=20)
+        if my_resp.ok:
+            my_reservations = my_resp.json() if isinstance(my_resp.json(), list) else []
+            for res in my_reservations:
+                if res.get("is_waitlist"):
+                    continue
+                if int(res.get("room") or 0) != int(room_id):
+                    continue
+                try:
+                    rs = _to_chicago(_parse_dt(res.get("start_time", ""), default_tz=client_tz))
+                    re = _to_chicago(_parse_dt(res.get("end_time", ""), default_tz=client_tz))
+                    own_reservation_windows.append((rs, re))
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
     for key in ("booked", "held", "waitlisted"):
         for w in sched.get(key, []) or []:
             try:
@@ -520,14 +553,34 @@ def check_reservation_feasibility(
                 continue
             busy.append((b0, b1))
 
+    # conflict = any(_overlaps(start, end, b0, b1) for b0, b1 in busy)
+    # if conflict:
+    #     suggested = _find_next_free_slots(open_dt=open_dt, close_dt=close_dt, duration_minutes=duration_minutes, busy=busy)
+    #     return {
+    #         "ok": False,
+    #         "reason": "That room is already booked for that time.",
+    #         "can_waitlist": (not room_is_computer),
+    #         "suggested_slots": suggested,
+    #     }
     conflict = any(_overlaps(start, end, b0, b1) for b0, b1 in busy)
     if conflict:
+        # check if the conflict is the student's own reservation
+        is_own_conflict = any(_overlaps(start, end, rs, re) for rs, re in own_reservation_windows)
+        if is_own_conflict:
+            return {
+                "ok": False,
+                "reason": "You already have this room booked at that time.",
+                "can_waitlist": False,
+                "suggested_slots": [],
+                "conflict_type": "own_reservation",
+            }
         suggested = _find_next_free_slots(open_dt=open_dt, close_dt=close_dt, duration_minutes=duration_minutes, busy=busy)
         return {
             "ok": False,
             "reason": "That room is already booked for that time.",
             "can_waitlist": (not room_is_computer),
             "suggested_slots": suggested,
+            "conflict_type": "other_reservation",
         }
 
     return {"ok": True, "can_waitlist": False, "suggested_slots": []}

@@ -502,6 +502,38 @@ const StudySpaces = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // poll studyspaces every 10 seconds so the map and avilability counter stay live without a page reload
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get("/studyspaces/statuses/");
+        setStatuses(res.data.statuses);
+        setActiveRooms(res.data.activeRooms);
+      } catch (err) {
+        console.error("Failed to refresh statuses:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+ // poll the room schedule every 3 seconds when a room modal is open
+useEffect(() => {
+  if (!showModal && !showComputerModal) return;
+  const roomId = roomNameToId.get(bookingData.resource);
+  if (!roomId || !bookingData.date) return;
+
+  const interval = setInterval(async () => {
+    try {
+      await fetchRoomSchedule(roomId, bookingData.date);
+    } catch (err) {
+      console.error("Failed to refresh room schedule:", err);
+    }
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, [showModal, showComputerModal, bookingData.resource, bookingData.date, roomNameToId]);
+
 
   // added so that it fires whenenever the selected room or date changes to fetch that room's scheldue
   useEffect(() => {
